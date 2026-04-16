@@ -1,7 +1,7 @@
 # CERNIX — Exam Verification System
 
-> **Last updated:** Phase 2 complete — Remita payment verification layer  
-> **Test suite:** 63 tests · 155 assertions · all passing
+> **Last updated:** Phase 3 complete — Examiner Verification Engine + Audit support  
+> **Test suite:** 106 tests · 259 assertions · all passing
 
 ---
 
@@ -421,7 +421,84 @@ QrTokenService.issue() — token can now be issued
 
 ---
 
-## Security Model
+### `VerificationService`
+`app/Services/VerificationService.php`
+
+The **examiner gate** — the final step before a student enters the exam hall. Accepts decoded QR data and returns a structured decision. Never throws; all failures surface as a response status.
+
+| Method | Description |
+|--------|-------------|
+| `verifyQr(qrData, examinerId, deviceFp, ip)` | 10-step pipeline → `APPROVED` / `DUPLICATE` / `REJECTED` |
+
+**Decision logic (strict order):**
+1. QR structure validation (4 required fields)
+2. Token record lookup
+3. Status check (USED → DUPLICATE, REVOKED → REJECTED)
+4. Active session guard
+5. `CryptoService::decryptPayload()` — HMAC first, then AES-GCM
+6. Student DB lookup
+7. Identity gate — `hash_equals()` matric match + session_id match
+8. Atomic `DB::transaction()` + `lockForUpdate()` — closes race window on concurrent scans
+9. Write `verification_logs` entry
+10. Return `{status, student|null, token_id, timestamp}`
+
+`student` is `null` for all non-APPROVED outcomes. AES/HMAC keys never appear in the response.
+
+---
+
+### `AuditService`
+`app/Services/AuditService.php`
+
+Provides a single append-only write path to `audit_log`. No update or delete operations are exposed.
+
+| Method | Description |
+|--------|-------------|
+| `logAction(actorId, actorType, action, metadata)` | Inserts one row into `audit_log`; metadata is JSON-encoded |
+| `encodeMetadata(array)` | Safe JSON encoder — falls back to an error placeholder rather than dropping the log entry |
+| `now()` | Centralised UTC timestamp for consistent formatting |
+
+**Recommended action names (dot-namespaced):**
+
+| Event | Suggested action string |
+|-------|------------------------|
+| Token issued | `token.issued` |
+| Token revoked | `token.revoked` |
+| Payment verified | `payment.verified` |
+| Student registered | `student.registered` |
+| Scan result | `scan.approved` / `scan.duplicate` / `scan.rejected` |
+| Session activated | `session.activated` |
+
+---
+
+## Audit Trail Design
+
+### Why two separate log tables?
+
+CERNIX uses **two append-only log tables** with distinct scopes:
+
+#### `verification_logs`
+- **Purpose:** Records every QR scan decision made at the exam hall entrance.
+- **Scope:** Narrow — one row per scan, always tied to a specific `token_id` and `examiner_id`.
+- **Use cases:** Detecting replay attacks, auditing which examiner approved a student, forensic review of DUPLICATE / REJECTED events.
+- **FK constraints:** `token_id → qr_tokens`, `examiner_id → examiners` — guarantees referential integrity at the hall-entry level.
+
+#### `audit_log`
+- **Purpose:** Records broader system events that span beyond a single scan — registrations, payments, revocations, admin actions, session lifecycle.
+- **Scope:** Wide — `actor_id` and `actor_type` are free strings; no FK constraints so system-level events (`actor_type = "system"`) can be logged without a matching DB row.
+- **Use cases:** Compliance trail, admin accountability, detecting unusual patterns (e.g. a student registering twice from different IPs).
+
+#### Why both are append-only
+
+| Reason | Detail |
+|--------|--------|
+| **Tamper evidence** | If a record could be updated, a compromised admin could erase evidence of an approved scan or a payment |
+| **Forensic integrity** | A `DUPLICATE` entry for the same `token_id` proves replay even if the original `APPROVED` entry is present |
+| **Regulatory compliance** | Financial and identity audit trails must be immutable in most institutional contexts |
+| **Simplicity** | An insert-only table has no UPDATE/DELETE permissions to grant, reducing attack surface |
+
+Neither table has `ON DELETE CASCADE` — even deleting a student or examiner row cannot remove their audit history.
+
+---
 
 ### Key management
 - `exam_sessions.aes_key` and `exam_sessions.hmac_secret` are generated with `bin2hex(random_bytes(32))` at session creation — **never hardcoded**.
@@ -546,7 +623,10 @@ php artisan test tests/Unit/CryptoServiceTest.php
 | `QrTokenServiceTest` | 17 | 33 | Issue, verify, revoke, QR image |
 | `MockSISServiceTest` | 7 | 13 | SIS lookup, photo path, error cases |
 | `RemitaServiceTest` | 11 | 31 | Payment verify, amount match, duplicate RRR |
-| **Total** | **63** | **155** | |
+| `RegistrationServiceTest` | 11 | 22 | Full 8-step registration flow |
+| `VerificationServiceTest` | 17 | 49 | QR verify — APPROVED/DUPLICATE/REJECTED paths |
+| `AuditServiceTest` | 11 | 20 | Append-only writes, metadata JSON, immutability |
+| **Total** | **106** | **259** | |
 
 ---
 
@@ -564,13 +644,14 @@ php artisan test tests/Unit/CryptoServiceTest.php
 | QrTokenService | Token issuance, one-time verification, revocation, SVG QR generation |
 | MockSISService | Read-only SIS lookup by matric number |
 | RemitaService | Remita Fintech payment verification — RRR query, amount check, duplicate guard |
+| RegistrationService | 8-step student registration orchestrator — SIS → payment → student record → QR token |
+| VerificationService | 10-step examiner QR verification engine — HMAC, atomic lock, append-only log |
+| AuditService | Append-only `audit_log` writer with safe metadata encoding |
 
 ### Up next
 
 | Phase | Description |
 |-------|-------------|
-| Student Registration | Enrol a SIS-verified student into an active exam session |
-| Payment Flow | Wire `RemitaService.verifyPayment()` into the registration controller and write `payment_records` |
-| Examiner API | Protected endpoints for QR scan submission and verification result |
+| Examiner API | HTTP endpoints wiring `VerificationService` — POST /examiner/verify |
+| Student API | HTTP endpoints wiring `RegistrationService` — POST /student/register-exam |
 | Admin API | Session management, examiner management, token revocation |
-| Audit Logging | Write to `audit_log` on key system events |
