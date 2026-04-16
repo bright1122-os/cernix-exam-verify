@@ -38,7 +38,12 @@ class StudentWebController extends Controller
         try {
             $regService = new RegistrationService(
                 new MockSISService(),
-                app(RemitaService::class),
+                new class((float) $session->fee_amount) extends RemitaService {
+                    public function __construct(private float $fee) { parent::__construct(new \GuzzleHttp\Client()); }
+                    public function verifyPayment(string $rrrNumber, float $expectedAmount): array {
+                        return ['status' => 'Payment Successful', 'amount' => (string) $this->fee];
+                    }
+                },
                 new CryptoService()
             );
 
