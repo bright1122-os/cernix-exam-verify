@@ -1,7 +1,7 @@
 # CERNIX — Exam Verification System
 
-> **Last updated:** Phase 1 complete — SIS access layer  
-> **Test suite:** 52 tests · 124 assertions · all passing
+> **Last updated:** Phase 2 complete — Remita payment verification layer  
+> **Test suite:** 63 tests · 155 assertions · all passing
 
 ---
 
@@ -367,6 +367,60 @@ Keys accepted as either raw 32-byte strings or 64-char hex (as stored in `exam_s
 
 ---
 
+### `RemitaService`
+`app/Services/RemitaService.php`
+
+Wraps the **Remita Fintech payment-query API**. All credentials are read from environment variables at runtime — never hardcoded.
+
+| Method | Description |
+|--------|-------------|
+| `verifyPayment(rrrNumber, expectedAmount)` | Full pipeline: duplicate-RRR guard → Remita API call → success check → amount match. Returns full response array or throws. |
+| `isPaymentSuccessful(response)` | Returns `true` when Remita status is `"Payment Successful"` (case-insensitive) or `"00"` |
+| `amountMatches(expected, actual)` | Safe float comparison within a 0.001 tolerance |
+| `rrrAlreadyUsed(rrrNumber)` | Checks `payment_records.rrr_number` — prevents replay attacks |
+
+#### Remita credentials
+
+| Env variable | Description |
+|---|---|
+| `REMITA_BASE_URL` | e.g. `https://remitademo.net/remita/exapp/api/v1` |
+| `REMITA_PUBLIC_KEY` | Your Remita Fintech public key — used as `remitaConsumerKey` in the Authorization header |
+| `REMITA_SECRET_KEY` | Your Remita Fintech secret key — used **only** to derive the `remitaConsumerToken` via `SHA512(publicKey + rrr + secretKey)`; **never sent over the wire** |
+
+Set these in your local `.env` file. The `.env.example` has placeholder entries. Never commit real keys.
+
+#### API call details
+
+```
+GET {REMITA_BASE_URL}/payment/query/{rrr}
+Authorization: remitaConsumerKey={publicKey},remitaConsumerToken={sha512(publicKey+rrr+secretKey)}
+Content-Type: application/json
+```
+
+#### How payment verification fits the system flow
+
+```
+Student submits RRR
+        │
+        ▼
+RemitaService.verifyPayment(rrr, expectedAmount)
+        ├─ rrrAlreadyUsed()  → throws if RRR already in payment_records
+        ├─ queryRemita()     → hits Remita API, returns JSON body
+        ├─ isPaymentSuccessful() → throws if status is not "Payment Successful"
+        └─ amountMatches()   → throws if confirmed amount ≠ expected amount
+        │
+        ▼ (all checks passed)
+Caller stores row in payment_records
+        └─ remita_response = full JSON body
+        └─ amount_confirmed = body['amount']
+        └─ rrr_number = rrr (now guarded against reuse)
+        │
+        ▼
+QrTokenService.issue() — token can now be issued
+```
+
+---
+
 ## Security Model
 
 ### Key management
@@ -491,7 +545,8 @@ php artisan test tests/Unit/CryptoServiceTest.php
 | `CryptoServiceTest` | 10 | 17 | AES-GCM, HMAC, key generation |
 | `QrTokenServiceTest` | 17 | 33 | Issue, verify, revoke, QR image |
 | `MockSISServiceTest` | 7 | 13 | SIS lookup, photo path, error cases |
-| **Total** | **52** | **124** | |
+| `RemitaServiceTest` | 11 | 31 | Payment verify, amount match, duplicate RRR |
+| **Total** | **63** | **155** | |
 
 ---
 
@@ -508,13 +563,14 @@ php artisan test tests/Unit/CryptoServiceTest.php
 | CryptoService | AES-256-GCM encryption + HMAC-SHA256 signing layer |
 | QrTokenService | Token issuance, one-time verification, revocation, SVG QR generation |
 | MockSISService | Read-only SIS lookup by matric number |
+| RemitaService | Remita Fintech payment verification — RRR query, amount check, duplicate guard |
 
 ### Up next
 
 | Phase | Description |
 |-------|-------------|
 | Student Registration | Enrol a SIS-verified student into an active exam session |
-| Payment Integration | Remita RRR verification and `payment_records` creation |
+| Payment Flow | Wire `RemitaService.verifyPayment()` into the registration controller and write `payment_records` |
 | Examiner API | Protected endpoints for QR scan submission and verification result |
 | Admin API | Session management, examiner management, token revocation |
 | Audit Logging | Write to `audit_log` on key system events |
