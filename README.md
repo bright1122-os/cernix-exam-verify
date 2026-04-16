@@ -1,6 +1,6 @@
 # CERNIX — Exam Verification System
 
-> **Last updated:** Phase 4 complete — End-to-end system validation  
+> **Last updated:** Phase 5 complete — Demo UI, health check, defense preparation  
 > **Test suite:** 113 tests · 294 assertions · all passing
 
 ---
@@ -13,6 +13,8 @@
 4. [API Endpoints](#api-endpoints)
 5. [Services](#services)
 6. [Security Model](#security-model)
+7. [Live Demonstration Flow](#live-demonstration-flow)
+8. [Panel Questions & Answers](#panel-questions--answers)
 7. [Environment Variables](#environment-variables)
 8. [Installation & Setup](#installation--setup)
 9. [Running Tests](#running-tests)
@@ -730,3 +732,134 @@ Tampered QR ──► status = REJECTED (HMAC mismatch caught before decryption)
 | Examiner API | HTTP endpoints wiring `VerificationService` — POST /examiner/verify |
 | Student API | HTTP endpoints wiring `RegistrationService` — POST /student/register-exam |
 | Admin API | Session management, examiner management, token revocation |
+
+---
+
+## Live Demonstration Flow
+
+> Complete demo runs in under 2 minutes. Start the server with `php artisan serve` from the `cernix/` directory.
+
+### Step-by-step
+
+**Step 1 — Open the landing page**
+
+Navigate to `http://localhost:8000`. You will see the CERNIX home screen with three portal cards (Student, Examiner, Admin) and a live system health badge confirming DB connectivity and an active exam session.
+
+**Step 2 — Open the Student Portal**
+
+Click **Student Portal** or navigate to `http://localhost:8000/student/register`.
+
+You will see:
+- Session banner: `First Semester 2025/2026 — Fee: ₦10,000.00`
+- Two input fields: Matriculation Number and Remita RRR Number
+
+**Step 3 — Enter credentials and generate QR**
+
+Enter the following demo values:
+
+| Field | Value |
+|-------|-------|
+| Matriculation Number | `CSC/2021/001` |
+| Remita RRR | `280007021192` |
+
+Click **Generate QR**. The button shows a spinner while the backend:
+1. Validates the student against the mock SIS
+2. Verifies the Remita payment
+3. Creates the student exam record
+4. Issues an AES-256-GCM encrypted QR token
+5. Returns the SVG QR code
+
+**Step 4 — View the QR result**
+
+The form is replaced by a green success panel showing:
+- Student name: **Adebayo Oluwaseun Emmanuel**
+- Matric number: `CSC/2021/001`
+- Session and UUID token ID
+- The scannable QR code SVG
+
+**Step 5 — Open the Examiner Portal**
+
+Open a new tab and navigate to `http://localhost:8000/examiner/dashboard`.
+
+Click **Start Scan** to activate the WebRTC camera. Point the camera at the QR code on the student tab, or paste the QR JSON manually into the text area and click **Verify Manually**.
+
+**Step 6 — Show APPROVED result**
+
+The right panel turns green and shows:
+- ✓ **APPROVED**
+- Student name and matric number
+- Token ID and timestamp
+
+The token is now marked `USED` in the database.
+
+**Step 7 — Scan the same QR again (replay attack)**
+
+Click **Reset Scan**, then scan or paste the same QR data again.
+
+The right panel turns yellow:
+- ! **DUPLICATE** — This QR code has already been used. Entry denied.
+
+Only one `APPROVED` decision ever exists in `verification_logs` for this token.
+
+**Step 8 — View the Admin Panel**
+
+Navigate to `http://localhost:8000/admin/dashboard`.
+
+You will see:
+- **Stats row**: Total scans, Approved (1), Rejected (0), Duplicates (1)
+- **Verification Logs table**: Both the APPROVED and DUPLICATE entries with examiner ID, IP, and timestamp
+- **Audit Log table**: `student.registered` and `scan.approved` entries
+
+Click **Refresh Logs** to reload the data.
+
+---
+
+## Panel Questions & Answers
+
+### Security design
+
+**Q: Why is the student photo not stored inside the QR code?**
+
+A: Embedding photo data would inflate the QR beyond scannable size and leak biometric information into a physically visible medium. Instead, the QR carries only a `token_id` and an encrypted payload. The examiner's device retrieves the photo from the secure server-side student record after cryptographic verification — the photo never travels through the QR channel.
+
+---
+
+**Q: Why use both AES-256-GCM and HMAC-SHA256 — aren't they redundant?**
+
+A: They serve different purposes. AES-256-GCM provides *confidentiality* — it encrypts the payload so no raw PII (name, matric, photo hash) is readable from the QR code. HMAC-SHA256 provides *integrity* — it proves the payload was produced by a system that holds the secret key and has not been altered. The HMAC is checked *before* decryption so forged payloads are rejected with zero decryption cost.
+
+---
+
+**Q: How do you prevent QR code reuse (replay attacks)?**
+
+A: Every token has a `status` column (`UNUSED` → `USED`). On the first successful scan, `VerificationService` performs an *atomic* status update inside a database transaction. Any subsequent scan sees `USED` and returns `DUPLICATE` immediately. The `APPROVED` decision is written to `verification_logs` only once — replays are logged as `DUPLICATE` and never grant entry.
+
+---
+
+**Q: What if two examiners scan the same QR at exactly the same time?**
+
+A: Step 8 of `VerificationService` wraps the status transition in `DB::transaction()` with `SELECT … FOR UPDATE` (row-level lock). The first request acquires the lock, transitions the token to `USED`, commits, and returns `APPROVED`. The second request, when its lock is released, re-reads the status inside its own transaction, finds `USED`, and returns `DUPLICATE`. No race condition can produce two `APPROVED` decisions.
+
+---
+
+**Q: Why is student data fetched from the SIS rather than trusting user input?**
+
+A: If a student could supply their own `full_name` and `photo_path` at registration, they could impersonate any other student. The `MockSISService` (standing in for the university's Student Information System) is the authoritative source. `RegistrationService` discards the user-supplied `full_name` entirely and reads name and photo path exclusively from the SIS lookup keyed on `matric_no`.
+
+---
+
+**Q: What does the audit log record and why is it append-only?**
+
+A: `AuditService` writes to `audit_log` with no `UPDATE` or `DELETE` path in the service layer. Every action — registration, approval, duplicate detection — creates a new row. This gives investigators an immutable timeline: you can prove exactly when a token was issued, when it was consumed, and by which examiner. Foreign keys on `audit_log` intentionally have no `ON DELETE CASCADE` so records survive even if related rows are removed.
+
+---
+
+**Q: How is the Remita payment key kept secure?**
+
+A: Keys are loaded from environment variables (`REMITA_PUBLIC_KEY`, `REMITA_SECRET_KEY`) via `config/remita.php`. They are never committed to source control (`.env` is gitignored), never logged, never returned in API responses. In tests, the HTTP layer is replaced with a Guzzle `MockHandler` so real keys are not required in the test environment at all.
+
+---
+
+**Q: What does the health endpoint check?**
+
+A: `GET /health` checks two things: (1) it attempts to acquire a PDO connection to confirm the database is reachable, and (2) it queries `exam_sessions` for a row with `is_active = true`. The response `{ status, database, session_active, timestamp }` lets an operator or monitoring tool confirm the system is ready to process registrations before a session begins.

@@ -22,9 +22,9 @@
                         d="M15 10l4.553-2.069A1 1 0 0121 8.82V15.18a1 1 0 01-1.447.89L15 14M3 8a2 2 0 012-2h8a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2V8z"/>
                 </svg>
                 <p class="text-sm">Camera not started</p>
-                <button onclick="startCamera()"
+                <button onclick="startCamera()" id="start-scan-btn"
                     class="mt-3 px-4 py-2 bg-[#0f2050] text-white text-sm rounded-lg hover:bg-[#1a3370] transition">
-                    Start Camera
+                    Start Scan
                 </button>
             </div>
 
@@ -44,7 +44,7 @@
                 </div>
                 <div class="flex items-center justify-between mt-3">
                     <p id="scan-status" class="text-xs text-gray-500">Scanning…</p>
-                    <button onclick="stopCamera()" class="text-xs text-red-500 hover:underline">Stop Camera</button>
+                    <button onclick="stopCamera()" class="text-xs text-red-500 hover:underline">Stop Scan</button>
                 </div>
             </div>
 
@@ -139,8 +139,8 @@
             </div>
 
             <button id="scan-again-btn" onclick="resetResult()"
-                class="hidden mt-4 w-full text-center text-sm text-[#0f2050] hover:underline">
-                Scan next student
+                class="hidden mt-4 w-full bg-gray-100 hover:bg-gray-200 text-gray-700 text-sm font-medium rounded-lg px-4 py-2 transition">
+                Reset Scan
             </button>
         </div>
 

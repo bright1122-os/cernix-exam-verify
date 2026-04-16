@@ -1,11 +1,13 @@
 <?php
 
+use App\Http\Controllers\HealthController;
 use App\Http\Controllers\Web\AdminWebController;
 use App\Http\Controllers\Web\ExaminerWebController;
 use App\Http\Controllers\Web\StudentWebController;
 use Illuminate\Support\Facades\Route;
 
-Route::get('/', fn () => view('welcome'));
+Route::get('/', fn () => view('home'));
+Route::get('/health', [HealthController::class, 'check']);
 
 // Student portal
 Route::get('/student/register',  [StudentWebController::class, 'index']);

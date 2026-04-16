@@ -40,7 +40,7 @@
 
             <button type="submit" id="submit-btn"
                 class="w-full bg-[#0f2050] text-white rounded-lg px-4 py-2.5 text-sm font-medium hover:bg-[#1a3370] transition flex items-center justify-center gap-2">
-                <span id="submit-label">Register &amp; Generate QR Code</span>
+                <span id="submit-label">Generate QR</span>
                 <svg id="spinner" class="hidden animate-spin w-4 h-4" fill="none" viewBox="0 0 24 24">
                     <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/>
                     <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"/>
@@ -105,7 +105,7 @@ document.getElementById('reg-form').addEventListener('submit', async (e) => {
     const spinner = document.getElementById('spinner');
     const errBox = document.getElementById('error-box');
 
-    label.textContent  = 'Processing…';
+    label.textContent  = 'Generating QR…';
     spinner.classList.remove('hidden');
     btn.disabled       = true;
     errBox.classList.add('hidden');
@@ -142,7 +142,7 @@ document.getElementById('reg-form').addEventListener('submit', async (e) => {
         errBox.textContent = err.message;
         errBox.classList.remove('hidden');
     } finally {
-        label.textContent  = 'Register & Generate QR Code';
+        label.textContent  = 'Generate QR';
         spinner.classList.add('hidden');
         btn.disabled       = false;
     }

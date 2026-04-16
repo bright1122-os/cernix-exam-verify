@@ -5,9 +5,19 @@
 @section('content')
 <div>
 
-    <div class="mb-6">
-        <h1 class="text-2xl font-bold text-gray-900">Admin Dashboard</h1>
-        <p class="text-sm text-gray-500 mt-1">Read-only view of all verification activity and audit log</p>
+    <div class="mb-6 flex items-start justify-between gap-4">
+        <div>
+            <h1 class="text-2xl font-bold text-gray-900">Admin Dashboard</h1>
+            <p class="text-sm text-gray-500 mt-1">Read-only view of all verification activity and audit log</p>
+        </div>
+        <button onclick="window.location.reload()"
+            class="flex-shrink-0 flex items-center gap-2 bg-[#0f2050] text-white text-sm font-medium rounded-lg px-4 py-2 hover:bg-[#1a3370] transition">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                    d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
+            </svg>
+            Refresh Logs
+        </button>
     </div>
 
     <!-- Stats row -->
