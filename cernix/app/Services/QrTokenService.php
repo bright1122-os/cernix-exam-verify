@@ -78,19 +78,20 @@ class QrTokenService
             'issued_at'         => $issuedAt,
         ]);
 
-        // The string encoded inside the QR image carries everything needed to
-        // verify the token offline (session_id selects the decryption keys).
-        $qrContent = json_encode([
-            'v'                 => 1,
-            'session_id'        => $sessionId,
+        // QR envelope — carries everything the scanner needs.
+        // token_id is at the top level so the scanner can look up the token
+        // without decrypting; session_id selects the decryption keys.
+        $tokenData = [
+            'token_id'          => $tokenId,
             'encrypted_payload' => $encrypted['encrypted_payload'],
             'hmac_signature'    => $encrypted['hmac_signature'],
-        ], JSON_THROW_ON_ERROR);
+            'session_id'        => $sessionId,
+        ];
 
         return [
             'token_id'          => $tokenId,
-            'qr_content'        => $qrContent,
-            'qr_svg'            => $this->buildQrCode($qrContent),
+            'qr_content'        => json_encode($tokenData, JSON_THROW_ON_ERROR),
+            'qr_svg'            => $this->buildQrCode($tokenData),
             'encrypted_payload' => $encrypted['encrypted_payload'],
             'hmac_signature'    => $encrypted['hmac_signature'],
         ];
@@ -117,6 +118,7 @@ class QrTokenService
 
         if (
             ! is_array($data)
+            || empty($data['token_id'])
             || empty($data['session_id'])
             || empty($data['encrypted_payload'])
             || empty($data['hmac_signature'])
@@ -140,7 +142,8 @@ class QrTokenService
             $session->hmac_secret
         );
 
-        $tokenId = $payload['token_id'];
+        // token_id lives in the outer QR envelope — available without decrypting
+        $tokenId = $data['token_id'];
 
         $token = DB::table('qr_tokens')->where('token_id', $tokenId)->first();
         if (! $token) {
@@ -201,13 +204,25 @@ class QrTokenService
     }
 
     /**
-     * Render a QR code as an SVG string.
+     * Render a QR code as an SVG string from structured token data.
      *
-     * SVG requires no image extension and can be embedded directly in HTML
-     * or returned as a data URI: "data:image/svg+xml;base64,<base64(result)>"
+     * Encodes exactly: { token_id, encrypted_payload, hmac_signature, session_id }
+     * Raw student data, photo paths, PII, and cryptographic keys are NEVER included.
+     *
+     * SVG can be embedded directly in HTML or returned as a data URI:
+     *   "data:image/svg+xml;base64,<base64(result)>"
+     *
+     * @param  array{token_id: string, encrypted_payload: string, hmac_signature: string, session_id: int} $tokenData
      */
-    public function buildQrCode(string $content, int $size = 300): string
+    public function buildQrCode(array $tokenData, int $size = 300): string
     {
+        $content = json_encode([
+            'token_id'          => $tokenData['token_id'],
+            'encrypted_payload' => $tokenData['encrypted_payload'],
+            'hmac_signature'    => $tokenData['hmac_signature'],
+            'session_id'        => $tokenData['session_id'],
+        ], JSON_THROW_ON_ERROR);
+
         return (string) QrCode::format('svg')->size($size)->generate($content);
     }
 }

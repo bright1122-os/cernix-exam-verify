@@ -82,9 +82,9 @@ class QrTokenServiceTest extends TestCase
         $this->assertTrue(Str::isUuid($result['token_id']));
         $this->assertNotEmpty($result['qr_svg']);
 
-        // QR content must be valid JSON with required keys
+        // QR content must be valid JSON with exactly the four allowed keys
         $qrData = json_decode($result['qr_content'], true);
-        $this->assertSame(1, $qrData['v']);
+        $this->assertSame($result['token_id'], $qrData['token_id']);
         $this->assertSame($this->sessionId, $qrData['session_id']);
     }
 
@@ -268,10 +268,87 @@ class QrTokenServiceTest extends TestCase
 
     public function test_build_qr_code_returns_svg_string(): void
     {
-        $svg = $this->service->buildQrCode('test-content');
+        $issued = $this->service->issue($this->matricNo, $this->sessionId);
+
+        $tokenData = [
+            'token_id'          => $issued['token_id'],
+            'encrypted_payload' => $issued['encrypted_payload'],
+            'hmac_signature'    => $issued['hmac_signature'],
+            'session_id'        => $this->sessionId,
+        ];
+
+        $svg = $this->service->buildQrCode($tokenData);
 
         $this->assertNotEmpty($svg);
-        // SVG documents start with the XML/SVG tag
         $this->assertStringContainsString('<svg', $svg);
+    }
+
+    // -------------------------------------------------------------------------
+    // QR structure and security assertions (spec-required)
+    // -------------------------------------------------------------------------
+
+    public function test_qr_contains_only_allowed_fields(): void
+    {
+        $issued = $this->service->issue($this->matricNo, $this->sessionId);
+
+        $qrData = json_decode($issued['qr_content'], true);
+
+        $this->assertSame(
+            ['token_id', 'encrypted_payload', 'hmac_signature', 'session_id'],
+            array_keys($qrData),
+            'QR envelope must contain exactly: token_id, encrypted_payload, hmac_signature, session_id'
+        );
+    }
+
+    public function test_qr_does_not_contain_raw_student_data(): void
+    {
+        $issued = $this->service->issue($this->matricNo, $this->sessionId);
+
+        $qrJson  = $issued['qr_content'];
+        $qrData  = json_decode($qrJson, true);
+
+        // None of these keys may appear in the outer QR envelope
+        foreach (['matric_no', 'full_name', 'photo_path', 'photo_hash', 'email'] as $piiKey) {
+            $this->assertArrayNotHasKey($piiKey, $qrData, "PII key \"{$piiKey}\" must not appear in QR envelope");
+        }
+
+        // Raw student name / matric must not appear as plain text in the JSON string
+        $this->assertStringNotContainsString('Adebayo', $qrJson);
+        $this->assertStringNotContainsString($this->matricNo, $qrJson);
+    }
+
+    public function test_encrypted_payload_can_be_decrypted_successfully(): void
+    {
+        $issued = $this->service->issue($this->matricNo, $this->sessionId);
+
+        $session = \Illuminate\Support\Facades\DB::table('exam_sessions')
+            ->where('session_id', $this->sessionId)
+            ->first();
+
+        $crypto    = new \App\Services\CryptoService();
+        $decrypted = $crypto->decryptPayload(
+            $issued['encrypted_payload'],
+            $issued['hmac_signature'],
+            $session->aes_key,
+            $session->hmac_secret
+        );
+
+        $this->assertArrayHasKey('matric_no', $decrypted);
+        $this->assertArrayHasKey('full_name', $decrypted);
+        $this->assertSame($this->matricNo, $decrypted['matric_no']);
+    }
+
+    public function test_tampered_qr_payload_fails_verification(): void
+    {
+        $issued = $this->service->issue($this->matricNo, $this->sessionId);
+
+        $data = json_decode($issued['qr_content'], true);
+        // Corrupt the encrypted blob — HMAC will not match
+        $data['encrypted_payload'] = base64_encode('forged_garbage_payload');
+        $tampered = json_encode($data);
+
+        $this->expectException(\RuntimeException::class);
+
+        $this->service->verify($tampered, $this->examinerId, 'fp', '127.0.0.1');
     }
 }
