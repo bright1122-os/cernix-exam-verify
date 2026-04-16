@@ -1,7 +1,7 @@
 # CERNIX — Exam Verification System
 
-> **Last updated:** Phase 3 complete — Examiner Verification Engine + Audit support  
-> **Test suite:** 106 tests · 259 assertions · all passing
+> **Last updated:** Phase 4 complete — End-to-end system validation  
+> **Test suite:** 113 tests · 294 assertions · all passing
 
 ---
 
@@ -626,7 +626,81 @@ php artisan test tests/Unit/CryptoServiceTest.php
 | `RegistrationServiceTest` | 11 | 22 | Full 8-step registration flow |
 | `VerificationServiceTest` | 17 | 49 | QR verify — APPROVED/DUPLICATE/REJECTED paths |
 | `AuditServiceTest` | 11 | 20 | Append-only writes, metadata JSON, immutability |
-| **Total** | **106** | **259** | |
+| `EndToEndSystemTest` | 7 | 35 | Full SIS→Registration→QR→Scan→Audit lifecycle |
+| **Total** | **113** | **294** | |
+
+---
+
+## End-to-End System Validation
+
+`tests/Feature/EndToEndSystemTest.php` exercises the complete CERNIX lifecycle as a single closed loop, using the same production seeders the live system runs on. Only the external Remita HTTP call is mocked — every other component (crypto, DB, QR generation, verification logic) runs for real.
+
+### Full lifecycle tested
+
+```
+DepartmentsSeeder
+ExamSessionsSeeder   ──► active session (real AES-256 key + HMAC secret)
+MockSISSeeder        ──► CSC/2021/001 · Adebayo Oluwaseun Emmanuel
+ExaminersSeeder      ──► admin1 (examiner performing the scan)
+        │
+        ▼
+RegistrationService.registerStudent()
+  └─ MockSISService validates student in SIS
+  └─ Active session fetched from DB
+  └─ RemitaService.verifyPayment() [mocked HTTP, real logic]
+  └─ Student row inserted with SIS data (name/photo from SIS only)
+  └─ CryptoService.encryptPayload() — AES-256-GCM + HMAC-SHA256
+  └─ qr_tokens row inserted (status = UNUSED)
+  └─ Returns { success, token_id, qr_payload, full_name, photo_path }
+        │
+        ▼
+buildTokenData()  ──► { token_id, encrypted_payload, hmac_signature, session_id }
+        │              (hmac_signature fetched from qr_tokens row)
+        ▼
+QrTokenService.buildQrCode()  ──► SVG QR image (no PII, no keys)
+        │
+        ▼
+VerificationService.verifyQr()
+  └─ QR structure validated
+  └─ Token fetched, status = UNUSED ✓
+  └─ Active session confirmed ✓
+  └─ CryptoService.decryptPayload() — HMAC first (constant-time), then AES-GCM
+  └─ Identity verified: hash_equals(matric_no) + session_id match
+  └─ DB transaction: lockForUpdate() → status UNUSED→USED (atomic)
+  └─ verification_logs entry written (decision = APPROVED)
+  └─ Returns { status: APPROVED, student: {...}, token_id, timestamp }
+        │
+        ▼
+AuditService.logAction()  ──► audit_log entries written by simulated controller layer
+        │
+        ▼
+Second scan  ──► status = DUPLICATE (replay rejected, no second APPROVED log)
+        │
+        ▼
+Tampered QR ──► status = REJECTED (HMAC mismatch caught before decryption)
+```
+
+### What this proves
+
+| Assertion | What it guarantees |
+|-----------|-------------------|
+| `success = true`, `token_id` present | Registration pipeline is wired end-to-end |
+| QR has only `{token_id, encrypted_payload, hmac_signature, session_id}` | No PII leaks into the QR image |
+| `full_name` and `photo_path` come from SIS, not user input | Identity cannot be spoofed at registration |
+| `status = APPROVED`, `student` not null | Crypto pipeline decrypts and authenticates correctly |
+| `qr_tokens.status = USED` after first scan | Token is consumed exactly once |
+| `verification_logs` has 1 entry | Audit trail is written on every decision |
+| `audit_log ≥ 1 entry` | Audit service integrates into the flow |
+| Second scan → `DUPLICATE`, only 1 APPROVED log | Replay attacks cannot grant a second entry |
+| Tampered `encrypted_payload` → `REJECTED` | Forged QRs are rejected before any DB lookup |
+| Tampered `hmac_signature` → `REJECTED` | HMAC tamper detection works end-to-end |
+
+### Test isolation
+
+- `RefreshDatabase` resets SQLite between every test method
+- The Remita HTTP call is the only mock — all other I/O is real
+- Real cryptographic keys are generated per test run via `ExamSessionsSeeder`
+- No hardcoded tokens, payloads, or key material in the test file
 
 ---
 
@@ -647,6 +721,7 @@ php artisan test tests/Unit/CryptoServiceTest.php
 | RegistrationService | 8-step student registration orchestrator — SIS → payment → student record → QR token |
 | VerificationService | 10-step examiner QR verification engine — HMAC, atomic lock, append-only log |
 | AuditService | Append-only `audit_log` writer with safe metadata encoding |
+| EndToEndSystemTest | Full SIS→Registration→QR→Scan→Audit lifecycle validated as closed loop |
 
 ### Up next
 
