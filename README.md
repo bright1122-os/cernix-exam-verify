@@ -1,6 +1,6 @@
 # CERNIX — Exam Verification System
 
-> **Last updated:** Phase 9 — Expanded mock data (40 students, 15 departments, 4 faculties); idempotent seeders; 4 new SeederTest assertions  
+> **Last updated:** Phase 10 — Local test mode: TEST- RRR bypass, re-registration, `test:reset` command, `TestRrrSeeder`  
 > **Test suite:** 150 tests · 403 assertions · all passing
 
 ---
@@ -611,6 +611,84 @@ SENTRY_TRACES_SAMPLE_RATE=0.0
 
 ---
 
+## Local Test Mode
+
+> **Only active when `APP_ENV=local`.  No test-mode code is reachable in production.**
+
+When `APP_ENV=local`, two behaviours unlock so the full registration → scan flow can be exercised manually without real Remita credentials or db:seed resets.
+
+### 1 — TEST- RRR bypass (RemitaService)
+
+Any RRR that begins with `TEST-` skips the external Remita HTTP call and returns a synthetic "Payment Successful" response. The duplicate guard and amount-match check still execute normally.
+
+| Check | Behaviour in local mode |
+|-------|------------------------|
+| Duplicate RRR | **Still enforced** — a TEST-RRR already in `payment_records` is rejected |
+| Amount match | **Still enforced** — mock returns the expected amount so it always passes |
+| External API call | **Bypassed** — no HTTP request is made |
+
+#### Generating a test RRR pool
+
+```bash
+php artisan db:seed --class=TestRrrSeeder
+```
+
+Outputs 30 ready-to-use RRR values and writes them to `storage/app/test-rrr-pool.json`:
+
+```
+TEST-RRR-0001 … TEST-RRR-0030
+```
+
+Pick any unused value from the list and enter it in the Student Portal.
+
+### 2 — Re-registration allowed (RegistrationService)
+
+In local mode the duplicate-student guard is replaced with `updateOrInsert`, so the same matric number can register multiple times in a single session. This lets you:
+
+- Register a student → scan their QR → register them again with a new TEST-RRR → scan again
+- Test the DUPLICATE and REJECTED flows back-to-back without resetting
+
+### Resetting test state
+
+```bash
+php artisan test:reset
+```
+
+Clears (in FK order):
+
+| Table | Action |
+|-------|--------|
+| `verification_logs` | Deleted |
+| `qr_tokens` | Deleted |
+| `payment_records` | Deleted |
+| `students` | Deleted |
+| `mock_sis`, `departments`, `exam_sessions`, `examiners` | **Untouched** |
+
+After a reset, all 30 TEST-RRRs are available again and any mock_sis student can re-register.
+
+### Typical local workflow
+
+```bash
+# 1. Seed reference data (once)
+php artisan migrate --seed
+
+# 2. Generate test RRR pool
+php artisan db:seed --class=TestRrrSeeder
+
+# 3. Start the server
+php artisan serve
+
+# 4. Register a student — use matric CSC/2021/001 and TEST-RRR-0001
+#    Open the Examiner portal and scan the QR
+
+# 5. Register the same student again — use TEST-RRR-0002 (no reset needed)
+
+# 6. When you want a completely clean slate:
+php artisan test:reset
+```
+
+---
+
 ## Monitoring
 
 CERNIX uses [Sentry](https://sentry.io) for production error tracking.
@@ -813,6 +891,7 @@ Tampered QR ──► status = REJECTED (HMAC mismatch caught before decryption)
 | Admin dashboard fix | Corrected `audit_log` column from `created_at` → `timestamp` in `AdminWebController`; added `trustProxies(at: '*')` in `bootstrap/app.php` for ngrok/reverse-proxy support |
 | Sentry monitoring | `sentry/sentry-laravel` integrated; DSN from env only; `SentryScrubber::beforeSend` strips QR payloads, HMAC secrets, payment refs; SQL breadcrumbs and PII disabled; 4xx/JWT exceptions excluded from reporting |
 | Expanded mock data | 40 students across 15 departments / 4 faculties; entry years 2020–2023; varied Nigerian names; idempotent seeders; 4 new SeederTest assertions (photo_path, dept spread, referential consistency) |
+| Local test mode | `RemitaService`: TEST- RRR prefix bypasses Remita API (local only); duplicate + amount checks still enforced. `RegistrationService`: `updateOrInsert` in local mode allows re-registration. `TestResetCommand` (`php artisan test:reset`) clears transaction tables. `TestRrrSeeder` generates 30 TEST-RRR values. Zero production impact (`app()->environment('local')` guard). |
 
 ---
 

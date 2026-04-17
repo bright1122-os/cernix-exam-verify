@@ -56,15 +56,6 @@ class RegistrationService
         $this->remitaService->verifyPayment($data['rrr_number'], (float) $data['expected_amount']);
 
         // ── Step 4: Create student record ────────────────────────────────────
-        $alreadyRegistered = DB::table('students')
-            ->where('matric_no', $data['matric_no'])
-            ->where('session_id', $data['session_id'])
-            ->exists();
-
-        if ($alreadyRegistered) {
-            throw new RuntimeException('Student already registered for this session');
-        }
-
         $dept = DB::table('departments')
             ->where('dept_name', $sisStudent['department'])
             ->first();
@@ -75,14 +66,35 @@ class RegistrationService
             );
         }
 
-        DB::table('students')->insert([
-            'matric_no'     => $data['matric_no'],
+        $studentRow = [
             'full_name'     => $sisStudent['full_name'],   // SIS only — never user input
             'department_id' => $dept->dept_id,
             'session_id'    => $data['session_id'],
             'photo_path'    => $sisStudent['photo_path'],  // SIS only — never user input
             'created_at'    => now(),
-        ]);
+        ];
+
+        if (app()->environment('local')) {
+            // Local test mode: allow re-registration of the same student so the
+            // full registration→scan flow can be repeated without a db:seed reset.
+            // updateOrInsert keeps the PK stable, preserving any existing FK rows.
+            DB::table('students')->updateOrInsert(
+                ['matric_no' => $data['matric_no']],
+                $studentRow,
+            );
+        } else {
+            if (DB::table('students')
+                ->where('matric_no', $data['matric_no'])
+                ->where('session_id', $data['session_id'])
+                ->exists()
+            ) {
+                throw new RuntimeException('Student already registered for this session');
+            }
+
+            DB::table('students')->insert(
+                array_merge(['matric_no' => $data['matric_no']], $studentRow)
+            );
+        }
 
         // ── Step 5: Prepare QR payload ───────────────────────────────────────
         $payload = [

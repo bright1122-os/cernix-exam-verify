@@ -29,6 +29,14 @@ class RemitaService
             throw new RuntimeException('RRR has already been used for a payment record.');
         }
 
+        // ── Local test mode ───────────────────────────────────────────────────
+        // Only active when APP_ENV=local AND the RRR starts with "TEST-".
+        // The duplicate guard above still fires, amount match still executes below.
+        // This path is never reachable in production (APP_ENV != local).
+        if (app()->environment('local') && str_starts_with($rrrNumber, 'TEST-')) {
+            return $this->localMockResponse($rrrNumber, $expectedAmount);
+        }
+
         $body = $this->queryRemita($rrrNumber);
 
         if (! $this->isPaymentSuccessful($body)) {
@@ -81,6 +89,22 @@ class RemitaService
     // -------------------------------------------------------------------------
     // Internals
     // -------------------------------------------------------------------------
+
+    /**
+     * Return a synthetic successful response for TEST- RRRs in local environment.
+     *
+     * The amount field is set to exactly $expectedAmount so the amount-match
+     * check that runs immediately after this call always passes.
+     * The duplicate guard still runs before this method is reached.
+     */
+    private function localMockResponse(string $rrrNumber, float $expectedAmount): array
+    {
+        return [
+            'status' => 'Payment Successful',
+            'amount' => (string) $expectedAmount,
+            'rrr'    => $rrrNumber,
+        ];
+    }
 
     /**
      * Hit the Remita Fintech payment-query endpoint and return the decoded body.
