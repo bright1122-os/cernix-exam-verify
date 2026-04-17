@@ -9,7 +9,7 @@ class ExaminersSeeder extends Seeder
 {
     public function run(): void
     {
-        DB::table('examiners')->insert([
+        DB::table('examiners')->insertOrIgnore([
             [
                 'full_name'     => 'Examiner One',
                 'username'      => 'examiner1',
