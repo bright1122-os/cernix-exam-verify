@@ -159,18 +159,97 @@ let videoStream = null;
 let scanLoop    = null;
 let lastScanned = null;
 
+function showCameraError(message, hint) {
+    const placeholder = document.getElementById('camera-placeholder');
+    placeholder.innerHTML = `
+        <div class="flex flex-col items-center justify-center text-center px-4 py-6 gap-2">
+            <svg class="w-10 h-10 text-red-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
+                    d="M12 9v2m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+            </svg>
+            <p class="text-sm font-semibold text-red-600">Camera unavailable</p>
+            <p class="text-xs text-gray-600">${message}</p>
+            ${hint ? `<p class="text-xs text-gray-400">${hint}</p>` : ''}
+            <p class="text-xs text-gray-400 mt-1">Use the <strong>manual QR input</strong> below instead.</p>
+            <button onclick="restoreCameraPlaceholder()"
+                class="mt-2 px-3 py-1.5 bg-[#0f2050] text-white text-xs rounded-lg hover:bg-[#1a3370] transition">
+                Try Again
+            </button>
+        </div>`;
+}
+
+function restoreCameraPlaceholder() {
+    document.getElementById('camera-placeholder').innerHTML = `
+        <svg class="w-10 h-10 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
+                d="M15 10l4.553-2.069A1 1 0 0121 8.82V15.18a1 1 0 01-1.447.89L15 14M3 8a2 2 0 012-2h8a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2V8z"/>
+        </svg>
+        <p class="text-sm">Camera not started</p>
+        <button onclick="startCamera()" id="start-scan-btn"
+            class="mt-3 px-4 py-2 bg-[#0f2050] text-white text-sm rounded-lg hover:bg-[#1a3370] transition">
+            Start Scan
+        </button>`;
+}
+
 async function startCamera() {
+    // Mobile browsers only expose mediaDevices in a secure context (HTTPS / localhost).
+    // Over plain HTTP on LAN the API is undefined — detect this and explain clearly.
+    if (!window.isSecureContext) {
+        showCameraError(
+            'Camera access requires a secure connection (HTTPS).',
+            'Ask the administrator to enable HTTPS, or open this page on the same device as the server (localhost).'
+        );
+        return;
+    }
+
+    if (!navigator.mediaDevices || typeof navigator.mediaDevices.getUserMedia !== 'function') {
+        showCameraError(
+            'Your browser does not support camera access.',
+            'Try Chrome or Safari on a device connected via HTTPS.'
+        );
+        return;
+    }
+
     try {
-        videoStream = await navigator.mediaDevices.getUserMedia({
-            video: { facingMode: 'environment' }
-        });
+        // Prefer rear camera (ideal, not exact) so mobile falls back to front if needed.
+        let stream;
+        try {
+            stream = await navigator.mediaDevices.getUserMedia({
+                video: { facingMode: { ideal: 'environment' } }
+            });
+        } catch {
+            // Rear camera unavailable — accept any camera (e.g. front on tablet).
+            stream = await navigator.mediaDevices.getUserMedia({ video: true });
+        }
+
+        videoStream = stream;
         const video = document.getElementById('qr-video');
         video.srcObject = videoStream;
+        // iOS requires an explicit play() after srcObject assignment.
+        video.play().catch(() => {});
         document.getElementById('camera-placeholder').classList.add('hidden');
         document.getElementById('camera-active').classList.remove('hidden');
         scanLoop = requestAnimationFrame(scanFrame);
+
     } catch (err) {
-        alert('Camera access denied or unavailable: ' + err.message);
+        let message = 'Camera access was denied or is unavailable.';
+        let hint    = 'Use the manual QR input below.';
+
+        if (err.name === 'NotAllowedError' || err.name === 'PermissionDeniedError') {
+            message = 'Camera permission was denied.';
+            hint    = 'Allow camera access in your browser settings, then tap Try Again.';
+        } else if (err.name === 'NotFoundError' || err.name === 'DevicesNotFoundError') {
+            message = 'No camera was found on this device.';
+            hint    = null;
+        } else if (err.name === 'NotReadableError' || err.name === 'TrackStartError') {
+            message = 'Camera is in use by another app.';
+            hint    = 'Close other apps using the camera and tap Try Again.';
+        } else if (err.name === 'OverconstrainedError') {
+            message = 'Camera does not meet the required constraints.';
+            hint    = null;
+        }
+
+        showCameraError(message, hint);
     }
 }
 
