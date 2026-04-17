@@ -8,6 +8,7 @@ use Illuminate\Foundation\Configuration\Middleware;
 use Illuminate\Http\Request;
 use Illuminate\Validation\ValidationException;
 use Symfony\Component\HttpKernel\Exception\HttpException;
+use Tymon\JWTAuth\Exceptions\JWTException;
 
 return Application::configure(basePath: dirname(__DIR__))
     ->withRouting(
@@ -20,6 +21,15 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->trustProxies(at: '*');
     })
     ->withExceptions(function (Exceptions $exceptions) {
+
+        // Suppress expected, non-actionable exceptions from Sentry.
+        // Sentry\Laravel auto-registers itself; these additions prevent noise.
+        $exceptions->dontReport([
+            JWTException::class,          // expired / invalid / missing tokens → 401
+            AuthenticationException::class,
+            AuthorizationException::class,
+            ValidationException::class,
+        ]);
 
         // All JSON-expecting requests (API calls and AJAX from the UI) get a
         // consistent {status, message, data} envelope — never a raw stack trace.

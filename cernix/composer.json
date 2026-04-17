@@ -10,6 +10,7 @@
         "guzzlehttp/guzzle": "^7.10",
         "laravel/framework": "^11.31",
         "laravel/tinker": "^2.9",
+        "sentry/sentry-laravel": "^4.9",
         "simplesoftwareio/simple-qrcode": "^4.2",
         "tymon/jwt-auth": "^2.3"
     },

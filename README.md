@@ -1,6 +1,6 @@
 # CERNIX — Exam Verification System
 
-> **Last updated:** Phase 7 — Admin dashboard 500 fix (audit_log column + TrustedProxies for ngrok)  
+> **Last updated:** Phase 8 — Sentry error monitoring integrated (safe: env-only DSN, payload scrubber, noise suppression)  
 > **Test suite:** 146 tests · 384 assertions · all passing
 
 ---
@@ -602,7 +602,46 @@ REMITA_BASE_URL=https://remitademo.net/remita/exapp/api/v1
 REMITA_MERCHANT_ID=
 REMITA_SERVICE_TYPE_ID=
 REMITA_API_KEY=
+
+# Sentry — leave blank to disable
+SENTRY_DSN=
+SENTRY_RELEASE=
+SENTRY_TRACES_SAMPLE_RATE=0.0
 ```
+
+---
+
+## Monitoring
+
+CERNIX uses [Sentry](https://sentry.io) for production error tracking.
+
+### How it works
+
+| Concern | Behaviour |
+|---------|-----------|
+| **DSN source** | Read exclusively from `SENTRY_DSN` env var — never hardcoded |
+| **Disabled by default** | Leave `SENTRY_DSN` blank and Sentry is completely off |
+| **PII** | `send_default_pii = false` — cookies and Authorization headers are never sent |
+| **Payload scrubbing** | `SentryScrubber::beforeSend` runs on every event and replaces these fields with `[Filtered]`: `encrypted_payload`, `hmac_signature`, `hmac_secret`, `aes_key`, `rrr_number`, `token_id`, `qr_data`, `qr_svg`, `password`, `token`, `api_key`, `secret` |
+| **Noise suppression** | `ValidationException`, `AuthenticationException`, `AuthorizationException`, and all JWT exceptions are excluded from Sentry — these are expected, not bugs |
+| **SQL breadcrumbs** | Disabled — queries can reference student matric numbers |
+| **Performance tracing** | Off by default (`SENTRY_TRACES_SAMPLE_RATE=0.0`). Set to `0.1` to sample 10 % of requests |
+
+### Setup
+
+1. Create a project in [sentry.io](https://sentry.io) (platform: **Laravel**)
+2. Copy the DSN and add it to `.env`:
+   ```ini
+   SENTRY_DSN=https://<key>@o<org>.ingest.sentry.io/<project>
+   ```
+3. Optionally tag releases:
+   ```ini
+   SENTRY_RELEASE=1.0.0
+   ```
+4. Test the connection:
+   ```bash
+   php artisan sentry:test
+   ```
 
 ---
 
@@ -772,6 +811,7 @@ Tampered QR ──► status = REJECTED (HMAC mismatch caught before decryption)
 | Service container | All services bound in `AppServiceProvider` — enables constructor injection and test mocking |
 | Mobile camera fix | `isSecureContext` + `mediaDevices` guards; inline error panel replaces `alert()`; `facingMode: {ideal}` + explicit `video.play()` for iOS |
 | Admin dashboard fix | Corrected `audit_log` column from `created_at` → `timestamp` in `AdminWebController`; added `trustProxies(at: '*')` in `bootstrap/app.php` for ngrok/reverse-proxy support |
+| Sentry monitoring | `sentry/sentry-laravel` integrated; DSN from env only; `SentryScrubber::beforeSend` strips QR payloads, HMAC secrets, payment refs; SQL breadcrumbs and PII disabled; 4xx/JWT exceptions excluded from reporting |
 
 ---
 
