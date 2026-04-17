@@ -4,6 +4,7 @@ namespace App\Console\Commands;
 
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 
 class TestResetCommand extends Command
 {
@@ -29,9 +30,17 @@ class TestResetCommand extends Command
         $this->info('  qr_tokens         — cleared');
         $this->info('  payment_records   — cleared');
         $this->info('  students          — cleared');
+
+        // Reset test_rrrs pool if it exists so all 100 RRRs become available again.
+        if (Schema::hasTable('test_rrrs')) {
+            DB::table('test_rrrs')->update(['status' => 'UNUSED', 'used_at' => null]);
+            $count = DB::table('test_rrrs')->count();
+            $this->info("  test_rrrs         — {$count} records reset to UNUSED");
+        }
+
         $this->newLine();
         $this->info('Done. Any mock_sis student can now be registered again.');
-        $this->line('Tip: use a fresh TEST-RRR from storage/app/test-rrr-pool.json (or run php artisan db:seed --class=TestRrrSeeder to regenerate the list).');
+        $this->line('Use any UNUSED RRR from <info>php artisan test:rrr-generate</info> to register a student.');
 
         return self::SUCCESS;
     }

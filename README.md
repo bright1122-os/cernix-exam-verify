@@ -1,6 +1,6 @@
 # CERNIX — Exam Verification System
 
-> **Last updated:** Phase 10 — Local test mode: TEST- RRR bypass, re-registration, `test:reset` command, `TestRrrSeeder`  
+> **Last updated:** Phase 11 — Bulk TEST-RRR generator: `test_rrrs` table, `test:rrr-generate` command, 100-entry pool with UNUSED/USED tracking  
 > **Test suite:** 150 tests · 403 assertions · all passing
 
 ---
@@ -623,23 +623,49 @@ Any RRR that begins with `TEST-` skips the external Remita HTTP call and returns
 
 | Check | Behaviour in local mode |
 |-------|------------------------|
-| Duplicate RRR | **Still enforced** — a TEST-RRR already in `payment_records` is rejected |
+| Duplicate RRR | **Still enforced** — a reused TEST-RRR is rejected |
 | Amount match | **Still enforced** — mock returns the expected amount so it always passes |
 | External API call | **Bypassed** — no HTTP request is made |
 
-#### Generating a test RRR pool
+#### `test_rrrs` table
+
+A dedicated `test_rrrs` table holds the generated pool. It is created on-demand by the command — **no migration, no production footprint**.
+
+| Column | Type | Description |
+|--------|------|-------------|
+| `rrr_number` | VARCHAR (PK) | `TEST-RRR-0001` … `TEST-RRR-0100` |
+| `expected_amount` | DECIMAL(10,2) | Fixed at `10000.00` (matches active session fee) |
+| `status` | ENUM | `UNUSED` / `USED` |
+| `created_at` | TIMESTAMP | Pool generation time |
+| `used_at` | TIMESTAMP (nullable) | Set when the RRR is consumed |
+
+#### Generating / refreshing the pool
 
 ```bash
+# First time — creates the table and inserts 100 records
+php artisan test:rrr-generate
+
+# Re-run safely — adds only missing records, USED records stay USED
+php artisan test:rrr-generate
+
+# Same via seeder
 php artisan db:seed --class=TestRrrSeeder
 ```
 
-Outputs 30 ready-to-use RRR values and writes them to `storage/app/test-rrr-pool.json`:
+Output example:
 
 ```
-TEST-RRR-0001 … TEST-RRR-0030
+Created test_rrrs table.
+test_rrrs pool ready — 100 total / 98 UNUSED / 2 USED
+
+ RRR Number      | Expected Amount | Status
+ TEST-RRR-0001   | ₦10,000.00      | USED
+ TEST-RRR-0002   | ₦10,000.00      | USED
+ TEST-RRR-0003   | ₦10,000.00      | UNUSED
+ ...
 ```
 
-Pick any unused value from the list and enter it in the Student Portal.
+Pick any `UNUSED` value from the table and enter it in the Student Portal.
 
 ### 2 — Re-registration allowed (RegistrationService)
 
@@ -662,9 +688,8 @@ Clears (in FK order):
 | `qr_tokens` | Deleted |
 | `payment_records` | Deleted |
 | `students` | Deleted |
+| `test_rrrs` | All 100 records reset to `UNUSED` (table kept) |
 | `mock_sis`, `departments`, `exam_sessions`, `examiners` | **Untouched** |
-
-After a reset, all 30 TEST-RRRs are available again and any mock_sis student can re-register.
 
 ### Typical local workflow
 
@@ -672,8 +697,8 @@ After a reset, all 30 TEST-RRRs are available again and any mock_sis student can
 # 1. Seed reference data (once)
 php artisan migrate --seed
 
-# 2. Generate test RRR pool
-php artisan db:seed --class=TestRrrSeeder
+# 2. Generate the 100-entry TEST-RRR pool (once, or after deleting the table)
+php artisan test:rrr-generate
 
 # 3. Start the server
 php artisan serve
@@ -681,9 +706,9 @@ php artisan serve
 # 4. Register a student — use matric CSC/2021/001 and TEST-RRR-0001
 #    Open the Examiner portal and scan the QR
 
-# 5. Register the same student again — use TEST-RRR-0002 (no reset needed)
+# 5. Register the same student again with TEST-RRR-0002 (no reset needed)
 
-# 6. When you want a completely clean slate:
+# 6. Clean slate — clears all transaction tables and restores all 100 RRRs to UNUSED
 php artisan test:reset
 ```
 
@@ -892,6 +917,7 @@ Tampered QR ──► status = REJECTED (HMAC mismatch caught before decryption)
 | Sentry monitoring | `sentry/sentry-laravel` integrated; DSN from env only; `SentryScrubber::beforeSend` strips QR payloads, HMAC secrets, payment refs; SQL breadcrumbs and PII disabled; 4xx/JWT exceptions excluded from reporting |
 | Expanded mock data | 40 students across 15 departments / 4 faculties; entry years 2020–2023; varied Nigerian names; idempotent seeders; 4 new SeederTest assertions (photo_path, dept spread, referential consistency) |
 | Local test mode | `RemitaService`: TEST- RRR prefix bypasses Remita API (local only); duplicate + amount checks still enforced. `RegistrationService`: `updateOrInsert` in local mode allows re-registration. `TestResetCommand` (`php artisan test:reset`) clears transaction tables. `TestRrrSeeder` generates 30 TEST-RRR values. Zero production impact (`app()->environment('local')` guard). |
+| Bulk RRR generator | `test_rrrs` table (created on-demand, no migration); 100 entries `TEST-RRR-0001…0100` each linked to `expected_amount=10000`; UNUSED/USED status tracking; `test:rrr-generate` command uses `insertOrIgnore` for idempotent re-runs; `test:reset` resets all status to UNUSED; `TestRrrSeeder` delegates to the command. |
 
 ---
 
