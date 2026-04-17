@@ -7,7 +7,7 @@ return [
     // ── Connection ────────────────────────────────────────────────────────────
     // DSN is read exclusively from the environment — never hardcode it here.
     // Leave SENTRY_DSN unset (or empty) to disable Sentry entirely.
-    'dsn' => env('SENTRY_DSN'),
+    'dsn' => env('SENTRY_LARAVEL_DSN'),
 
     // ── Identity ──────────────────────────────────────────────────────────────
     'environment' => env('APP_ENV', 'production'),

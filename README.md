@@ -604,7 +604,7 @@ REMITA_SERVICE_TYPE_ID=
 REMITA_API_KEY=
 
 # Sentry — leave blank to disable
-SENTRY_DSN=
+SENTRY_LARAVEL_DSN=
 SENTRY_RELEASE=
 SENTRY_TRACES_SAMPLE_RATE=0.0
 ```
@@ -632,7 +632,7 @@ CERNIX uses [Sentry](https://sentry.io) for production error tracking.
 1. Create a project in [sentry.io](https://sentry.io) (platform: **Laravel**)
 2. Copy the DSN and add it to `.env`:
    ```ini
-   SENTRY_DSN=https://<key>@o<org>.ingest.sentry.io/<project>
+   SENTRY_LARAVEL_DSN=https://<key>@o<org>.ingest.sentry.io/<project>
    ```
 3. Optionally tag releases:
    ```ini
