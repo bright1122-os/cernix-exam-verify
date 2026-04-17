@@ -27,7 +27,7 @@ class AdminWebController extends Controller
         $verificationLogs = $query->limit(100)->get();
 
         $auditLogs = DB::table('audit_log')
-            ->orderByDesc('created_at')
+            ->orderByDesc('timestamp')
             ->limit(50)
             ->get();
 

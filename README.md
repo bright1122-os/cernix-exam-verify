@@ -1,6 +1,6 @@
 # CERNIX — Exam Verification System
 
-> **Last updated:** Phase 6 complete — Student / Examiner / Admin API endpoints + mobile camera fix  
+> **Last updated:** Phase 7 — Admin dashboard 500 fix (audit_log column + TrustedProxies for ngrok)  
 > **Test suite:** 146 tests · 384 assertions · all passing
 
 ---
@@ -771,6 +771,7 @@ Tampered QR ──► status = REJECTED (HMAC mismatch caught before decryption)
 | Admin API | 9 JWT-protected endpoints: session lifecycle, examiner management, token revocation, logs, stats |
 | Service container | All services bound in `AppServiceProvider` — enables constructor injection and test mocking |
 | Mobile camera fix | `isSecureContext` + `mediaDevices` guards; inline error panel replaces `alert()`; `facingMode: {ideal}` + explicit `video.play()` for iOS |
+| Admin dashboard fix | Corrected `audit_log` column from `created_at` → `timestamp` in `AdminWebController`; added `trustProxies(at: '*')` in `bootstrap/app.php` for ngrok/reverse-proxy support |
 
 ---
 
