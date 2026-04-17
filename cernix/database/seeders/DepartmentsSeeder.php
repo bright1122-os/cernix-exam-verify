@@ -34,9 +34,6 @@ class DepartmentsSeeder extends Seeder
             ['dept_name' => 'Economics',                'faculty' => 'Faculty of Management Sciences'],
         ];
 
-        // Truncate and reinsert — departments has no FK dependents so this is safe.
-        // Running the seeder multiple times always produces the same 15 rows.
-        DB::table('departments')->truncate();
-        DB::table('departments')->insert($departments);
+        DB::table('departments')->insertOrIgnore($departments);
     }
 }
