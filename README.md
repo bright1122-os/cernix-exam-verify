@@ -1,7 +1,7 @@
 # CERNIX — Exam Verification System
 
-> **Last updated:** Phase 8 — Sentry error monitoring integrated (safe: env-only DSN, payload scrubber, noise suppression)  
-> **Test suite:** 146 tests · 384 assertions · all passing
+> **Last updated:** Phase 9 — Expanded mock data (40 students, 15 departments, 4 faculties); idempotent seeders; 4 new SeederTest assertions  
+> **Test suite:** 150 tests · 403 assertions · all passing
 
 ---
 
@@ -673,9 +673,9 @@ php artisan serve
 ### Seed data included
 | Seeder | Records |
 |--------|---------|
-| `DepartmentsSeeder` | 5 departments — Faculty of Computing |
+| `DepartmentsSeeder` | 15 departments across 4 faculties (Computing, Engineering, Sciences, Management Sciences) — idempotent (truncate + reinsert) |
 | `ExamSessionsSeeder` | 1 active session — First Semester 2025/2026, ₦10,000 |
-| `MockSISSeeder` | 5 students (realistic Nigerian names) |
+| `MockSISSeeder` | 40 students — varied Nigerian names, 14 departments, entry years 2020–2023 — idempotent via `upsert` on `matric_no` |
 | `ExaminersSeeder` | `examiner1` (password: `password123`) + `admin1` (password: `admin123`) |
 
 ---
@@ -812,6 +812,7 @@ Tampered QR ──► status = REJECTED (HMAC mismatch caught before decryption)
 | Mobile camera fix | `isSecureContext` + `mediaDevices` guards; inline error panel replaces `alert()`; `facingMode: {ideal}` + explicit `video.play()` for iOS |
 | Admin dashboard fix | Corrected `audit_log` column from `created_at` → `timestamp` in `AdminWebController`; added `trustProxies(at: '*')` in `bootstrap/app.php` for ngrok/reverse-proxy support |
 | Sentry monitoring | `sentry/sentry-laravel` integrated; DSN from env only; `SentryScrubber::beforeSend` strips QR payloads, HMAC secrets, payment refs; SQL breadcrumbs and PII disabled; 4xx/JWT exceptions excluded from reporting |
+| Expanded mock data | 40 students across 15 departments / 4 faculties; entry years 2020–2023; varied Nigerian names; idempotent seeders; 4 new SeederTest assertions (photo_path, dept spread, referential consistency) |
 
 ---
 
