@@ -126,7 +126,9 @@ document.getElementById('toggle-pw').addEventListener('click', () => {
     }
 });
 
-// Login form — calls /api/examiner/login, then redirects to dashboard
+// Login form — calls /examiner/login (web session), then redirects to dashboard
+const csrfToken = document.querySelector('meta[name="csrf-token"]').content;
+
 document.getElementById('login-form').addEventListener('submit', async (e) => {
     e.preventDefault();
     const btn   = document.getElementById('login-btn');
@@ -140,9 +142,15 @@ document.getElementById('login-form').addEventListener('submit', async (e) => {
     btn.disabled = true; err.style.display = 'none';
 
     try {
-        const resp = await fetch('/api/examiner/login', {
+        const resp = await fetch('/examiner/login', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+            headers: {
+                'Content-Type': 'application/json',
+                'Accept': 'application/json',
+                'X-CSRF-TOKEN': csrfToken,
+                'X-Requested-With': 'XMLHttpRequest',
+            },
+            credentials: 'same-origin',
             body: JSON.stringify({
                 username: document.getElementById('username').value.trim(),
                 password: document.getElementById('password').value,
@@ -152,8 +160,6 @@ document.getElementById('login-form').addEventListener('submit', async (e) => {
         if (!resp.ok || data.status === 'error') {
             throw new Error(data.message || 'Invalid credentials.');
         }
-        // Store token for potential API use and go to dashboard
-        if (data.data?.token) sessionStorage.setItem('examiner_token', data.data.token);
         window.location.href = '/examiner/dashboard';
 
     } catch (ex) {

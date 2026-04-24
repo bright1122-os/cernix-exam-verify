@@ -196,10 +196,10 @@
     <!-- Top bar: examiner info + logout -->
     <div class="scanner-top">
         <div class="ex-info">
-            <div class="ex-avatar">EX</div>
-            <div><b>Examiner One</b><span>Hall A · Session #1</span></div>
+            <div class="ex-avatar">{{ strtoupper(substr($examiner['full_name'] ?? 'EX', 0, 2)) }}</div>
+            <div><b>{{ $examiner['full_name'] ?? 'Examiner' }}</b><span>{{ '@' . ($examiner['username'] ?? 'examiner') }} · {{ ucfirst($examiner['role'] ?? 'examiner') }}</span></div>
         </div>
-        <a href="/" class="iconbtn" aria-label="Logout">
+        <a href="/examiner/logout" class="iconbtn" aria-label="Logout">
             <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
                 <path d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v2a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h6a2 2 0 012 2v2"/>
             </svg>

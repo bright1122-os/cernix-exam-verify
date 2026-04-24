@@ -15,7 +15,7 @@ class ExaminersSeeder extends Seeder
                 'username'      => 'examiner1',
                 'password_hash' => bcrypt('password123'),
                 'role'          => 'examiner',
-                'is_active'     => false,
+                'is_active'     => true,
                 'created_at'    => now(),
             ],
             [

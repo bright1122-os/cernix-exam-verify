@@ -15,6 +15,15 @@ class MockSISService
      */
     public function getStudentByMatric(string $matricNo): array
     {
+        if (str_starts_with(strtoupper($matricNo), 'TEST-')) {
+            return [
+                'matric_no'  => $matricNo,
+                'full_name'  => 'Test Student',
+                'department' => 'Computer Science',
+                'photo_path' => 'photos/placeholder.jpg',
+            ];
+        }
+
         $student = DB::table('mock_sis')
             ->where('matric_no', $matricNo)
             ->first();
