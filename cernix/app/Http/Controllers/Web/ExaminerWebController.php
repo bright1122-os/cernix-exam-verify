@@ -12,6 +12,11 @@ use Illuminate\Support\Facades\DB;
 
 class ExaminerWebController extends Controller
 {
+    public function login()
+    {
+        return view('examiner.login');
+    }
+
     public function index()
     {
         return view('examiner.dashboard');
