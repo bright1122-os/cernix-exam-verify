@@ -14,6 +14,9 @@ Route::get('/student/register',  [StudentWebController::class, 'index']);
 Route::post('/student/register', [StudentWebController::class, 'register']);
 
 // Examiner portal
+Route::get('/examiner/login',      [ExaminerWebController::class, 'loginForm']);
+Route::post('/examiner/login',     [ExaminerWebController::class, 'loginSubmit']);
+Route::post('/examiner/logout',    [ExaminerWebController::class, 'logout']);
 Route::get('/examiner/dashboard',  [ExaminerWebController::class, 'index']);
 Route::post('/examiner/verify',    [ExaminerWebController::class, 'verify']);
 
