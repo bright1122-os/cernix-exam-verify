@@ -1,279 +1,417 @@
-@extends('layouts.app')
+@extends('layouts.portal')
 
-@section('title', 'Examiner Dashboard')
+@section('title', 'Examiner Scanner')
 
 @section('content')
-<div class="max-w-4xl mx-auto">
+<style>
+    .scanner-wrap { position: relative; width: 100%; height: 100vh; background: #000; color: #fff; display: flex; flex-direction: column; }
 
-    <div class="mb-6">
-        <h1 class="text-2xl font-bold text-gray-900">Examiner Dashboard</h1>
-        <p class="text-sm text-gray-500 mt-1">Point the camera at a student's QR code to verify exam access</p>
+    .scanner-viewport {
+        position: relative; flex: 1; overflow: hidden; background: #0a0e1c;
+    }
+    .camera-feed {
+        position: absolute; inset: 0;
+        background: radial-gradient(circle at 50% 40%, rgba(45,108,255,.12), transparent 60%),
+                    linear-gradient(135deg, #1a1f35 0%, #050810 100%);
+    }
+    .camera-feed::before {
+        content: ""; position: absolute; inset: 0;
+        background-image: repeating-linear-gradient(0deg,rgba(255,255,255,.015) 0,rgba(255,255,255,.015) 1px,transparent 1px,transparent 3px);
+    }
+    .fake-hall {
+        position: absolute; inset: 10% 15%; opacity: .25;
+        background: linear-gradient(180deg, rgba(255,255,255,.1), transparent 30%),
+                    repeating-linear-gradient(45deg,rgba(255,255,255,.03) 0 10px,transparent 10px 20px);
+        border-radius: 8px;
+    }
+    .reticle {
+        position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+        width: 240px; height: 240px; pointer-events: none;
+    }
+    .reticle .corners span {
+        position: absolute; width: 28px; height: 28px;
+        border: 3px solid #fff; border-radius: 8px;
+    }
+    .reticle .corners span:nth-child(1) { top: 0; left: 0; border-right: none; border-bottom: none; }
+    .reticle .corners span:nth-child(2) { top: 0; right: 0; border-left: none; border-bottom: none; }
+    .reticle .corners span:nth-child(3) { bottom: 0; left: 0; border-right: none; border-top: none; }
+    .reticle .corners span:nth-child(4) { bottom: 0; right: 0; border-left: none; border-top: none; }
+    .reticle .scan-line {
+        position: absolute; left: 10%; right: 10%; height: 2px;
+        background: linear-gradient(90deg,transparent,var(--blue-2),transparent);
+        box-shadow: 0 0 12px var(--blue-2);
+        animation: scanline 1.8s ease-in-out infinite alternate;
+    }
+    .reticle .dim-overlay {
+        position: absolute; inset: -200vh; box-shadow: 0 0 0 200vh rgba(0,0,0,.55); border-radius: 12px;
+    }
+    @keyframes scanline {
+        from { top: 20%; } to { top: 80%; }
+    }
+
+    .scanner-top {
+        position: absolute; top: 0; left: 0; right: 0;
+        padding: 56px 20px 16px; display: flex; align-items: center; justify-content: space-between;
+        background: linear-gradient(180deg,rgba(0,0,0,.85),transparent); z-index: 20;
+    }
+    .ex-info { display: flex; gap: 10px; align-items: center; }
+    .ex-avatar {
+        width: 36px; height: 36px; border-radius: 50%;
+        background: var(--navy-2); display: flex; align-items: center; justify-content: center;
+        font-weight: 700; font-size: 14px;
+    }
+    .ex-info b { display: block; font-size: 13px; font-weight: 600; }
+    .ex-info span { font-size: 11px; color: rgba(255,255,255,.6); }
+    .iconbtn {
+        width: 40px; height: 40px; border-radius: 12px; background: rgba(255,255,255,.08);
+        border: 1px solid rgba(255,255,255,.14); display: flex; align-items: center; justify-content: center;
+        color: #fff; cursor: pointer; transition: background .15s;
+    }
+    .iconbtn:hover { background: rgba(255,255,255,.14); }
+
+    .scanner-prompt {
+        position: absolute; left: 0; right: 0; top: 140px; text-align: center; z-index: 10;
+        font-size: 13px; color: rgba(255,255,255,.75); letter-spacing: .06em;
+    }
+    .scanner-prompt b { color: #fff; font-weight: 600; }
+
+    .scanner-bottom {
+        position: absolute; bottom: 0; left: 0; right: 0; z-index: 15;
+        background: linear-gradient(180deg,transparent,rgba(0,0,0,.92) 40%);
+        padding: 60px 16px 44px;
+    }
+    .scanner-stats {
+        display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-bottom: 18px;
+    }
+    .stat-tile {
+        padding: 10px 8px; background: rgba(255,255,255,.06); border-radius: 12px;
+        border: 1px solid rgba(255,255,255,.08); text-align: center;
+    }
+    .stat-tile b { display: block; font-size: 18px; font-weight: 700; font-family: 'JetBrains Mono', monospace; }
+    .stat-tile span { font-size: 9px; letter-spacing: .1em; text-transform: uppercase; color: rgba(255,255,255,.55); }
+    .stat-tile.approved b { color: var(--emerald-2); }
+    .stat-tile.rejected b { color: var(--red-2); }
+    .stat-tile.duplicate b { color: var(--amber-2); }
+
+    .last-scan {
+        padding: 12px 14px; border-radius: 14px; background: rgba(255,255,255,.06);
+        border: 1px solid rgba(255,255,255,.1); display: flex; align-items: center; gap: 12px;
+    }
+    .last-scan .dot { width: 8px; height: 8px; border-radius: 50%; background: rgba(255,255,255,.3); }
+    .last-scan.approved { background: rgba(16,185,129,.12); border-color: rgba(16,185,129,.3); }
+    .last-scan.approved .dot { background: var(--emerald-2); box-shadow: 0 0 8px var(--emerald-2); }
+    .last-scan.rejected { background: rgba(239,68,68,.12); border-color: rgba(239,68,68,.3); }
+    .last-scan.rejected .dot { background: var(--red-2); }
+    .last-scan.duplicate { background: rgba(245,158,11,.12); border-color: rgba(245,158,11,.3); }
+    .last-scan.duplicate .dot { background: var(--amber-2); }
+    .last-scan .info { flex: 1; min-width: 0; }
+    .last-scan .info b { display: block; font-size: 13px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .last-scan .info span { font-size: 11px; color: rgba(255,255,255,.55); }
+    .last-scan .time { font-size: 11px; color: rgba(255,255,255,.5); font-family: 'JetBrains Mono', monospace; }
+
+    .scan-actions {
+        display: flex; gap: 10px; margin-top: 14px;
+    }
+    .scan-actions button {
+        flex: 1; padding: 10px; border-radius: 12px; background: rgba(255,255,255,.08);
+        color: #fff; font-size: 13px; font-weight: 500; border: 1px solid rgba(255,255,255,.1);
+        display: flex; align-items: center; justify-content: center; gap: 6px; cursor: pointer;
+    }
+    .scan-actions button:hover { background: rgba(255,255,255,.14); }
+    .scan-actions button.primary { background: var(--blue); border-color: var(--blue); }
+    .scan-actions button.primary:hover { background: var(--blue-2); }
+
+    /* Takeovers */
+    .takeover {
+        position: absolute; inset: 0; display: flex; flex-direction: column; justify-content: space-between;
+        color: #fff; z-index: 100; animation: flash .35s cubic-bezier(.2,.9,.3,1.15) both;
+        overflow: hidden; display: none;
+    }
+    .takeover.approved { background: linear-gradient(180deg,#047857 0%, #065f46 100%); }
+    .takeover.rejected { background: linear-gradient(180deg,#b91c1c 0%, #7f1d1d 100%); }
+    .takeover.duplicate { background: linear-gradient(180deg,#b45309 0%, #78350f 100%); }
+    .takeover.show { display: flex; }
+    .takeover::before {
+        content: ""; position: absolute; inset: 0;
+        background: radial-gradient(circle at 50% 0%, rgba(255,255,255,.15), transparent 60%);
+    }
+    .takeover .top { padding: 56px 20px 12px; display: flex; justify-content: space-between; align-items: flex-start; position: relative; z-index: 1; }
+    .takeover .top .status-label { font-size: 11px; font-weight: 700; letter-spacing: .3em; opacity: .75; }
+    .takeover .top .time { font-family: 'JetBrains Mono', monospace; font-size: 12px; opacity: .75; }
+    .takeover .center { text-align: center; padding: 0 24px; position: relative; z-index: 1; }
+    .takeover .big-icon { width: 140px; height: 140px; border-radius: 50%; background: rgba(255,255,255,.14);
+        border: 3px solid rgba(255,255,255,.4); display: flex; align-items: center; justify-content: center;
+        margin: 0 auto 28px;
+    }
+    .takeover .big-icon svg { width: 72px; height: 72px; stroke: #fff; stroke-width: 3; }
+    .takeover h1 { font-size: 56px; font-weight: 800; letter-spacing: .04em; margin: 0; line-height: .95; }
+    .takeover p { font-size: 17px; margin: 12px 0 0; opacity: .85; }
+
+    .student-card {
+        margin: 28px 20px 0; padding: 18px; background: rgba(255,255,255,.14);
+        border: 1px solid rgba(255,255,255,.2); border-radius: 18px;
+        display: flex; gap: 14px; align-items: center; backdrop-filter: blur(8px); position: relative; z-index: 1;
+    }
+    .student-card .avatar {
+        width: 60px; height: 60px; border-radius: 50%; background: rgba(255,255,255,.2);
+        display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 22px; flex-shrink: 0;
+    }
+    .student-card .nm { font-size: 16px; font-weight: 600; margin: 0; }
+    .student-card .mt { font-size: 12px; opacity: .7; margin: 2px 0 0; font-family: 'JetBrains Mono', monospace; }
+    .student-card .dept { font-size: 11px; opacity: .6; margin: 4px 0 0; text-transform: uppercase; letter-spacing: .1em; }
+
+    .meta-row { margin: 16px 20px 0; display: grid; grid-template-columns: 1fr 1fr; gap: 10px; position: relative; z-index: 1; }
+    .meta-cell { padding: 10px 12px; background: rgba(255,255,255,.08); border-radius: 12px; }
+    .meta-cell .k { font-size: 10px; opacity: .6; letter-spacing: .1em; text-transform: uppercase; }
+    .meta-cell .v { font-size: 13px; font-weight: 600; margin-top: 2px; font-family: 'JetBrains Mono', monospace; }
+
+    .takeover .bottom { padding: 20px; display: flex; gap: 10px; position: relative; z-index: 1; }
+    .takeover .bottom button {
+        flex: 1; padding: 16px; background: rgba(255,255,255,.18); border: 1px solid rgba(255,255,255,.25);
+        color: #fff; font-size: 15px; font-weight: 600; border-radius: 14px; backdrop-filter: blur(8px);
+        cursor: pointer;
+    }
+    .takeover .bottom button.primary { background: #fff; color: #065f46; border-color: #fff; }
+    .takeover.rejected .bottom button.primary { color: #7f1d1d; }
+    .takeover.duplicate .bottom button.primary { color: #78350f; }
+    .takeover .bottom button:hover { background: rgba(255,255,255,.28); }
+    .takeover .bottom button.primary:hover { filter: brightness(.96); }
+
+    @keyframes flash { from { opacity: 0; transform: scale(.95); } to { opacity: 1; transform: none; } }
+</style>
+
+<div class="scanner-wrap">
+    <!-- Viewport with camera/reticle -->
+    <div class="scanner-viewport">
+        <div class="camera-feed">
+            <div class="fake-hall"></div>
+        </div>
+        <div class="reticle">
+            <div class="dim-overlay"></div>
+            <div class="corners"><span></span><span></span><span></span><span></span></div>
+            <div class="scan-line"></div>
+        </div>
     </div>
 
-    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+    <!-- Top bar: examiner info + logout -->
+    <div class="scanner-top">
+        <div class="ex-info">
+            <div class="ex-avatar">EX</div>
+            <div><b>Examiner One</b><span>Hall A · Session #1</span></div>
+        </div>
+        <a href="/" class="iconbtn" aria-label="Logout">
+            <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                <path d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v2a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h6a2 2 0 012 2v2"/>
+            </svg>
+        </a>
+    </div>
 
-        <!-- Camera panel -->
-        <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-5">
-            <h2 class="text-sm font-semibold text-gray-700 mb-3 uppercase tracking-wide">Camera</h2>
+    <!-- Scan prompt -->
+    <div class="scanner-prompt" id="scan-prompt">Point the camera at the student's <b>CERNIX QR</b></div>
 
-            <div id="camera-placeholder" class="flex flex-col items-center justify-center bg-gray-100 rounded-lg h-60 text-gray-400">
-                <svg class="w-10 h-10 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
-                        d="M15 10l4.553-2.069A1 1 0 0121 8.82V15.18a1 1 0 01-1.447.89L15 14M3 8a2 2 0 012-2h8a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2V8z"/>
-                </svg>
-                <p class="text-sm">Camera not started</p>
-                <button onclick="startCamera()" id="start-scan-btn"
-                    class="mt-3 px-4 py-2 bg-[#0f2050] text-white text-sm rounded-lg hover:bg-[#1a3370] transition">
-                    Start Scan
-                </button>
-            </div>
-
-            <div id="camera-active" class="hidden">
-                <div class="relative rounded-lg overflow-hidden bg-black">
-                    <video id="qr-video" class="w-full h-60 object-cover" autoplay playsinline muted></video>
-                    <canvas id="qr-canvas" class="hidden"></canvas>
-                    <!-- Scanning overlay -->
-                    <div class="absolute inset-0 flex items-center justify-center pointer-events-none">
-                        <div class="w-40 h-40 border-2 border-white/70 rounded-lg">
-                            <div class="absolute top-0 left-0 w-5 h-5 border-t-2 border-l-2 border-blue-400 rounded-tl"></div>
-                            <div class="absolute top-0 right-0 w-5 h-5 border-t-2 border-r-2 border-blue-400 rounded-tr"></div>
-                            <div class="absolute bottom-0 left-0 w-5 h-5 border-b-2 border-l-2 border-blue-400 rounded-bl"></div>
-                            <div class="absolute bottom-0 right-0 w-5 h-5 border-b-2 border-r-2 border-blue-400 rounded-br"></div>
-                        </div>
-                    </div>
-                </div>
-                <div class="flex items-center justify-between mt-3">
-                    <p id="scan-status" class="text-xs text-gray-500">Scanning…</p>
-                    <button onclick="stopCamera()" class="text-xs text-red-500 hover:underline">Stop Scan</button>
-                </div>
-            </div>
-
-            <!-- Manual QR Input (fallback) -->
-            <div class="mt-4 border-t pt-4">
-                <p class="text-xs text-gray-500 mb-2 font-medium">Or paste QR JSON manually:</p>
-                <textarea id="manual-qr" rows="3" placeholder='{"token_id":"...","encrypted_payload":"...","hmac_signature":"...","session_id":1}'
-                    class="w-full text-xs border border-gray-300 rounded-lg px-3 py-2 font-mono focus:outline-none focus:ring-2 focus:ring-[#0f2050]"></textarea>
-                <button onclick="verifyManual()"
-                    class="mt-2 w-full bg-gray-800 text-white text-sm rounded-lg px-4 py-2 hover:bg-gray-700 transition">
-                    Verify Manually
-                </button>
-            </div>
+    <!-- Bottom panel: stats + last scan + actions -->
+    <div class="scanner-bottom">
+        <div class="scanner-stats">
+            <div class="stat-tile"><b id="total-scans">0</b><span>Scans</span></div>
+            <div class="stat-tile approved"><b id="approved-count">0</b><span>Approved</span></div>
+            <div class="stat-tile rejected"><b id="rejected-count">0</b><span>Rejected</span></div>
+            <div class="stat-tile duplicate"><b id="duplicate-count">0</b><span>Duplicate</span></div>
         </div>
 
-        <!-- Result panel -->
-        <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-5">
-            <h2 class="text-sm font-semibold text-gray-700 mb-3 uppercase tracking-wide">Verification Result</h2>
+        <div class="last-scan" id="last-scan">
+            <span class="dot"></span>
+            <div class="info"><b>No scans yet</b><span>Awaiting first QR</span></div>
+            <span class="time">--:--</span>
+        </div>
 
-            <!-- Idle state -->
-            <div id="result-idle" class="flex flex-col items-center justify-center h-60 text-gray-300">
-                <svg class="w-12 h-12 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
-                        d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
-                </svg>
-                <p class="text-sm">Awaiting QR scan</p>
-            </div>
-
-            <!-- APPROVED -->
-            <div id="result-approved" class="hidden">
-                <div class="bg-green-50 border border-green-200 rounded-lg p-4 mb-4">
-                    <div class="flex items-center gap-2 mb-1">
-                        <span class="text-green-600 text-xl font-bold">✓</span>
-                        <span class="text-green-800 font-bold text-lg">APPROVED</span>
-                    </div>
-                    <p class="text-xs text-green-600">Student identity verified — access granted</p>
-                </div>
-                <div class="space-y-3">
-                    <div class="flex items-center gap-3">
-                        <div id="student-photo-container" class="w-14 h-14 bg-gray-200 rounded-full overflow-hidden flex-shrink-0 flex items-center justify-center text-gray-400">
-                            <svg class="w-8 h-8" fill="currentColor" viewBox="0 0 24 24">
-                                <path d="M12 12c2.7 0 4.8-2.1 4.8-4.8S14.7 2.4 12 2.4 7.2 4.5 7.2 7.2 9.3 12 12 12zm0 2.4c-3.2 0-9.6 1.6-9.6 4.8v2.4h19.2v-2.4c0-3.2-6.4-4.8-9.6-4.8z"/>
-                            </svg>
-                        </div>
-                        <div>
-                            <p id="res-student-name" class="font-semibold text-gray-900"></p>
-                            <p id="res-student-matric" class="text-xs text-gray-500"></p>
-                        </div>
-                    </div>
-                    <div class="grid grid-cols-2 gap-2 text-xs">
-                        <div class="bg-gray-50 rounded p-2">
-                            <p class="text-gray-400">Token ID</p>
-                            <p id="res-token-id" class="font-mono text-gray-700 truncate"></p>
-                        </div>
-                        <div class="bg-gray-50 rounded p-2">
-                            <p class="text-gray-400">Timestamp</p>
-                            <p id="res-timestamp" class="text-gray-700"></p>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- REJECTED -->
-            <div id="result-rejected" class="hidden">
-                <div class="bg-red-50 border border-red-200 rounded-lg p-4">
-                    <div class="flex items-center gap-2 mb-1">
-                        <span class="text-red-600 text-xl font-bold">✗</span>
-                        <span class="text-red-800 font-bold text-lg">REJECTED</span>
-                    </div>
-                    <p class="text-xs text-red-600">QR code is invalid, tampered, or from an inactive session</p>
-                </div>
-            </div>
-
-            <!-- DUPLICATE -->
-            <div id="result-duplicate" class="hidden">
-                <div class="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
-                    <div class="flex items-center gap-2 mb-1">
-                        <span class="text-yellow-600 text-xl font-bold">!</span>
-                        <span class="text-yellow-800 font-bold text-lg">DUPLICATE</span>
-                    </div>
-                    <p class="text-xs text-yellow-700">This QR code has already been used. Entry denied.</p>
-                </div>
-            </div>
-
-            <!-- Verifying spinner -->
-            <div id="result-loading" class="hidden flex flex-col items-center justify-center h-20 text-gray-400">
-                <svg class="animate-spin w-8 h-8" fill="none" viewBox="0 0 24 24">
-                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/>
-                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"/>
-                </svg>
-                <p class="text-sm mt-2">Verifying…</p>
-            </div>
-
-            <button id="scan-again-btn" onclick="resetResult()"
-                class="hidden mt-4 w-full bg-gray-100 hover:bg-gray-200 text-gray-700 text-sm font-medium rounded-lg px-4 py-2 transition">
-                Reset Scan
+        <div class="scan-actions">
+            <button onclick="simulateScan('APPROVED')">
+                <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="3" viewBox="0 0 24 24"><path d="M20 6L9 17l-5-5"/></svg>
+                Demo Approve
+            </button>
+            <button onclick="simulateScan('REJECTED')">
+                <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="3" viewBox="0 0 24 24"><path d="M6 18L18 6M6 6l12 12"/></svg>
+                Reject
+            </button>
+            <button onclick="simulateScan('DUPLICATE')">
+                <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+                Duplicate
             </button>
         </div>
+    </div>
 
+    <!-- APPROVED Takeover -->
+    <div class="takeover approved" id="takeover-approved">
+        <div class="top">
+            <span class="status-label">DECISION · APPROVED</span>
+            <span class="time" id="approved-time">09:14:44</span>
+        </div>
+        <div class="center">
+            <div class="big-icon"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M5 13l4 4L19 7"/></svg></div>
+            <h1>VERIFIED</h1>
+            <p>Access granted. Allow entry.</p>
+        </div>
+        <div>
+            <div class="student-card">
+                <div class="avatar" id="approved-avatar">AE</div>
+                <div style="flex:1">
+                    <p class="nm" id="approved-name">Adaeze Ekwueme</p>
+                    <p class="mt" id="approved-matric">CSC/2021/002</p>
+                    <p class="dept" id="approved-dept">Computer Science</p>
+                </div>
+            </div>
+            <div class="meta-row">
+                <div class="meta-cell"><div class="k">Token</div><div class="v" id="approved-token">a7f2…6b</div></div>
+                <div class="meta-cell"><div class="k">Session</div><div class="v">#1</div></div>
+            </div>
+        </div>
+        <div class="bottom">
+            <button onclick="resetScan()">Next Scan</button>
+            <button class="primary" onclick="resetScan()">
+                <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M5 13l4 4L19 7"/></svg>
+                Admit Student
+            </button>
+        </div>
+    </div>
+
+    <!-- REJECTED Takeover -->
+    <div class="takeover rejected" id="takeover-rejected">
+        <div class="top">
+            <span class="status-label">DECISION · REJECTED</span>
+            <span class="time" id="rejected-time">09:40:18</span>
+        </div>
+        <div class="center">
+            <div class="big-icon"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M6 18L18 6M6 6l12 12"/></svg></div>
+            <h1>REJECTED</h1>
+            <p>Do not admit. Escalate to supervisor.</p>
+        </div>
+        <div>
+            <div style="margin:20px;position:relative;z-index:1">
+                <div class="student-card" style="margin:0;flex-direction:column">
+                    <p style="font-size:12px;opacity:.8;margin:0 0 8px">Rejection Reason</p>
+                    <div style="font-size:13px;line-height:1.5"><b>HMAC signature mismatch</b><br><span style="opacity:.75;font-size:12px">Token was tampered with or forged</span></div>
+                </div>
+            </div>
+            <div class="meta-row">
+                <div class="meta-cell"><div class="k">Scan #</div><div class="v" id="rejected-scan">1</div></div>
+                <div class="meta-cell"><div class="k">Logged</div><div class="v">YES</div></div>
+            </div>
+        </div>
+        <div class="bottom">
+            <button onclick="resetScan()">Dismiss</button>
+            <button class="primary" onclick="resetScan()">
+                <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M15 5l3 3m3-3l-3 3m3-3H4"/></svg>
+                Alert Supervisor
+            </button>
+        </div>
+    </div>
+
+    <!-- DUPLICATE Takeover -->
+    <div class="takeover duplicate" id="takeover-duplicate">
+        <div class="top">
+            <span class="status-label">DECISION · ALREADY USED</span>
+            <span class="time" id="duplicate-time">09:31:12</span>
+        </div>
+        <div class="center">
+            <div class="big-icon"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg></div>
+            <h1 style="margin-bottom:0">ALREADY<br>USED</h1>
+            <p>Token was redeemed earlier. Entry denied.</p>
+        </div>
+        <div>
+            <div class="student-card">
+                <div class="avatar" id="dup-avatar">AO</div>
+                <div style="flex:1">
+                    <p class="nm" id="dup-name">Adebayo Oluwaseun</p>
+                    <p class="mt" id="dup-matric">CSC/2021/001</p>
+                    <p class="dept" style="color:rgba(255,255,255,.9);margin-top:6px">First redeemed: <b>08:54:21</b></p>
+                </div>
+            </div>
+            <div class="meta-row">
+                <div class="meta-cell"><div class="k">Original Hall</div><div class="v">Hall B</div></div>
+                <div class="meta-cell"><div class="k">Original Examiner</div><div class="v">examiner3</div></div>
+            </div>
+        </div>
+        <div class="bottom">
+            <button onclick="resetScan()">Dismiss</button>
+            <button class="primary" onclick="resetScan()">
+                <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M12 8v4l3 2m6-2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                View Audit Trail
+            </button>
+        </div>
     </div>
 </div>
 @endsection
 
-@push('head')
-<script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.min.js"></script>
-@endpush
-
 @push('scripts')
 <script>
-const csrfToken = document.querySelector('meta[name="csrf-token"]').content;
-let videoStream = null;
-let scanLoop    = null;
-let lastScanned = null;
+let stats = { total: 0, approved: 0, rejected: 0, duplicate: 0 };
+const students = [
+    { name: 'Adebayo Oluwaseun Emmanuel', matric: 'CSC/2021/001', dept: 'Computer Science', initials: 'AO' },
+    { name: 'Adaeze Ekwueme', matric: 'CSC/2021/002', dept: 'Computer Science', initials: 'AE' },
+    { name: 'Tunde Balogun', matric: 'CSC/2021/003', dept: 'Computer Science', initials: 'TB' },
+];
 
-async function startCamera() {
-    try {
-        videoStream = await navigator.mediaDevices.getUserMedia({
-            video: { facingMode: 'environment' }
-        });
-        const video = document.getElementById('qr-video');
-        video.srcObject = videoStream;
-        document.getElementById('camera-placeholder').classList.add('hidden');
-        document.getElementById('camera-active').classList.remove('hidden');
-        scanLoop = requestAnimationFrame(scanFrame);
-    } catch (err) {
-        alert('Camera access denied or unavailable: ' + err.message);
+function updateStats() {
+    document.getElementById('total-scans').textContent = stats.total;
+    document.getElementById('approved-count').textContent = stats.approved;
+    document.getElementById('rejected-count').textContent = stats.rejected;
+    document.getElementById('duplicate-count').textContent = stats.duplicate;
+}
+
+function showTakeover(type) {
+    ['approved', 'rejected', 'duplicate'].forEach(t => {
+        document.getElementById('takeover-' + t).classList.remove('show');
+    });
+    if (type) document.getElementById('takeover-' + type).classList.add('show');
+}
+
+function resetScan() {
+    showTakeover(null);
+    document.getElementById('scan-prompt').textContent = 'Point the camera at the student\'s CERNIX QR';
+}
+
+function simulateScan(decision) {
+    stats.total++;
+    const now = new Date().toLocaleTimeString();
+    const student = students[Math.floor(Math.random() * students.length)];
+
+    if (decision === 'APPROVED') {
+        stats.approved++;
+        document.getElementById('approved-name').textContent = student.name;
+        document.getElementById('approved-matric').textContent = student.matric;
+        document.getElementById('approved-dept').textContent = student.dept;
+        document.getElementById('approved-avatar').textContent = student.initials;
+        document.getElementById('approved-time').textContent = now;
+        document.getElementById('last-scan').className = 'last-scan approved';
+        document.getElementById('last-scan').innerHTML =
+            '<span class="dot"></span>' +
+            '<div class="info"><b>' + student.name.split(' ').slice(0, 2).join(' ') + '</b><span>' + student.matric + ' · APPROVED</span></div>' +
+            '<span class="time">' + now.split(' ')[0] + '</span>';
+        showTakeover('approved');
+    } else if (decision === 'REJECTED') {
+        stats.rejected++;
+        document.getElementById('rejected-time').textContent = now;
+        document.getElementById('rejected-scan').textContent = stats.total;
+        document.getElementById('last-scan').className = 'last-scan rejected';
+        document.getElementById('last-scan').innerHTML =
+            '<span class="dot"></span>' +
+            '<div class="info"><b>QR Tampered</b><span>Token ID · REJECTED</span></div>' +
+            '<span class="time">' + now.split(' ')[0] + '</span>';
+        showTakeover('rejected');
+    } else {
+        stats.duplicate++;
+        document.getElementById('dup-name').textContent = student.name;
+        document.getElementById('dup-matric').textContent = student.matric;
+        document.getElementById('dup-avatar').textContent = student.initials;
+        document.getElementById('duplicate-time').textContent = now;
+        document.getElementById('last-scan').className = 'last-scan duplicate';
+        document.getElementById('last-scan').innerHTML =
+            '<span class="dot"></span>' +
+            '<div class="info"><b>' + student.name.split(' ')[0] + '</b><span>' + student.matric + ' · DUPLICATE</span></div>' +
+            '<span class="time">' + now.split(' ')[0] + '</span>';
+        showTakeover('duplicate');
     }
-}
-
-function stopCamera() {
-    if (videoStream) {
-        videoStream.getTracks().forEach(t => t.stop());
-        videoStream = null;
-    }
-    if (scanLoop) cancelAnimationFrame(scanLoop);
-    document.getElementById('camera-active').classList.add('hidden');
-    document.getElementById('camera-placeholder').classList.remove('hidden');
-}
-
-function scanFrame() {
-    const video  = document.getElementById('qr-video');
-    const canvas = document.getElementById('qr-canvas');
-
-    if (video.readyState === video.HAVE_ENOUGH_DATA) {
-        canvas.width  = video.videoWidth;
-        canvas.height = video.videoHeight;
-        const ctx = canvas.getContext('2d');
-        ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-        const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-        const code = jsQR(imageData.data, imageData.width, imageData.height, {
-            inversionAttempts: 'dontInvert',
-        });
-
-        if (code && code.data !== lastScanned) {
-            lastScanned = code.data;
-            document.getElementById('scan-status').textContent = 'QR detected — verifying…';
-            verifyQrData(code.data);
-            return; // pause scanning until reset
-        }
-    }
-    scanLoop = requestAnimationFrame(scanFrame);
-}
-
-function verifyManual() {
-    const raw = document.getElementById('manual-qr').value.trim();
-    if (!raw) return;
-    verifyQrData(raw);
-}
-
-async function verifyQrData(rawJson) {
-    let qrData;
-    try {
-        qrData = JSON.parse(rawJson);
-    } catch {
-        showResult('rejected');
-        return;
-    }
-
-    showResult('loading');
-
-    try {
-        const resp = await fetch('/examiner/verify', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'X-CSRF-TOKEN': csrfToken,
-                'Accept': 'application/json',
-            },
-            body: JSON.stringify({ qr_data: qrData }),
-        });
-
-        const data = await resp.json();
-
-        if (data.status === 'APPROVED' && data.student) {
-            document.getElementById('res-student-name').textContent   = data.student.full_name ?? '';
-            document.getElementById('res-student-matric').textContent = data.student.matric_no ?? '';
-            document.getElementById('res-token-id').textContent       = data.token_id ?? '';
-            document.getElementById('res-timestamp').textContent      = formatTs(data.timestamp);
-            showResult('approved');
-        } else if (data.status === 'DUPLICATE') {
-            showResult('duplicate');
-        } else {
-            showResult('rejected');
-        }
-
-    } catch {
-        showResult('rejected');
-    }
-}
-
-function showResult(type) {
-    const panels = ['idle', 'approved', 'rejected', 'duplicate', 'loading'];
-    panels.forEach(p => document.getElementById('result-' + p).classList.add('hidden'));
-    document.getElementById('result-' + type).classList.remove('hidden');
-    const showAgain = ['approved', 'rejected', 'duplicate'].includes(type);
-    document.getElementById('scan-again-btn').classList.toggle('hidden', !showAgain);
-}
-
-function resetResult() {
-    lastScanned = null;
-    showResult('idle');
-    document.getElementById('manual-qr').value = '';
-    document.getElementById('scan-status').textContent = 'Scanning…';
-    if (videoStream) scanLoop = requestAnimationFrame(scanFrame);
-}
-
-function formatTs(ts) {
-    if (!ts) return '';
-    try { return new Date(ts).toLocaleTimeString(); } catch { return ts; }
+    updateStats();
 }
 </script>
 @endpush
