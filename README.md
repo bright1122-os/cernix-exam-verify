@@ -1,7 +1,12 @@
 # CERNIX — Exam Verification System
 
+<<<<<<< HEAD
 > **Last updated:** Phase 5 complete — Demo UI, health check, defense preparation  
 > **Test suite:** 113 tests · 294 assertions · all passing
+=======
+> **Last updated:** Phase 6 complete — Student / Examiner / Admin API endpoints + mobile camera fix  
+> **Test suite:** 146 tests · 384 assertions · all passing
+>>>>>>> origin/main
 
 ---
 
@@ -55,10 +60,17 @@ mock_sis (SIS)
     │
     │  MockSISService.getStudentByMatric()
     ▼
+<<<<<<< HEAD
 Student Registration          ← (next phase)
     │  creates row in students
     ▼
 Payment (Remita)              ← (next phase)
+=======
+Student Registration
+    │  creates row in students
+    ▼
+Payment (Remita)
+>>>>>>> origin/main
     │  verifies RRR, writes payment_records
     ▼
 QrTokenService.issue()
@@ -297,6 +309,32 @@ Base URL: `/api`
 | POST | `/auth/refresh` | Bearer | Rotate JWT |
 | GET | `/auth/me` | Bearer | Current authenticated user |
 
+<<<<<<< HEAD
+=======
+### Student protected
+| Method | URI | Auth | Description |
+|--------|-----|------|-------------|
+| POST | `/student/register-exam` | Bearer (student) | Verify SIS + payment, issue encrypted QR token |
+
+### Examiner protected
+| Method | URI | Auth | Description |
+|--------|-----|------|-------------|
+| POST | `/examiner/verify` | Bearer (examiner) | Verify scanned QR — returns APPROVED / DUPLICATE / REJECTED |
+
+### Admin protected
+| Method | URI | Auth | Description |
+|--------|-----|------|-------------|
+| GET | `/admin/sessions` | Bearer (admin) | List all exam sessions |
+| POST | `/admin/sessions` | Bearer (admin) | Create a new exam session (generates AES + HMAC keys) |
+| PATCH | `/admin/sessions/{id}/activate` | Bearer (admin) | Atomically activate one session, deactivate all others |
+| GET | `/admin/examiners` | Bearer (admin) | List all examiners |
+| POST | `/admin/examiners` | Bearer (admin) | Create an examiner record |
+| PATCH | `/admin/examiners/{id}/toggle` | Bearer (admin) | Toggle examiner active status |
+| POST | `/admin/tokens/{id}/revoke` | Bearer (admin) | Revoke an UNUSED token |
+| GET | `/admin/logs` | Bearer (admin) | Filterable verification log (by examiner_id, decision) |
+| GET | `/admin/stats` | Bearer (admin) | Total / approved / rejected / duplicate counts |
+
+>>>>>>> origin/main
 ### Response envelope
 All responses follow:
 ```json
@@ -472,6 +510,25 @@ Provides a single append-only write path to `audit_log`. No update or delete ope
 
 ---
 
+<<<<<<< HEAD
+=======
+### Service Container (`AppServiceProvider`)
+`app/Providers/AppServiceProvider.php`
+
+All domain services are registered as **singletons** in the Laravel service container so controllers use constructor injection and tests can override bindings without touching production code.
+
+| Binding | Resolved as |
+|---------|-------------|
+| `CryptoService` | Singleton — stateless, safe to share |
+| `MockSISService` | Singleton — read-only SIS adapter |
+| `QrTokenService` | Singleton — depends on `CryptoService` |
+| `VerificationService` | Singleton — depends on `CryptoService` |
+| `RemitaService` | Singleton — wraps a Guzzle `Client`; override in tests with `app()->bind(RemitaService::class, ...)` |
+| `RegistrationService` | Singleton — depends on `MockSISService`, `RemitaService`, `CryptoService` |
+
+---
+
+>>>>>>> origin/main
 ## Audit Trail Design
 
 ### Why two separate log tables?
@@ -629,7 +686,14 @@ php artisan test tests/Unit/CryptoServiceTest.php
 | `VerificationServiceTest` | 17 | 49 | QR verify — APPROVED/DUPLICATE/REJECTED paths |
 | `AuditServiceTest` | 11 | 20 | Append-only writes, metadata JSON, immutability |
 | `EndToEndSystemTest` | 7 | 35 | Full SIS→Registration→QR→Scan→Audit lifecycle |
+<<<<<<< HEAD
 | **Total** | **113** | **294** | |
+=======
+| `StudentExamApiTest` | 7 | 18 | POST /student/register-exam — auth guard, happy path, edge cases |
+| `ExaminerApiTest` | 7 | 22 | POST /examiner/verify — APPROVED/DUPLICATE/REJECTED over HTTP |
+| `AdminApiTest` | 17 | 50 | All 9 admin endpoints — sessions, examiners, tokens, logs, stats |
+| **Total** | **146** | **384** | |
+>>>>>>> origin/main
 
 ---
 
@@ -724,6 +788,7 @@ Tampered QR ──► status = REJECTED (HMAC mismatch caught before decryption)
 | VerificationService | 10-step examiner QR verification engine — HMAC, atomic lock, append-only log |
 | AuditService | Append-only `audit_log` writer with safe metadata encoding |
 | EndToEndSystemTest | Full SIS→Registration→QR→Scan→Audit lifecycle validated as closed loop |
+<<<<<<< HEAD
 
 ### Up next
 
@@ -732,6 +797,13 @@ Tampered QR ──► status = REJECTED (HMAC mismatch caught before decryption)
 | Examiner API | HTTP endpoints wiring `VerificationService` — POST /examiner/verify |
 | Student API | HTTP endpoints wiring `RegistrationService` — POST /student/register-exam |
 | Admin API | Session management, examiner management, token revocation |
+=======
+| Student API | `POST /api/student/register-exam` — JWT-protected, wires `RegistrationService`, returns QR SVG |
+| Examiner API | `POST /api/examiner/verify` — JWT-protected, wires `VerificationService`, logs APPROVED to `audit_log` |
+| Admin API | 9 JWT-protected endpoints: session lifecycle, examiner management, token revocation, logs, stats |
+| Service container | All services bound in `AppServiceProvider` — enables constructor injection and test mocking |
+| Mobile camera fix | `isSecureContext` + `mediaDevices` guards; inline error panel replaces `alert()`; `facingMode: {ideal}` + explicit `video.play()` for iOS |
+>>>>>>> origin/main
 
 ---
 
@@ -783,6 +855,11 @@ Open a new tab and navigate to `http://localhost:8000/examiner/dashboard`.
 
 Click **Start Scan** to activate the WebRTC camera. Point the camera at the QR code on the student tab, or paste the QR JSON manually into the text area and click **Verify Manually**.
 
+<<<<<<< HEAD
+=======
+> **Mobile / tablet note:** Camera access requires a secure context. On **localhost** the camera works over plain HTTP. On any other hostname (e.g. a LAN IP) the browser enforces HTTPS — if the page is served over HTTP the camera panel shows a clear inline error explaining the requirement and directs the examiner to the manual QR input. No `alert()` is shown; the error is rendered inside the camera panel with a **Try Again** button.
+
+>>>>>>> origin/main
 **Step 6 — Show APPROVED result**
 
 The right panel turns green and shows:
