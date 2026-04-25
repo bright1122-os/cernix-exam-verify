@@ -22,3 +22,6 @@ Route::post('/examiner/verify',    [ExaminerWebController::class, 'verify']);
 
 // Admin portal
 Route::get('/admin/dashboard', [AdminWebController::class, 'index']);
+
+// Presentation
+Route::get('/presentation', fn () => view('presentation'));
