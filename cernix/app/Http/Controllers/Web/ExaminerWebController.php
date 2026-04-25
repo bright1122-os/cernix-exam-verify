@@ -31,7 +31,7 @@ class ExaminerWebController extends Controller
         ]);
 
         $examiner = DB::table('examiners')
-            ->where('username', $credentials['username'])
+            ->where('username', $credentials['username'])->where('is_active', true)
             ->first();
 
         if (! $examiner || ! Hash::check($credentials['password'], $examiner->password_hash)) {
