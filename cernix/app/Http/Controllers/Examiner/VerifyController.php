@@ -27,15 +27,17 @@ class VerifyController extends Controller
             'qr_data' => 'required|array',
         ]);
 
-        // Map JWT user to examiners table by email ↔ username; fall back to first active examiner
         $user     = Auth::guard('api')->user();
         $examiner = DB::table('examiners')
             ->where('username', $user->email)
             ->where('is_active', true)
-            ->first()
-            ?? DB::table('examiners')->where('is_active', true)->first();
+            ->first();
 
-        $examinerId = $examiner ? (int) $examiner->examiner_id : 0;
+        if (! $examiner) {
+            return response()->json(['status' => 'error', 'message' => 'Examiner account not found or inactive.'], 403);
+        }
+
+        $examinerId = (int) $examiner->examiner_id;
         $deviceFp   = substr(md5($request->userAgent() ?? 'unknown'), 0, 16);
         $ip         = $request->ip() ?? '0.0.0.0';
 

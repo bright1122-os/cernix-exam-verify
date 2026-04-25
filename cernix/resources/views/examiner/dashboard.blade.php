@@ -181,11 +181,12 @@
 </style>
 
 <div class="scanner-wrap">
-    <!-- Viewport with camera/reticle -->
     <div class="scanner-viewport">
         <div class="camera-feed">
-            <div class="fake-hall"></div>
+            <video id="camera-video" autoplay playsinline muted style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;display:none;"></video>
+            <div class="fake-hall" id="fake-hall"></div>
         </div>
+        <canvas id="scan-canvas" style="display:none;position:absolute;"></canvas>
         <div class="reticle">
             <div class="dim-overlay"></div>
             <div class="corners"><span></span><span></span><span></span><span></span></div>
@@ -193,7 +194,6 @@
         </div>
     </div>
 
-    <!-- Top bar: examiner info + logout -->
     <div class="scanner-top">
         <div class="ex-info">
             <div class="ex-avatar">{{ strtoupper(substr($examiner['full_name'] ?? 'EX', 0, 2)) }}</div>
@@ -206,10 +206,8 @@
         </a>
     </div>
 
-    <!-- Scan prompt -->
     <div class="scanner-prompt" id="scan-prompt">Point the camera at the student's <b>CERNIX QR</b></div>
 
-    <!-- Bottom panel: stats + last scan + actions -->
     <div class="scanner-bottom">
         <div class="scanner-stats">
             <div class="stat-tile"><b id="total-scans">0</b><span>Scans</span></div>
@@ -225,193 +223,50 @@
         </div>
 
         <div class="scan-actions">
-            <button onclick="simulateScan('APPROVED')">
-                <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="3" viewBox="0 0 24 24"><path d="M20 6L9 17l-5-5"/></svg>
-                Demo Approve
-            </button>
-            <button onclick="simulateScan('REJECTED')">
-                <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="3" viewBox="0 0 24 24"><path d="M6 18L18 6M6 6l12 12"/></svg>
-                Reject
-            </button>
-            <button onclick="simulateScan('DUPLICATE')">
-                <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
-                Duplicate
-            </button>
+            <button onclick="simulateScan('APPROVED')"><svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="3" viewBox="0 0 24 24"><path d="M20 6L9 17l-5-5"/></svg>Demo Approve</button>
+            <button onclick="simulateScan('REJECTED')"><svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="3" viewBox="0 0 24 24"><path d="M6 18L18 6M6 6l12 12"/></svg>Reject</button>
+            <button onclick="simulateScan('DUPLICATE')"><svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>Duplicate</button>
         </div>
     </div>
 
-    <!-- APPROVED Takeover -->
     <div class="takeover approved" id="takeover-approved">
-        <div class="top">
-            <span class="status-label">DECISION · APPROVED</span>
-            <span class="time" id="approved-time">09:14:44</span>
-        </div>
-        <div class="center">
-            <div class="big-icon"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M5 13l4 4L19 7"/></svg></div>
-            <h1>VERIFIED</h1>
-            <p>Access granted. Allow entry.</p>
-        </div>
-        <div>
-            <div class="student-card">
-                <div class="avatar" id="approved-avatar">AE</div>
-                <div style="flex:1">
-                    <p class="nm" id="approved-name">Adaeze Ekwueme</p>
-                    <p class="mt" id="approved-matric">CSC/2021/002</p>
-                    <p class="dept" id="approved-dept">Computer Science</p>
-                </div>
-            </div>
-            <div class="meta-row">
-                <div class="meta-cell"><div class="k">Token</div><div class="v" id="approved-token">a7f2…6b</div></div>
-                <div class="meta-cell"><div class="k">Session</div><div class="v">#1</div></div>
-            </div>
-        </div>
-        <div class="bottom">
-            <button onclick="resetScan()">Next Scan</button>
-            <button class="primary" onclick="resetScan()">
-                <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M5 13l4 4L19 7"/></svg>
-                Admit Student
-            </button>
-        </div>
+        <div class="top"><span class="status-label">DECISION · APPROVED</span><span class="time" id="approved-time">09:14:44</span></div>
+        <div class="center"><div class="big-icon"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M5 13l4 4L19 7"/></svg></div><h1>VERIFIED</h1><p>Access granted. Allow entry.</p></div>
+        <div><div class="student-card"><div class="avatar" id="approved-avatar">AE</div><div style="flex:1"><p class="nm" id="approved-name">Adaeze Ekwueme</p><p class="mt" id="approved-matric">CSC/2021/002</p><p class="dept" id="approved-dept">Computer Science</p></div></div><div class="meta-row"><div class="meta-cell"><div class="k">Token</div><div class="v" id="approved-token">a7f2…6b</div></div><div class="meta-cell"><div class="k">Session</div><div class="v">#1</div></div></div></div>
+        <div class="bottom"><button onclick="resetScan()">Next Scan</button><button class="primary" onclick="resetScan()"><svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M5 13l4 4L19 7"/></svg>Admit Student</button></div>
     </div>
 
-    <!-- REJECTED Takeover -->
     <div class="takeover rejected" id="takeover-rejected">
-        <div class="top">
-            <span class="status-label">DECISION · REJECTED</span>
-            <span class="time" id="rejected-time">09:40:18</span>
-        </div>
-        <div class="center">
-            <div class="big-icon"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M6 18L18 6M6 6l12 12"/></svg></div>
-            <h1>REJECTED</h1>
-            <p>Do not admit. Escalate to supervisor.</p>
-        </div>
-        <div>
-            <div style="margin:20px;position:relative;z-index:1">
-                <div class="student-card" style="margin:0;flex-direction:column">
-                    <p style="font-size:12px;opacity:.8;margin:0 0 8px">Rejection Reason</p>
-                    <div style="font-size:13px;line-height:1.5"><b>HMAC signature mismatch</b><br><span style="opacity:.75;font-size:12px">Token was tampered with or forged</span></div>
-                </div>
-            </div>
-            <div class="meta-row">
-                <div class="meta-cell"><div class="k">Scan #</div><div class="v" id="rejected-scan">1</div></div>
-                <div class="meta-cell"><div class="k">Logged</div><div class="v">YES</div></div>
-            </div>
-        </div>
-        <div class="bottom">
-            <button onclick="resetScan()">Dismiss</button>
-            <button class="primary" onclick="resetScan()">
-                <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M15 5l3 3m3-3l-3 3m3-3H4"/></svg>
-                Alert Supervisor
-            </button>
-        </div>
+        <div class="top"><span class="status-label">DECISION · REJECTED</span><span class="time" id="rejected-time">09:40:18</span></div>
+        <div class="center"><div class="big-icon"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M6 18L18 6M6 6l12 12"/></svg></div><h1>REJECTED</h1><p>Do not admit. Escalate to supervisor.</p></div>
+        <div><div style="margin:20px;position:relative;z-index:1"><div class="student-card" style="margin:0;flex-direction:column"><p style="font-size:12px;opacity:.8;margin:0 0 8px">Rejection Reason</p><div style="font-size:13px;line-height:1.5"><b>HMAC signature mismatch</b><br><span style="opacity:.75;font-size:12px">Token was tampered with or forged</span></div></div></div><div class="meta-row"><div class="meta-cell"><div class="k">Scan #</div><div class="v" id="rejected-scan">1</div></div><div class="meta-cell"><div class="k">Logged</div><div class="v">YES</div></div></div></div>
+        <div class="bottom"><button onclick="resetScan()">Dismiss</button><button class="primary" onclick="resetScan()"><svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M15 5l3 3m3-3l-3 3m3-3H4"/></svg>Alert Supervisor</button></div>
     </div>
 
-    <!-- DUPLICATE Takeover -->
     <div class="takeover duplicate" id="takeover-duplicate">
-        <div class="top">
-            <span class="status-label">DECISION · ALREADY USED</span>
-            <span class="time" id="duplicate-time">09:31:12</span>
-        </div>
-        <div class="center">
-            <div class="big-icon"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg></div>
-            <h1 style="margin-bottom:0">ALREADY<br>USED</h1>
-            <p>Token was redeemed earlier. Entry denied.</p>
-        </div>
-        <div>
-            <div class="student-card">
-                <div class="avatar" id="dup-avatar">AO</div>
-                <div style="flex:1">
-                    <p class="nm" id="dup-name">Adebayo Oluwaseun</p>
-                    <p class="mt" id="dup-matric">CSC/2021/001</p>
-                    <p class="dept" style="color:rgba(255,255,255,.9);margin-top:6px">First redeemed: <b>08:54:21</b></p>
-                </div>
-            </div>
-            <div class="meta-row">
-                <div class="meta-cell"><div class="k">Original Hall</div><div class="v">Hall B</div></div>
-                <div class="meta-cell"><div class="k">Original Examiner</div><div class="v">examiner3</div></div>
-            </div>
-        </div>
-        <div class="bottom">
-            <button onclick="resetScan()">Dismiss</button>
-            <button class="primary" onclick="resetScan()">
-                <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M12 8v4l3 2m6-2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-                View Audit Trail
-            </button>
-        </div>
+        <div class="top"><span class="status-label">DECISION · ALREADY USED</span><span class="time" id="duplicate-time">09:31:12</span></div>
+        <div class="center"><div class="big-icon"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg></div><h1 style="margin-bottom:0">ALREADY<br>USED</h1><p>Token was redeemed earlier. Entry denied.</p></div>
+        <div><div class="student-card"><div class="avatar" id="dup-avatar">AO</div><div style="flex:1"><p class="nm" id="dup-name">Adebayo Oluwaseun</p><p class="mt" id="dup-matric">CSC/2021/001</p><p class="dept" style="color:rgba(255,255,255,.9);margin-top:6px">First redeemed: <b>08:54:21</b></p></div></div><div class="meta-row"><div class="meta-cell"><div class="k">Original Hall</div><div class="v">Hall B</div></div><div class="meta-cell"><div class="k">Original Examiner</div><div class="v">examiner3</div></div></div></div>
+        <div class="bottom"><button onclick="resetScan()">Dismiss</button><button class="primary" onclick="resetScan()"><svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M12 8v4l3 2m6-2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>View Audit Trail</button></div>
     </div>
 </div>
 @endsection
 
 @push('scripts')
+<script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.min.js"></script>
 <script>
-let stats = { total: 0, approved: 0, rejected: 0, duplicate: 0 };
-const students = [
-    { name: 'Adebayo Oluwaseun Emmanuel', matric: 'CSC/2021/001', dept: 'Computer Science', initials: 'AO' },
-    { name: 'Adaeze Ekwueme', matric: 'CSC/2021/002', dept: 'Computer Science', initials: 'AE' },
-    { name: 'Tunde Balogun', matric: 'CSC/2021/003', dept: 'Computer Science', initials: 'TB' },
-];
-
-function updateStats() {
-    document.getElementById('total-scans').textContent = stats.total;
-    document.getElementById('approved-count').textContent = stats.approved;
-    document.getElementById('rejected-count').textContent = stats.rejected;
-    document.getElementById('duplicate-count').textContent = stats.duplicate;
-}
-
-function showTakeover(type) {
-    ['approved', 'rejected', 'duplicate'].forEach(t => {
-        document.getElementById('takeover-' + t).classList.remove('show');
-    });
-    if (type) document.getElementById('takeover-' + type).classList.add('show');
-}
-
-function resetScan() {
-    showTakeover(null);
-    document.getElementById('scan-prompt').textContent = 'Point the camera at the student\'s CERNIX QR';
-}
-
-function simulateScan(decision) {
-    stats.total++;
-    const now = new Date().toLocaleTimeString();
-    const student = students[Math.floor(Math.random() * students.length)];
-
-    if (decision === 'APPROVED') {
-        stats.approved++;
-        document.getElementById('approved-name').textContent = student.name;
-        document.getElementById('approved-matric').textContent = student.matric;
-        document.getElementById('approved-dept').textContent = student.dept;
-        document.getElementById('approved-avatar').textContent = student.initials;
-        document.getElementById('approved-time').textContent = now;
-        document.getElementById('last-scan').className = 'last-scan approved';
-        document.getElementById('last-scan').innerHTML =
-            '<span class="dot"></span>' +
-            '<div class="info"><b>' + student.name.split(' ').slice(0, 2).join(' ') + '</b><span>' + student.matric + ' · APPROVED</span></div>' +
-            '<span class="time">' + now.split(' ')[0] + '</span>';
-        showTakeover('approved');
-    } else if (decision === 'REJECTED') {
-        stats.rejected++;
-        document.getElementById('rejected-time').textContent = now;
-        document.getElementById('rejected-scan').textContent = stats.total;
-        document.getElementById('last-scan').className = 'last-scan rejected';
-        document.getElementById('last-scan').innerHTML =
-            '<span class="dot"></span>' +
-            '<div class="info"><b>QR Tampered</b><span>Token ID · REJECTED</span></div>' +
-            '<span class="time">' + now.split(' ')[0] + '</span>';
-        showTakeover('rejected');
-    } else {
-        stats.duplicate++;
-        document.getElementById('dup-name').textContent = student.name;
-        document.getElementById('dup-matric').textContent = student.matric;
-        document.getElementById('dup-avatar').textContent = student.initials;
-        document.getElementById('duplicate-time').textContent = now;
-        document.getElementById('last-scan').className = 'last-scan duplicate';
-        document.getElementById('last-scan').innerHTML =
-            '<span class="dot"></span>' +
-            '<div class="info"><b>' + student.name.split(' ')[0] + '</b><span>' + student.matric + ' · DUPLICATE</span></div>' +
-            '<span class="time">' + now.split(' ')[0] + '</span>';
-        showTakeover('duplicate');
-    }
-    updateStats();
-}
+let stats={total:0,approved:0,rejected:0,duplicate:0},scanning=false,busy=false;
+const csrfToken=document.querySelector('meta[name="csrf-token"]').content;
+function updateStats(){document.getElementById('total-scans').textContent=stats.total;document.getElementById('approved-count').textContent=stats.approved;document.getElementById('rejected-count').textContent=stats.rejected;document.getElementById('duplicate-count').textContent=stats.duplicate;}
+function showTakeover(type){['approved','rejected','duplicate'].forEach(t=>document.getElementById('takeover-'+t).classList.remove('show'));if(type)document.getElementById('takeover-'+type).classList.add('show');}
+function updateLastScan(cls,title,sub,time){const el=document.getElementById('last-scan');el.className='last-scan '+cls;el.innerHTML='<span class="dot"></span><div class="info"><b>'+title+'</b><span>'+sub+'</span></div><span class="time">'+time+'</span>';}
+function resetScan(){showTakeover(null);busy=false;scanning=true;document.getElementById('scan-prompt').textContent='Point the camera at the student\'s CERNIX QR';}
+function handleResult(result,now){stats.total++;if(result.status==='APPROVED'){stats.approved++;const s=result.student||{};const name=s.full_name||'Unknown';const matric=s.matric_no||'—';const initials=name.split(' ').map(w=>w[0]).slice(0,2).join('').toUpperCase();document.getElementById('approved-name').textContent=name;document.getElementById('approved-matric').textContent=matric;document.getElementById('approved-dept').textContent=s.department||('Dept '+(s.department_id||'—'));document.getElementById('approved-avatar').textContent=initials;document.getElementById('approved-time').textContent=now;document.getElementById('approved-token').textContent=(result.token_id||'').slice(0,8)+'…';updateLastScan('approved',name,matric+' · APPROVED',now);showTakeover('approved');}else if(result.status==='DUPLICATE'){stats.duplicate++;document.getElementById('duplicate-time').textContent=now;updateLastScan('duplicate','Already Used','Token redeemed · DUPLICATE',now);showTakeover('duplicate');}else{stats.rejected++;document.getElementById('rejected-time').textContent=now;document.getElementById('rejected-scan').textContent=stats.total;updateLastScan('rejected','Invalid QR','REJECTED',now);showTakeover('rejected');}updateStats();}
+async function handleQRCode(rawData){if(busy)return;busy=true;scanning=false;let qrData;try{qrData=JSON.parse(rawData);}catch{busy=false;scanning=true;return;}const now=new Date().toLocaleTimeString();document.getElementById('scan-prompt').textContent='Verifying…';try{const resp=await fetch('/examiner/verify',{method:'POST',headers:{'Content-Type':'application/json','Accept':'application/json','X-CSRF-TOKEN':csrfToken,'X-Requested-With':'XMLHttpRequest'},credentials:'same-origin',body:JSON.stringify({qr_data:qrData})});if(resp.status===401){window.location.href='/examiner/login';return;}const result=await resp.json();handleResult(result,now);}catch(err){stats.total++;stats.rejected++;document.getElementById('rejected-time').textContent=now;document.getElementById('rejected-scan').textContent=stats.total;updateLastScan('rejected','Network Error','Could not reach server',now);showTakeover('rejected');updateStats();}}
+async function startCamera(){const video=document.getElementById('camera-video'),fakeHall=document.getElementById('fake-hall');if(!navigator.mediaDevices||!navigator.mediaDevices.getUserMedia)return;try{const stream=await navigator.mediaDevices.getUserMedia({video:{facingMode:{ideal:'environment'},width:{ideal:1280},height:{ideal:720}}});video.srcObject=stream;await video.play();video.style.display='';fakeHall.style.display='none';scanning=true;requestAnimationFrame(scanFrame);}catch(e){}}
+function scanFrame(){if(!scanning){requestAnimationFrame(scanFrame);return;}const video=document.getElementById('camera-video'),canvas=document.getElementById('scan-canvas');if(video.readyState===video.HAVE_ENOUGH_DATA&&typeof jsQR!=='undefined'){canvas.width=video.videoWidth;canvas.height=video.videoHeight;const ctx=canvas.getContext('2d');ctx.drawImage(video,0,0);const imageData=ctx.getImageData(0,0,canvas.width,canvas.height);const code=jsQR(imageData.data,imageData.width,imageData.height,{inversionAttempts:'dontInvert'});if(code&&code.data){handleQRCode(code.data);requestAnimationFrame(scanFrame);return;}}requestAnimationFrame(scanFrame);}
+const demoStudents=[{name:'Adebayo Oluwaseun Emmanuel',matric:'CSC/2021/001',dept:'Computer Science',initials:'AO'},{name:'Adaeze Ekwueme',matric:'CSC/2021/002',dept:'Computer Science',initials:'AE'},{name:'Tunde Balogun',matric:'CSC/2021/003',dept:'Computer Science',initials:'TB'}];
+function simulateScan(decision){const now=new Date().toLocaleTimeString();const student=demoStudents[Math.floor(Math.random()*demoStudents.length)];handleResult({status:decision,student:{full_name:student.name,matric_no:student.matric,department:student.dept},token_id:'demo'+Date.now()},now);}
+startCamera();
 </script>
 @endpush
