@@ -4,11 +4,11 @@
 
 @section('content')
 <style>
-    .register-wrap { min-height: 100vh; background: var(--bg); display: flex; flex-direction: column; }
+    .register-wrap { min-height: 100vh; background: var(--bg); display: flex; flex-direction: column; animation: fadeUp .4s ease both; }
 
     /* Progress dots */
     .progress-dots { display: flex; gap: 6px; padding: 8px 20px 0; }
-    .progress-dots i { height: 3px; flex: 1; background: var(--line); border-radius: 2px; transition: background .2s; }
+    .progress-dots i { height: 3px; flex: 1; background: var(--line); border-radius: 2px; transition: background .3s, transform .2s; }
     .progress-dots i.on { background: var(--accent); }
 
     /* Session pill */
@@ -17,10 +17,12 @@
         background: linear-gradient(135deg, rgba(15,32,80,.04), rgba(45,108,255,.06));
         border: 1px solid var(--line); border-radius: 14px;
         display: flex; justify-content: space-between; align-items: center; gap: 12px;
+        transition: box-shadow .2s, border-color .2s;
     }
+    .session-pill:hover { box-shadow: var(--shadow-sm); border-color: var(--line-2); }
     .session-pill .left b  { display: block; font-size: 13px; font-weight: 600; }
     .session-pill .left span { font-size: 11px; color: var(--ink-3); letter-spacing: .06em; text-transform: uppercase; }
-    .session-pill .fee { font-size: 20px; font-weight: 700; font-family: 'JetBrains Mono', monospace; white-space: nowrap; }
+    .session-pill .fee { font-size: 20px; font-weight: 700; font-family: 'JetBrains Mono', monospace; white-space: nowrap; color: var(--navy); }
 
     /* Security note */
     .sec-note {
@@ -53,7 +55,8 @@
     .qr-wrap {
         margin: -40px 20px 0; padding: 20px;
         background: var(--bg-2); border-radius: 20px; box-shadow: var(--shadow-lg);
-        position: relative; z-index: 2; animation: fadeUp .45s .1s ease both;
+        position: relative; z-index: 2; animation: fadeUp .5s .15s cubic-bezier(.16,1,.3,1) both;
+        border: 1px solid var(--line);
     }
     .qr-wrap-top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; }
     .qr-code {
@@ -67,8 +70,10 @@
     .detail-grid {
         margin: 20px; display: grid; grid-template-columns: 1fr 1fr;
         gap: 1px; background: var(--line); border-radius: 14px; overflow: hidden; border: 1px solid var(--line);
+        animation: fadeUp .4s .25s ease both;
     }
-    .detail-grid > div { padding: 14px; background: var(--bg-2); }
+    .detail-grid > div { padding: 14px; background: var(--bg-2); transition: background .15s; }
+    .detail-grid > div:hover { background: var(--bg); }
     .detail-grid .k { font-size: 10px; color: var(--ink-3); letter-spacing: .1em; text-transform: uppercase; margin-bottom: 4px; }
     .detail-grid .v { font-size: 14px; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
     .detail-grid .v.mono { font-family: 'JetBrains Mono', monospace; font-size: 11px; }

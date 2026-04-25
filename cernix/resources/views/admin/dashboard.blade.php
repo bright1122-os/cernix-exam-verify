@@ -61,13 +61,14 @@
     align-items: center; justify-content: center; cursor: pointer; flex-shrink: 0;
 }
 
-.admin-content { padding: 32px; flex: 1; overflow-y: auto; }
+.admin-content { padding: 32px; flex: 1; overflow-y: auto; scroll-behavior: smooth; }
 
 /* ── Session hero ─────────────────────────────────────────────────────────── */
 .session-hero {
     padding: 24px; border-radius: 18px; margin-bottom: 28px;
     background: linear-gradient(135deg, var(--navy) 0%, var(--navy-2) 100%);
     color: #fff; position: relative; overflow: hidden;
+    animation: fadeUp .4s ease both;
 }
 .session-hero::before {
     content: ""; position: absolute; inset: 0;
@@ -98,13 +99,21 @@
 .stat-card {
     background: var(--bg-2); border: 1px solid var(--line); border-radius: 14px;
     padding: 18px 20px; display: flex; flex-direction: column; gap: 6px;
+    transition: transform .22s cubic-bezier(.2,.8,.3,1), box-shadow .22s, border-color .18s;
+    cursor: default;
 }
+.stat-card:hover { transform: translateY(-3px); box-shadow: var(--shadow); border-color: var(--line-2); }
+.stat-card:hover .v { transform: scale(1.04); }
 .stat-card .k { font-size: 11px; color: var(--ink-3); letter-spacing: .06em; text-transform: uppercase; font-weight: 600; }
-.stat-card .v { font-size: 26px; font-weight: 700; font-family: 'JetBrains Mono', monospace; line-height: 1; }
+.stat-card .v { font-size: 26px; font-weight: 700; font-family: 'JetBrains Mono', monospace; line-height: 1; transition: transform .2s; }
 .stat-card .trend { font-size: 11px; color: var(--ink-3); }
 .stat-card.approved .v { color: var(--emerald); }
 .stat-card.rejected .v { color: var(--red); }
 .stat-card.duplicate .v { color: var(--amber); }
+.stat-card:nth-child(1) { animation: fadeUp .35s .05s ease both; }
+.stat-card:nth-child(2) { animation: fadeUp .35s .1s  ease both; }
+.stat-card:nth-child(3) { animation: fadeUp .35s .15s ease both; }
+.stat-card:nth-child(4) { animation: fadeUp .35s .2s  ease both; }
 
 /* ── Tabs ─────────────────────────────────────────────────────────────────── */
 .admin-tabs {
@@ -114,16 +123,20 @@
     padding: 12px 18px; font-size: 13px; font-weight: 600; color: var(--ink-3);
     border: none; background: none; cursor: pointer;
     border-bottom: 2px solid transparent; white-space: nowrap;
-    transition: color .15s, border-color .15s;
+    transition: color .18s, border-color .18s;
 }
-.admin-tabs button:hover { color: var(--ink-2); }
+.admin-tabs button:hover { color: var(--ink); }
 .admin-tabs button.active { color: var(--navy); border-bottom-color: var(--navy); }
+
+/* Tab panel fade-in */
+.tab-panel { animation: fadeUp .25s ease both; }
 
 /* ── Panel ────────────────────────────────────────────────────────────────── */
 .panel {
     background: var(--bg-2); border: 1px solid var(--line); border-radius: 14px;
-    overflow: hidden; margin-bottom: 20px;
+    overflow: hidden; margin-bottom: 20px; transition: box-shadow .2s;
 }
+.panel:hover { box-shadow: var(--shadow-sm); }
 .panel-head {
     padding: 14px 20px; border-bottom: 1px solid var(--line);
     display: flex; justify-content: space-between; align-items: center; gap: 12px;
@@ -137,22 +150,26 @@
     padding: 6px 12px; border-radius: 8px;
     background: var(--bg); border: 1px solid var(--line);
     font-size: 12px; font-weight: 600; color: var(--ink-2);
-    cursor: pointer; transition: background .15s;
+    cursor: pointer; transition: background .15s, transform .15s;
 }
-.refresh-btn:hover { background: var(--line); }
+.refresh-btn:hover { background: var(--line); transform: translateY(-1px); }
+.refresh-btn:active { transform: translateY(0); }
 
 /* ── Filters ──────────────────────────────────────────────────────────────── */
 .filter-bar {
     display: flex; gap: 8px; padding: 12px 20px;
     border-bottom: 1px solid var(--line); flex-wrap: wrap; align-items: center;
+    background: rgba(244,244,239,.5);
 }
 .filter-bar select, .filter-bar input {
     padding: 6px 10px; border: 1px solid var(--line-2); border-radius: 8px;
     font-size: 12px; background: var(--bg-2); color: var(--ink-2); font-family: inherit;
-    outline: none;
+    outline: none; transition: border-color .15s, box-shadow .15s;
+    cursor: pointer;
 }
+.filter-bar select:hover, .filter-bar input:hover { border-color: var(--ink-4); }
 .filter-bar select:focus, .filter-bar input:focus {
-    border-color: var(--blue); box-shadow: 0 0 0 2px rgba(45,108,255,.1);
+    border-color: var(--blue); box-shadow: 0 0 0 3px rgba(45,108,255,.12);
 }
 .filter-bar label { font-size: 12px; color: var(--ink-3); font-weight: 600; }
 
@@ -161,10 +178,18 @@
 .log-row {
     display: grid; grid-template-columns: 44px 1fr auto;
     gap: 12px; align-items: center;
-    padding: 12px 20px; border-top: 1px solid var(--line); transition: background .12s;
+    padding: 12px 20px; border-top: 1px solid var(--line); transition: background .15s;
+    position: relative;
 }
 .log-row:first-child { border-top: none; }
 .log-row:hover { background: var(--bg); }
+.log-row::before {
+    content: ''; position: absolute; left: 0; top: 0; bottom: 0;
+    width: 3px; background: var(--blue); border-radius: 0 2px 2px 0;
+    transform: scaleY(0); transition: transform .15s cubic-bezier(.2,.9,.3,1);
+    transform-origin: center;
+}
+.log-row:hover::before { transform: scaleY(1); }
 .log-row .n {
     font-size: 11px; color: var(--ink-4);
     font-family: 'JetBrains Mono', monospace; text-align: right;
@@ -188,8 +213,11 @@
 .log-icon {
     width: 28px; height: 28px; border-radius: 8px;
     display: flex; align-items: center; justify-content: center;
-    font-size: 14px; background: var(--bg); border: 1px solid var(--line);
+    background: var(--bg); border: 1px solid var(--line);
+    transition: background .15s, border-color .15s;
+    flex-shrink: 0;
 }
+.log-row:hover .log-icon { background: var(--bg-2); border-color: var(--ink-4); }
 
 .empty-state {
     padding: 40px 20px; text-align: center;
@@ -479,16 +507,17 @@
                         @endphp
                         <div class="log-row">
                             <div class="log-icon">
-                                @php
-                                    $icons = [
-                                        'examiner.login'  => '🔑',
-                                        'examiner.logout' => '🚪',
-                                        'scan.approved'   => '✓',
-                                        'student.register'=> '📝',
-                                    ];
-                                    $icon = $icons[$action] ?? '⚙';
-                                @endphp
-                                {{ $icon }}
+                                @if($action === 'examiner.login')
+                                <svg width="14" height="14" fill="none" stroke="var(--blue)" stroke-width="2" viewBox="0 0 24 24"><path d="M15 3h4a2 2 0 012 2v14a2 2 0 01-2 2h-4"/><polyline points="10 17 15 12 10 7"/><line x1="15" y1="12" x2="3" y2="12"/></svg>
+                            @elseif($action === 'examiner.logout')
+                                <svg width="14" height="14" fill="none" stroke="var(--amber)" stroke-width="2" viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+                            @elseif($action === 'scan.approved')
+                                <svg width="14" height="14" fill="none" stroke="var(--emerald)" stroke-width="2.5" viewBox="0 0 24 24"><path d="M20 6L9 17l-5-5"/></svg>
+                            @elseif($action === 'student.register')
+                                <svg width="14" height="14" fill="none" stroke="var(--navy)" stroke-width="2" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+                            @else
+                                <svg width="14" height="14" fill="none" stroke="var(--ink-3)" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-2-2v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg>
+                            @endif
                             </div>
                             <div class="body">
                                 <b>{{ $action }}</b>
@@ -522,10 +551,25 @@
 <script>
 function switchTab(idx) {
     document.querySelectorAll('.tab-panel').forEach((p, i) => {
-        p.style.display = i === idx ? '' : 'none';
+        if (i === idx) {
+            p.style.display = '';
+            p.style.animation = 'none';
+            void p.offsetWidth;
+            p.style.animation = '';
+        } else {
+            p.style.display = 'none';
+        }
     });
     document.querySelectorAll('.admin-tabs button').forEach((b, i) => {
         b.classList.toggle('active', i === idx);
+    });
+    // Update sidebar nav active state
+    document.querySelectorAll('.admin-sidebar .nav-item').forEach((n, i) => {
+        if (n.getAttribute('onclick') && n.getAttribute('onclick').includes('switchTab(' + idx + ')')) {
+            n.classList.add('on');
+        } else if (n.getAttribute('onclick') && n.getAttribute('onclick').includes('switchTab(')) {
+            n.classList.remove('on');
+        }
     });
 }
 function openSidebar() {

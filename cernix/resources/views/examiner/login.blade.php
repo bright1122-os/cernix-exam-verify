@@ -24,7 +24,11 @@
         position: relative; margin: 0 auto; padding: 32px 28px;
         background: var(--bg-2); border: 1px solid var(--line); border-radius: 22px;
         box-shadow: var(--shadow-lg); max-width: 420px; width: calc(100% - 40px);
-        animation: fadeUp .35s ease both;
+        animation: fadeUp .4s cubic-bezier(.2,.8,.3,1) both;
+        transition: box-shadow .3s;
+    }
+    .login-card:focus-within {
+        box-shadow: 0 30px 70px -20px rgba(15,32,80,.2), 0 0 0 1px rgba(45,108,255,.1);
     }
     .login-card .badge {
         display: inline-flex; padding: 6px 12px; border-radius: 999px;
@@ -48,6 +52,7 @@
     .sec-note {
         display: flex; gap: 8px; padding: 10px 12px; background: var(--bg);
         border-radius: 10px; font-size: 11px; color: var(--ink-3); line-height: 1.5;
+        border: 1px solid var(--line);
     }
 </style>
 

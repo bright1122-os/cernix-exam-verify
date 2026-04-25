@@ -40,6 +40,7 @@
         border: 2px solid rgba(255,255,255,.8); border-radius: 3px;
         box-shadow: 3px 3px 0 rgba(255,255,255,.4);
     }
+    .hero { animation: fadeUp .45s ease both; }
     .brand {
         font-size: clamp(38px, 8vw, 52px); font-weight: 800; letter-spacing: -.03em;
         line-height: 1.05; margin: 20px 0 0; position: relative; z-index: 1;
@@ -56,12 +57,15 @@
         margin: 28px 0 0; display: grid; grid-template-columns: repeat(3, 1fr);
         border: 1px solid var(--line); border-radius: 14px;
         background: var(--bg-2); overflow: hidden; position: relative; z-index: 1;
+        animation: fadeUp .5s .1s ease both;
     }
     .stat-strip > div {
         padding: 14px 12px; text-align: center; border-right: 1px solid var(--line);
+        transition: background .15s;
     }
+    .stat-strip > div:hover { background: var(--bg); }
     .stat-strip > div:last-child { border-right: none; }
-    .stat-strip b { display: block; font-size: 18px; font-weight: 700; letter-spacing: -.02em; font-family: 'JetBrains Mono', monospace; }
+    .stat-strip b { display: block; font-size: 18px; font-weight: 700; letter-spacing: -.02em; font-family: 'JetBrains Mono', monospace; color: var(--navy); }
     .stat-strip span { font-size: 10px; color: var(--ink-3); letter-spacing: .08em; text-transform: uppercase; }
 
     /* Portal buttons */
@@ -69,18 +73,25 @@
     .portal {
         background: var(--bg-2); border: 1px solid var(--line); border-radius: 18px;
         padding: 20px; display: flex; align-items: center; gap: 14px;
-        transition: all .2s; position: relative; overflow: hidden; text-align: left;
+        transition: transform .22s cubic-bezier(.2,.8,.3,1), box-shadow .22s, border-color .18s;
+        position: relative; overflow: hidden; text-align: left;
         text-decoration: none; color: var(--ink);
     }
-    .portal:hover { transform: translateY(-2px); box-shadow: var(--shadow); border-color: var(--ink-4); }
-    .portal:active { transform: translateY(0); filter: brightness(.97); }
+    .portal:nth-child(1) { animation: fadeUp .4s .18s ease both; }
+    .portal:nth-child(2) { animation: fadeUp .4s .26s ease both; }
+    .portal:nth-child(3) { animation: fadeUp .4s .34s ease both; }
+    .portal:hover { transform: translateY(-3px); box-shadow: 0 12px 32px -8px rgba(15,32,80,.14), 0 4px 10px -4px rgba(15,32,80,.08); border-color: var(--ink-4); }
+    .portal:active { transform: translateY(0); box-shadow: none; filter: brightness(.98); }
     .portal .ico {
         width: 52px; height: 52px; border-radius: 14px; display: flex;
         align-items: center; justify-content: center; flex-shrink: 0;
     }
-    .portal .ico.student  { background: rgba(45,108,255,.12); color: var(--blue); }
-    .portal .ico.examiner { background: rgba(5,150,105,.12); color: var(--emerald); }
-    .portal .ico.admin    { background: rgba(15,32,80,.08); color: var(--navy); }
+    .portal .ico.student  { background: rgba(45,108,255,.12); color: var(--blue); transition: background .2s, transform .2s; }
+    .portal .ico.examiner { background: rgba(5,150,105,.12); color: var(--emerald); transition: background .2s, transform .2s; }
+    .portal .ico.admin    { background: rgba(15,32,80,.08); color: var(--navy); transition: background .2s, transform .2s; }
+    .portal:hover .ico.student  { background: rgba(45,108,255,.18); transform: scale(1.08); }
+    .portal:hover .ico.examiner { background: rgba(5,150,105,.18); transform: scale(1.08); }
+    .portal:hover .ico.admin    { background: rgba(15,32,80,.13); transform: scale(1.08); }
     .portal .txt { flex: 1; min-width: 0; }
     .portal .txt h3 { margin: 0; font-size: 16px; font-weight: 600; }
     .portal .txt p  { margin: 3px 0 0; font-size: 12px; color: var(--ink-3); line-height: 1.4; }
@@ -102,7 +113,7 @@
     .system-status .info { flex: 1; }
     .system-status .info b { font-size: 12px; font-weight: 600; color: var(--emerald); display: block; }
     .system-status .info span { font-size: 11px; color: var(--ink-3); }
-    .footer-meta { padding: 0 20px 36px; font-size: 11px; color: var(--ink-4); text-align: center; letter-spacing: .04em; }
+    .footer-meta { padding: 0 20px 36px; font-size: 11px; color: var(--ink-4); text-align: center; letter-spacing: .04em; animation: fadeUp .4s .5s ease both; }
 </style>
 
 <div style="min-height:100vh; background:var(--bg); display:flex; flex-direction:column;">
