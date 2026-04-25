@@ -463,7 +463,8 @@
                                 <b>{{ $log->action }}</b>
                                 <span class="sub">
                                     {{ $log->actor_type }} #{{ $log->actor_id }}
-                                    @if($log->context && $decoded = json_decode($log->context, true))
+                                    @php $decoded = isset($log->context) ? json_decode($log->context, true) : null; @endphp
+                                    @if($decoded)
                                         · {{ collect($decoded)->map(fn($v,$k) => "$k: $v")->implode(' | ') }}
                                     @endif
                                 </span>
