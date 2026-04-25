@@ -317,18 +317,24 @@
 
             <!-- Session hero -->
             @if($activeSession)
+            @php
+                $sSemester = $activeSession->semester      ?? '—';
+                $sYear     = $activeSession->academic_year ?? '—';
+                $sId       = $activeSession->session_id    ?? '—';
+                $sFee      = $activeSession->fee_amount    ?? null;
+            @endphp
             <div class="session-hero">
                 <div class="session-badge">
                     <svg width="10" height="10" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
                     ACTIVE SESSION
                 </div>
-                <h2>{{ $activeSession->semester }} — {{ $activeSession->academic_year }}</h2>
+                <h2>{{ $sSemester }} — {{ $sYear }}</h2>
                 <p class="sub">All verifications are live and cryptographically logged</p>
                 <div class="session-meta">
-                    <div><span class="k">Session ID</span><span class="v">#{{ $activeSession->session_id }}</span></div>
-                    <div><span class="k">Academic Year</span><span class="v">{{ $activeSession->academic_year }}</span></div>
-                    <div><span class="k">Fee</span><span class="v">₦{{ number_format($activeSession->fee_amount) }}</span></div>
-                    <div><span class="k">Examiners</span><span class="v">{{ $stats['examiners'] }}</span></div>
+                    <div><span class="k">Session ID</span><span class="v">#{{ $sId }}</span></div>
+                    <div><span class="k">Academic Year</span><span class="v">{{ $sYear }}</span></div>
+                    <div><span class="k">Fee</span><span class="v">{{ is_numeric($sFee) ? '₦' . number_format($sFee) : '—' }}</span></div>
+                    <div><span class="k">Examiners</span><span class="v">{{ $stats['examiners'] ?? 0 }}</span></div>
                 </div>
             </div>
             @else
@@ -411,18 +417,30 @@
                     </form>
                     <div class="log-table">
                         @forelse($verificationLogs as $i => $log)
+                        @php
+                            $examinerLabel = $log->examiner_username ?? ('examiner #' . ($log->examiner_id ?? '—'));
+                            $tokenId       = $log->token_id   ?? '';
+                            $ipAddress     = $log->ip_address ?? '—';
+                            $decision      = $log->decision   ?? 'UNKNOWN';
+                            $logTime       = $log->timestamp  ?? $log->created_at ?? null;
+                            try {
+                                $logTimeFmt = $logTime ? \Carbon\Carbon::parse($logTime)->format('H:i:s') : '—';
+                            } catch (\Throwable $e) {
+                                $logTimeFmt = '—';
+                            }
+                        @endphp
                         <div class="log-row">
-                            <span class="n">#{{ $stats['total'] - $i }}</span>
+                            <span class="n">#{{ max(($stats['total'] ?? 0) - $i, 1) }}</span>
                             <div class="body">
-                                <b>{{ $log->examiner_username ?? 'examiner #'.$log->examiner_id }}</b>
+                                <b>{{ $examinerLabel }}</b>
                                 <span class="sub">
-                                    Token: {{ Str::limit($log->token_id, 16) }}
-                                    · {{ $log->ip_address }}
+                                    Token: {{ $tokenId !== '' ? Str::limit($tokenId, 16) : '—' }}
+                                    · {{ $ipAddress }}
                                 </span>
                             </div>
                             <div class="right">
-                                <span class="t">{{ \Carbon\Carbon::parse($log->timestamp)->format('H:i:s') }}</span>
-                                <span class="s {{ strtolower($log->decision) }}">{{ $log->decision }}</span>
+                                <span class="t">{{ $logTimeFmt }}</span>
+                                <span class="s {{ strtolower($decision) }}">{{ $decision }}</span>
                             </div>
                         </div>
                         @empty
@@ -446,6 +464,19 @@
                     </div>
                     <div class="log-table">
                         @forelse($auditLogs as $log)
+                        @php
+                            $action     = $log->action     ?? 'unknown';
+                            $actorType  = $log->actor_type ?? '—';
+                            $actorId    = $log->actor_id   ?? '—';
+                            $rawContext = $log->metadata   ?? $log->context ?? null;
+                            $decoded    = $rawContext ? @json_decode($rawContext, true) : null;
+                            $eventTime  = $log->timestamp  ?? $log->created_at ?? null;
+                            try {
+                                $eventTimeFmt = $eventTime ? \Carbon\Carbon::parse($eventTime)->format('H:i:s') : '—';
+                            } catch (\Throwable $e) {
+                                $eventTimeFmt = '—';
+                            }
+                        @endphp
                         <div class="log-row">
                             <div class="log-icon">
                                 @php
@@ -455,22 +486,21 @@
                                         'scan.approved'   => '✓',
                                         'student.register'=> '📝',
                                     ];
-                                    $icon = $icons[$log->action] ?? '⚙';
+                                    $icon = $icons[$action] ?? '⚙';
                                 @endphp
                                 {{ $icon }}
                             </div>
                             <div class="body">
-                                <b>{{ $log->action }}</b>
+                                <b>{{ $action }}</b>
                                 <span class="sub">
-                                    {{ $log->actor_type }} #{{ $log->actor_id }}
-                                    @php $decoded = isset($log->context) ? json_decode($log->context, true) : null; @endphp
-                                    @if($decoded)
-                                        · {{ collect($decoded)->map(fn($v,$k) => "$k: $v")->implode(' | ') }}
+                                    {{ $actorType }} #{{ $actorId }}
+                                    @if(is_array($decoded) && count($decoded))
+                                        · {{ collect($decoded)->map(fn($v,$k) => "$k: " . (is_scalar($v) ? $v : json_encode($v)))->implode(' | ') }}
                                     @endif
                                 </span>
                             </div>
                             <div class="right">
-                                <span class="t">{{ \Carbon\Carbon::parse($log->created_at)->format('H:i:s') }}</span>
+                                <span class="t">{{ $eventTimeFmt }}</span>
                             </div>
                         </div>
                         @empty
