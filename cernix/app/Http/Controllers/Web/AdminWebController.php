@@ -10,17 +10,20 @@ class AdminWebController extends Controller
 {
     public function index(Request $request)
     {
-        $query = DB::table('verification_logs')->orderByDesc('timestamp');
+        $query = DB::table('verification_logs')
+            ->join('examiners', 'verification_logs.examiner_id', '=', 'examiners.examiner_id', 'left')
+            ->select('verification_logs.*', 'examiners.username as examiner_username')
+            ->orderByDesc('verification_logs.timestamp');
 
         if ($request->filled('examiner_id')) {
-            $query->where('examiner_id', (int) $request->input('examiner_id'));
+            $query->where('verification_logs.examiner_id', (int) $request->input('examiner_id'));
         }
 
         if ($request->filled('decision')) {
             $allowedDecisions = ['APPROVED', 'REJECTED', 'DUPLICATE'];
             $decision = strtoupper($request->input('decision'));
             if (in_array($decision, $allowedDecisions, true)) {
-                $query->where('decision', $decision);
+                $query->where('verification_logs.decision', $decision);
             }
         }
 
@@ -36,8 +39,11 @@ class AdminWebController extends Controller
             'approved'  => DB::table('verification_logs')->where('decision', 'APPROVED')->count(),
             'rejected'  => DB::table('verification_logs')->where('decision', 'REJECTED')->count(),
             'duplicate' => DB::table('verification_logs')->where('decision', 'DUPLICATE')->count(),
+            'examiners' => DB::table('examiners')->where('is_active', true)->count(),
         ];
 
-        return view('admin.dashboard', compact('verificationLogs', 'auditLogs', 'stats'));
+        $activeSession = DB::table('exam_sessions')->where('is_active', true)->first();
+
+        return view('admin.dashboard', compact('verificationLogs', 'auditLogs', 'stats', 'activeSession'));
     }
 }
