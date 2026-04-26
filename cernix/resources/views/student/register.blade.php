@@ -175,8 +175,9 @@
     </div>
 
     <div class="detail-grid">
-        <div><div class="k">Student</div><div class="v" id="res-name"></div></div>
+        <div style="grid-column:1/-1"><div class="k">Student</div><div class="v" id="res-name"></div></div>
         <div><div class="k">Matric No.</div><div class="v mono" id="res-matric"></div></div>
+        <div><div class="k">Department</div><div class="v" id="res-dept" style="font-size:12px"></div></div>
         <div><div class="k">Session</div><div class="v" style="font-size:12px">{{ ($session->semester ?? '') . ' ' . ($session->academic_year ?? '') }}</div></div>
         <div><div class="k">Token ID</div><div class="v mono" id="res-token" style="font-size:10px"></div></div>
     </div>
@@ -222,6 +223,7 @@ document.getElementById('reg-form').addEventListener('submit', async (e) => {
 
         document.getElementById('res-name').textContent   = data.data.full_name;
         document.getElementById('res-matric').textContent = data.data.matric_no;
+        document.getElementById('res-dept').textContent   = data.data.department ?? '—';
         document.getElementById('res-token').textContent  = data.data.token_id.slice(0,8) + '…' + data.data.token_id.slice(-4);
         document.getElementById('qr-container').innerHTML = data.data.qr_svg;
         document.getElementById('qr-meta').textContent    = 'SESSION #' + (data.data.session_id ?? '') + ' · ONE-TIME QR';

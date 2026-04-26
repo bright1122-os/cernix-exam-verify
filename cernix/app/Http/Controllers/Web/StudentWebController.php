@@ -68,6 +68,14 @@ class StudentWebController extends Controller
                 'session_id'        => (int) $session->session_id,
             ]);
 
+            // Fetch department name for QR pass display
+            $deptRow = DB::table('students')
+                ->join('departments', 'students.department_id', '=', 'departments.dept_id')
+                ->where('students.matric_no', $data['matric_no'])
+                ->where('students.session_id', (int) $session->session_id)
+                ->select('departments.dept_name')
+                ->first();
+
             // Audit the registration
             app(AuditService::class)->logAction(
                 $data['matric_no'],
@@ -79,7 +87,11 @@ class StudentWebController extends Controller
             return response()->json([
                 'success' => true,
                 'message' => 'Registration successful',
-                'data'    => array_merge($result['data'], ['qr_svg' => $qrSvg]),
+                'data'    => array_merge($result['data'], [
+                    'qr_svg'     => $qrSvg,
+                    'department' => $deptRow->dept_name ?? '',
+                    'session_id' => (int) $session->session_id,
+                ]),
             ]);
 
         } catch (\Throwable $e) {
