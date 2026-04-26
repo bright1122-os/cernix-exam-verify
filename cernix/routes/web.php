@@ -6,7 +6,7 @@ use App\Http\Controllers\Web\ExaminerWebController;
 use App\Http\Controllers\Web\StudentWebController;
 use Illuminate\Support\Facades\Route;
 
-Route::get('/', fn () => view('home'));
+Route::get('/', fn () => view('landing'));
 Route::get('/health', [HealthController::class, 'check']);
 
 // Student portal
