@@ -145,6 +145,10 @@
             <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" style="flex-shrink:0;margin-top:1px"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg>
             Your QR token is encrypted with <strong>AES-256-GCM</strong> and signed with a per-session HMAC key. It is valid for one-time use only.
         </div>
+
+        <div style="text-align:center;font-size:11px;color:var(--ink-4);margin-top:20px;">
+            Need help? Visit the Bursary office &middot; Block B
+        </div>
     </div>
 </div>
 

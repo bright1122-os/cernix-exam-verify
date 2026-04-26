@@ -224,6 +224,52 @@
     color: var(--ink-3); font-size: 13px;
 }
 
+/* ── Session cards ────────────────────────────────────────────────────────── */
+.session-card {
+    display: flex; align-items: center; gap: 14px;
+    padding: 16px 20px; border-top: 1px solid var(--line); transition: background .15s;
+}
+.session-card:first-child { border-top: none; }
+.session-card:hover { background: var(--bg); }
+.s-ico {
+    width: 36px; height: 36px; border-radius: 10px;
+    background: rgba(45,108,255,.1); color: var(--blue);
+    display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+}
+.s-ico.inactive { background: var(--bg); color: var(--ink-4); }
+.s-body { flex: 1; min-width: 0; }
+.s-body b { display: block; font-size: 13px; font-weight: 600; }
+.s-body span { font-size: 11px; color: var(--ink-3); }
+.s-body b.inactive { color: var(--ink-3); }
+.toggle {
+    width: 36px; height: 20px; border-radius: 999px; background: var(--line-2);
+    position: relative; flex-shrink: 0; transition: background .2s;
+}
+.toggle::after {
+    content: ''; position: absolute; top: 3px; left: 3px;
+    width: 14px; height: 14px; border-radius: 50%; background: #fff;
+    transition: transform .2s; box-shadow: 0 1px 3px rgba(0,0,0,.15);
+}
+.toggle.on { background: var(--emerald); }
+.toggle.on::after { transform: translateX(16px); }
+
+/* ── Examiner rows ────────────────────────────────────────────────────────── */
+.examiner-row {
+    display: flex; align-items: center; gap: 12px;
+    padding: 14px 20px; border-top: 1px solid var(--line); transition: background .15s;
+}
+.examiner-row:first-child { border-top: none; }
+.examiner-row:hover { background: var(--bg); }
+.ex-av {
+    width: 36px; height: 36px; border-radius: 50%;
+    background: var(--navy); color: #fff;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 13px; font-weight: 700; flex-shrink: 0;
+}
+.ex-bd { flex: 1; min-width: 0; }
+.ex-bd b { display: block; font-size: 13px; font-weight: 600; }
+.ex-bd span { font-size: 11px; color: var(--ink-3); font-family: 'JetBrains Mono', monospace; }
+
 /* ── Responsive ───────────────────────────────────────────────────────────── */
 @media (max-width: 1024px) {
     .stat-grid { grid-template-columns: repeat(2, 1fr); }
@@ -290,17 +336,17 @@
 
         <div class="nav-section">
             <div class="nav-section-title">Setup</div>
-            <a href="#" class="nav-item">
-                <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/></svg>
+            <a href="#" class="nav-item" onclick="switchTab(2);closeSidebar();return false;">
+                <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
                 <span>Sessions</span>
             </a>
-            <a href="#" class="nav-item">
+            <a href="#" class="nav-item" onclick="switchTab(3);closeSidebar();return false;">
                 <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75"/></svg>
                 <span>Examiners</span>
             </a>
             <a href="#" class="nav-item">
                 <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
-                <span>Students</span>
+                <span>Students (SIS)</span>
             </a>
         </div>
 
@@ -374,12 +420,18 @@
             <!-- Stats -->
             <div class="stat-grid">
                 <div class="stat-card">
-                    <span class="k">Total Scans</span>
+                    <span class="k">
+                        <svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" style="display:inline;vertical-align:-1px;margin-right:4px"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><path d="M14 17h7M17.5 14v7"/></svg>
+                        Total Scans
+                    </span>
                     <span class="v">{{ number_format($stats['total']) }}</span>
                     <span class="trend">All decisions</span>
                 </div>
                 <div class="stat-card approved">
-                    <span class="k">Approved</span>
+                    <span class="k">
+                        <svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24" style="display:inline;vertical-align:-1px;margin-right:4px"><path d="M20 6L9 17l-5-5"/></svg>
+                        Approved
+                    </span>
                     <span class="v">{{ number_format($stats['approved']) }}</span>
                     <span class="trend">
                         @if($stats['total'] > 0)
@@ -390,12 +442,18 @@
                     </span>
                 </div>
                 <div class="stat-card rejected">
-                    <span class="k">Rejected</span>
+                    <span class="k">
+                        <svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24" style="display:inline;vertical-align:-1px;margin-right:4px"><path d="M6 18L18 6M6 6l12 12"/></svg>
+                        Rejected
+                    </span>
                     <span class="v">{{ number_format($stats['rejected']) }}</span>
                     <span class="trend">Invalid / tampered</span>
                 </div>
                 <div class="stat-card duplicate">
-                    <span class="k">Duplicate</span>
+                    <span class="k">
+                        <svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" style="display:inline;vertical-align:-1px;margin-right:4px"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+                        Duplicates
+                    </span>
                     <span class="v">{{ number_format($stats['duplicate']) }}</span>
                     <span class="trend">Replay attempts</span>
                 </div>
@@ -412,6 +470,15 @@
                     <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" style="display:inline;vertical-align:-2px;margin-right:5px"><path d="M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v11a2 2 0 01-2 2z"/></svg>
                     Audit Trail
                     <span style="margin-left:6px;background:var(--line-2);border-radius:999px;padding:1px 7px;font-size:10px;font-weight:700;">{{ $auditLogs->count() }}</span>
+                </button>
+                <button onclick="switchTab(2)">
+                    <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" style="display:inline;vertical-align:-2px;margin-right:5px"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+                    Sessions
+                </button>
+                <button onclick="switchTab(3)">
+                    <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" style="display:inline;vertical-align:-2px;margin-right:5px"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75"/></svg>
+                    Examiners
+                    <span style="margin-left:6px;background:var(--line-2);border-radius:999px;padding:1px 7px;font-size:10px;font-weight:700;">{{ $stats['examiners'] }}</span>
                 </button>
             </div>
 
@@ -539,6 +606,73 @@
                         </div>
                         @endforelse
                     </div>
+                </div>
+            </div>
+
+            <!-- Tab: Sessions -->
+            <div class="tab-panel" id="tab-2" style="display:none;">
+                <div class="panel">
+                    <div class="panel-head">
+                        <h3>Exam Sessions</h3>
+                        <span class="count">Manage exam periods</span>
+                    </div>
+                    @if($activeSession)
+                    @php
+                        $ssSemester = $activeSession->semester      ?? '—';
+                        $ssYear     = $activeSession->academic_year ?? '—';
+                        $ssFee      = $activeSession->fee_amount    ?? null;
+                    @endphp
+                    <div class="session-card">
+                        <div class="s-ico">
+                            <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+                        </div>
+                        <div class="s-body">
+                            <b>{{ $ssSemester }} &middot; {{ $ssYear }}</b>
+                            <span>Fee {{ is_numeric($ssFee) ? '₦' . number_format($ssFee) : '—' }} &middot; Active</span>
+                        </div>
+                        <div class="toggle on"></div>
+                    </div>
+                    @else
+                    <div class="empty-state">
+                        <svg width="32" height="32" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24" style="margin:0 auto 10px;display:block;opacity:.3"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+                        No active session. Create a session to begin verification.
+                    </div>
+                    @endif
+                </div>
+            </div>
+
+            <!-- Tab: Examiners -->
+            <div class="tab-panel" id="tab-3" style="display:none;">
+                <div class="panel">
+                    <div class="panel-head">
+                        <h3>Examiners</h3>
+                        <span class="count">{{ $stats['examiners'] }} active</span>
+                    </div>
+                    @php
+                        $examinerList = \Illuminate\Support\Facades\DB::table('examiners')->orderBy('examiner_id')->limit(50)->get();
+                    @endphp
+                    @forelse($examinerList as $ex)
+                    @php
+                        $exName = $ex->full_name ?? $ex->username ?? 'Examiner';
+                        $exInitials = collect(explode(' ', $exName))->map(fn($w) => strtoupper($w[0] ?? ''))->take(2)->implode('');
+                        $exActive = $ex->is_active ?? false;
+                        $exRole = $ex->role ?? 'examiner';
+                    @endphp
+                    <div class="examiner-row">
+                        <div class="ex-av">{{ $exInitials ?: 'EX' }}</div>
+                        <div class="ex-bd">
+                            <b>{{ $exName }}</b>
+                            <span>@{{ $ex->username ?? '—' }}</span>
+                        </div>
+                        <span class="chip {{ $exRole === 'admin' ? 'navy' : '' }}" style="{{ $exRole !== 'admin' ? 'background:rgba(45,108,255,.12);color:var(--blue)' : '' }}">{{ strtoupper($exRole) }}</span>
+                        <span class="chip {{ $exActive ? 'emerald' : 'red' }}">{{ $exActive ? 'ACTIVE' : 'INACTIVE' }}</span>
+                    </div>
+                    @empty
+                    <div class="empty-state">
+                        <svg width="32" height="32" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24" style="margin:0 auto 10px;display:block;opacity:.3"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>
+                        No examiners registered yet.
+                    </div>
+                    @endforelse
                 </div>
             </div>
 
