@@ -182,6 +182,22 @@
             </div>
         </a>
 
+        <a href="/presentation" class="portal">
+            <span class="accent-line"></span>
+            <div class="ico admin">
+                <svg width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24">
+                    <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v10H6.5A2.5 2.5 0 0 1 4 9.5v-5A2.5 2.5 0 0 1 6.5 2z"/>
+                </svg>
+            </div>
+            <div class="txt">
+                <h3>How It Works</h3>
+                <p>Read a guide to the Cernix system and its cryptographic foundation</p>
+            </div>
+            <div class="arrow">
+                <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M9 18l6-6-6-6"/></svg>
+            </div>
+        </a>
+
         <a href="/admin/dashboard" class="portal">
             <span class="accent-line"></span>
             <div class="ico admin">

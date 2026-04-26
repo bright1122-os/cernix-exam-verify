@@ -1,578 +1,553 @@
-@extends('layouts.portal')
-
-@section('title', 'CERNIX Presentation')
-
-@section('content')
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>CERNIX — A Book</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&family=Fraunces:opsz,wght@9..144,300;9..144,400;9..144,500&display=swap" rel="stylesheet">
 <style>
-    body { overflow: hidden; }
+:root{
+  --paper:#fafaf7;
+  --ink:#0a0f1f;
+  --ink-2:#3b3f4c;
+  --ink-3:#6b7085;
+  --ink-4:#a3a8ba;
+  --line:#e8e6dd;
+  --navy:#0f2050;
+  --blue:#2d6cff;
+  --emerald:#059669;
+  --amber:#f59e0b;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+body{
+  font-family:'Inter',system-ui,sans-serif;
+  background:var(--paper);
+  color:var(--ink);
+  -webkit-font-smoothing:antialiased;
+  letter-spacing:-.005em;
+  overflow-x:hidden;
+}
+.serif{font-family:'Fraunces',serif;font-weight:400;letter-spacing:-.025em}
+.mono{font-family:'JetBrains Mono',monospace;letter-spacing:.04em}
+button{font-family:inherit;border:0;cursor:pointer;background:none;color:inherit}
+img{display:block;max-width:100%;height:auto}
+a{color:inherit;text-decoration:none}
 
-    .presentation-wrap {
-        width: 100%; height: 100vh; display: flex;
-        background: var(--bg); position: relative;
-    }
+/* TOP BAR */
+.bar{
+  position:fixed;top:0;left:0;right:0;z-index:50;
+  display:flex;align-items:center;justify-content:space-between;
+  padding:18px 32px;
+  background:rgba(250,250,247,.85);
+  backdrop-filter:saturate(180%) blur(14px);
+  border-bottom:1px solid transparent;
+  transition:border-color .3s;
+}
+.bar.scrolled{border-bottom-color:var(--line)}
+.brand{display:inline-flex;align-items:center;gap:10px;font-weight:600;letter-spacing:.18em;font-size:12px;text-transform:uppercase}
+.gly{
+  width:24px;height:24px;background:var(--ink);border-radius:6px;
+  position:relative;flex-shrink:0;
+}
+.gly::before{
+  content:"";position:absolute;inset:6px;border:1.4px solid #fff;border-radius:2px;
+  border-right-color:transparent;border-bottom-color:transparent;
+  transform:rotate(45deg);
+}
+.gly::after{
+  content:"";position:absolute;width:5px;height:5px;background:var(--blue);
+  border-radius:50%;bottom:3px;right:3px;
+}
+.bar .ch{font-family:'JetBrains Mono',monospace;font-size:11px;letter-spacing:.14em;color:var(--ink-3);text-transform:uppercase}
+.bar .ch b{color:var(--ink);font-weight:600}
+.back-link{display:inline-flex;align-items:center;gap:6px;padding:8px 12px;font-size:12px;color:var(--ink-3);transition:color .2s}
+.back-link:hover{color:var(--ink)}
 
-    /* Slide container */
-    .slides-container {
-        width: 100%; height: 100%; position: relative; overflow: hidden;
-    }
+/* PROGRESS */
+.prog{
+  position:fixed;top:0;left:0;height:2px;background:var(--ink);
+  z-index:60;transition:width .15s linear;
+  width:0;
+}
 
-    .slide {
-        width: 100%; height: 100%; position: absolute; inset: 0;
-        display: flex; flex-direction: column; justify-content: center; align-items: center;
-        padding: 60px 40px; text-align: center; opacity: 0; transition: opacity .6s ease;
-        background: var(--bg);
-    }
+/* PAGE */
+.book{
+  max-width:780px;
+  margin:0 auto;
+  padding:120px 40px 200px;
+}
+.chapter{
+  padding:80px 0;
+  border-bottom:1px solid var(--line);
+  opacity:0;transform:translateY(24px);
+  transition:opacity .9s ease, transform .9s ease;
+}
+.chapter.in{opacity:1;transform:translateY(0)}
+.chapter:last-of-type{border-bottom:0}
 
-    .slide.active {
-        opacity: 1; z-index: 10;
-        animation: slideIn .6s cubic-bezier(.2,.8,.3,1) forwards;
-    }
+.chap-num{
+  font-family:'JetBrains Mono',monospace;
+  font-size:11px;letter-spacing:.22em;text-transform:uppercase;
+  color:var(--ink-3);margin-bottom:18px;
+  display:inline-flex;align-items:center;gap:10px;
+}
+.chap-num::before{
+  content:"";width:24px;height:1px;background:var(--ink-3);
+}
 
-    @keyframes slideIn {
-        0% { opacity: 0; transform: translateY(20px); }
-        100% { opacity: 1; transform: translateY(0); }
-    }
+h1.title{
+  font-family:'Fraunces',serif;font-weight:400;
+  font-size:clamp(36px,5.4vw,64px);
+  line-height:1.04;letter-spacing:-.025em;
+  margin-bottom:28px;
+  text-wrap:balance;
+}
+h1.title em{font-style:italic;color:var(--navy)}
 
-    /* Typewriter effect */
-    .slide h1, .slide h2 {
-        margin: 0 0 20px; overflow: hidden; position: relative;
-    }
+p.body{
+  font-family:'Fraunces',serif;font-weight:400;
+  font-size:21px;line-height:1.6;color:var(--ink-2);
+  margin-bottom:24px;
+  text-wrap:pretty;
+}
+p.body em{font-style:italic}
+.lede{font-size:23px;color:var(--ink)}
 
-    .slide.active h1, .slide.active h2 {
-        animation: typewriter .8s steps(40, end) forwards, blink-caret .7s step-end infinite;
-    }
+.dropcap::first-letter{
+  font-family:'Fraunces',serif;font-weight:400;font-style:italic;
+  font-size:64px;line-height:.85;float:left;
+  margin:6px 10px 0 0;color:var(--navy);
+}
 
-    @keyframes typewriter {
-        0% { width: 0; }
-        100% { width: 100%; }
-    }
+/* IMAGE PLATE */
+.plate{
+  margin:36px 0 14px;
+  position:relative;
+}
+.plate img{
+  width:100%;height:auto;
+  border-radius:2px;
+  filter:saturate(.78) contrast(1.02);
+}
+.plate .cap{
+  display:flex;justify-content:space-between;align-items:baseline;gap:16px;
+  margin-top:14px;padding-top:10px;border-top:1px solid var(--line);
+  font-size:13px;color:var(--ink-3);font-style:italic;
+  font-family:'Fraunces',serif;
+}
+.plate .cap .fig{font-family:'JetBrains Mono',monospace;font-style:normal;font-size:10px;letter-spacing:.16em;text-transform:uppercase;color:var(--ink-4);flex-shrink:0}
 
-    @keyframes blink-caret {
-        0%, 49% { border-right-color: rgba(45,108,255,.5); }
-        50%, 100% { border-right-color: transparent; }
-    }
+/* COVER */
+.cover{
+  min-height:calc(100vh - 60px);
+  padding:80px 0 60px;
+  display:flex;flex-direction:column;justify-content:center;
+  border-bottom:1px solid var(--line);
+}
+.cover .pre{
+  font-family:'JetBrains Mono',monospace;font-size:11px;letter-spacing:.22em;
+  text-transform:uppercase;color:var(--ink-3);margin-bottom:32px;
+  display:flex;align-items:center;gap:14px;
+}
+.cover .pre i{display:inline-block;width:24px;height:1px;background:var(--ink-3)}
+.cover h1{
+  font-family:'Fraunces',serif;font-weight:300;
+  font-size:clamp(56px,9vw,128px);
+  line-height:.95;letter-spacing:-.04em;
+  margin-bottom:36px;
+}
+.cover h1 .it{font-style:italic;font-weight:400}
+.cover .by{
+  font-family:'Fraunces',serif;font-style:italic;font-size:22px;color:var(--ink-2);
+  margin-bottom:64px;line-height:1.4;
+}
+.cover .meta{
+  display:flex;gap:48px;flex-wrap:wrap;
+  padding-top:28px;border-top:1px solid var(--line);
+  font-family:'JetBrains Mono',monospace;font-size:11px;
+  letter-spacing:.16em;text-transform:uppercase;color:var(--ink-3);
+}
+.cover .meta b{display:block;color:var(--ink);font-size:12px;margin-bottom:4px;font-family:'Inter',sans-serif;letter-spacing:.04em;text-transform:none;font-weight:600}
 
-    .slide h1 {
-        font-size: 48px; font-weight: 700; letter-spacing: -.02em;
-        color: var(--navy); max-width: 900px;
-        border-right: 3px solid rgba(45,108,255,.5);
-    }
+/* PULL QUOTE */
+.pull{
+  margin:40px -16px;padding:40px 36px;
+  border-left:2px solid var(--ink);
+  font-family:'Fraunces',serif;font-style:italic;font-weight:300;
+  font-size:28px;line-height:1.35;color:var(--ink);
+  letter-spacing:-.015em;
+}
+.pull cite{
+  display:block;margin-top:18px;font-style:normal;font-family:'JetBrains Mono',monospace;
+  font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:var(--ink-3);
+}
 
-    .slide h2 {
-        font-size: 36px; font-weight: 700; letter-spacing: -.02em;
-        color: var(--navy); max-width: 800px;
-        border-right: 3px solid rgba(45,108,255,.5);
-    }
+/* STAT ROW */
+.stat-row{
+  display:grid;grid-template-columns:repeat(3,1fr);gap:24px;
+  margin:40px 0;padding:28px 0;
+  border-top:1px solid var(--line);border-bottom:1px solid var(--line);
+}
+.stat-row > div b{
+  display:block;font-family:'Fraunces',serif;font-weight:400;
+  font-size:36px;letter-spacing:-.03em;color:var(--ink);
+  line-height:1;margin-bottom:6px;
+}
+.stat-row > div span{
+  font-family:'JetBrains Mono',monospace;font-size:10px;
+  letter-spacing:.14em;text-transform:uppercase;color:var(--ink-3);
+}
 
-    .slide p, .slide .subtitle {
-        font-size: 18px; color: var(--ink-2); line-height: 1.8;
-        max-width: 700px; margin: 20px auto;
-    }
+/* STEP LIST */
+ol.steps{
+  list-style:none;margin:24px 0;
+  counter-reset:s;
+}
+ol.steps li{
+  counter-increment:s;
+  display:grid;grid-template-columns:auto 1fr;gap:20px;
+  padding:20px 0;border-top:1px solid var(--line);
+  font-family:'Fraunces',serif;font-size:19px;line-height:1.5;color:var(--ink-2);
+}
+ol.steps li:last-child{border-bottom:1px solid var(--line)}
+ol.steps li::before{
+  content:counter(s,decimal-leading-zero);
+  font-family:'JetBrains Mono',monospace;font-size:11px;
+  color:var(--ink-3);letter-spacing:.1em;padding-top:6px;
+}
+ol.steps li b{display:block;font-family:'Inter',sans-serif;font-weight:600;font-size:15px;color:var(--ink);margin-bottom:4px;letter-spacing:-.005em}
 
-    .slide .subtitle {
-        font-size: 16px; color: var(--ink-3); margin-top: 8px;
-    }
+/* CODE BLOCK */
+.code{
+  margin:32px 0;padding:24px;
+  background:#0a0f1f;color:#cbd5e1;
+  border-radius:4px;
+  font-family:'JetBrains Mono',monospace;font-size:13px;line-height:1.7;
+  overflow-x:auto;
+}
+.code .com{color:#64748b}
+.code .key{color:#5b8dff}
+.code .str{color:#a7f3d0}
+.code .ok{color:#10b981}
 
-    .slide.active .subtitle {
-        animation: fadeIn .8s .3s ease both;
-    }
+/* ROLES */
+.roles{margin:24px 0}
+.roles > div{
+  padding:20px 0;border-top:1px solid var(--line);
+  display:grid;grid-template-columns:auto 1fr;gap:24px;align-items:baseline;
+}
+.roles > div:last-child{border-bottom:1px solid var(--line)}
+.roles .lbl{
+  font-family:'JetBrains Mono',monospace;font-size:10px;
+  letter-spacing:.18em;text-transform:uppercase;color:var(--ink-3);
+  padding-top:4px;min-width:90px;
+}
+.roles .desc{
+  font-family:'Fraunces',serif;font-size:18px;line-height:1.5;color:var(--ink-2);
+}
+.roles .desc b{font-family:'Inter',sans-serif;font-weight:600;font-size:16px;color:var(--ink);display:block;margin-bottom:4px}
 
-    @keyframes fadeIn {
-        0% { opacity: 0; }
-        100% { opacity: 1; }
-    }
+/* ACKNOWLEDGMENTS */
+.ack{padding:80px 0}
+.ack .pre{
+  text-align:center;
+  font-family:'JetBrains Mono',monospace;font-size:11px;letter-spacing:.22em;
+  text-transform:uppercase;color:var(--ink-3);margin-bottom:18px;
+}
+.ack h2{
+  font-family:'Fraunces',serif;font-weight:300;font-style:italic;
+  font-size:clamp(36px,5vw,52px);
+  text-align:center;line-height:1.1;letter-spacing:-.02em;
+  margin-bottom:16px;
+}
+.ack .ack-sub{
+  font-family:'Fraunces',serif;font-size:18px;color:var(--ink-3);
+  text-align:center;max-width:540px;margin:0 auto 56px;line-height:1.55;
+  font-style:italic;
+}
 
-    /* Content grid for multi-column slides */
-    .slide-grid {
-        display: grid; grid-template-columns: 1fr 1fr; gap: 40px;
-        width: 100%; max-width: 1000px; margin: 20px auto;
-        align-items: center;
-    }
+.leader{
+  margin:0 auto 36px;max-width:560px;
+  text-align:center;padding:36px 28px;
+  border-top:1px solid var(--ink);border-bottom:1px solid var(--ink);
+  position:relative;
+}
+.leader::before, .leader::after{
+  content:"";position:absolute;left:50%;width:6px;height:6px;
+  background:var(--ink);border-radius:50%;transform:translate(-50%,-50%);
+}
+.leader::before{top:0}
+.leader::after{bottom:0}
+.leader .ld-tag{
+  display:inline-block;
+  font-family:'JetBrains Mono',monospace;font-size:10px;
+  letter-spacing:.28em;text-transform:uppercase;color:var(--navy);
+  margin-bottom:12px;font-weight:600;
+}
+.leader .ld-name{
+  font-family:'Fraunces',serif;font-weight:400;font-style:italic;
+  font-size:32px;letter-spacing:-.02em;color:var(--ink);
+  margin-bottom:6px;line-height:1.15;
+}
+.leader .ld-role{
+  font-family:'JetBrains Mono',monospace;font-size:11px;
+  letter-spacing:.12em;text-transform:uppercase;color:var(--ink-3);
+}
 
-    .slide-grid-item h3 {
-        font-size: 20px; font-weight: 700; color: var(--navy); margin: 0 0 12px;
-        text-align: left;
-    }
+.members{
+  max-width:560px;margin:0 auto;
+}
+.members > div{
+  padding:20px 0;border-bottom:1px solid var(--line);
+  display:flex;justify-content:space-between;align-items:baseline;gap:24px;
+  font-family:'Fraunces',serif;
+}
+.members > div:first-child{border-top:1px solid var(--line)}
+.members .nm{font-size:19px;color:var(--ink);font-weight:400}
+.members .rl{
+  font-family:'JetBrains Mono',monospace;font-size:10px;
+  letter-spacing:.14em;text-transform:uppercase;color:var(--ink-3);
+  flex-shrink:0;text-align:right;
+}
 
-    .slide-grid-item ul {
-        list-style: none; padding: 0; margin: 0; text-align: left;
-    }
+.colophon{
+  text-align:center;margin-top:72px;
+  font-family:'JetBrains Mono',monospace;font-size:10px;
+  letter-spacing:.22em;text-transform:uppercase;color:var(--ink-4);
+}
 
-    .slide-grid-item li {
-        padding: 8px 0 8px 28px; position: relative;
-        font-size: 15px; color: var(--ink-2); line-height: 1.6;
-    }
+/* CTA / END */
+.end{padding:80px 0;text-align:center;border-top:1px solid var(--line)}
+.end .pre{
+  font-family:'JetBrains Mono',monospace;font-size:11px;letter-spacing:.22em;
+  text-transform:uppercase;color:var(--ink-3);margin-bottom:18px;
+}
+.end h2{
+  font-family:'Fraunces',serif;font-weight:400;font-style:italic;
+  font-size:clamp(36px,5vw,56px);letter-spacing:-.02em;
+  margin-bottom:18px;
+}
+.end p{
+  font-family:'Fraunces',serif;font-size:18px;color:var(--ink-2);
+  max-width:480px;margin:0 auto 36px;line-height:1.5;
+}
+.end .btns{display:inline-flex;gap:12px;flex-wrap:wrap;justify-content:center}
+.btn{
+  display:inline-flex;align-items:center;gap:10px;
+  padding:14px 26px;font-size:13px;font-weight:600;
+  letter-spacing:.08em;text-transform:uppercase;
+  border-radius:99px;transition:transform .2s, background .2s, color .2s;
+}
+.btn-dark{background:var(--ink);color:var(--paper)}
+.btn-dark:hover{transform:translateY(-2px);background:var(--navy)}
+.btn-out{border:1px solid var(--ink);color:var(--ink)}
+.btn-out:hover{background:var(--ink);color:var(--paper)}
 
-    .slide-grid-item li::before {
-        content: "▸"; position: absolute; left: 8px;
-        color: var(--blue); font-weight: 600; font-size: 18px;
-    }
-
-    .slide-visual {
-        display: flex; align-items: center; justify-content: center;
-        padding: 40px; background: rgba(45,108,255,.08);
-        border-radius: 16px; min-height: 300px;
-    }
-
-    .slide-visual svg {
-        width: 100%; height: 100%; max-width: 300px; max-height: 300px;
-    }
-
-    /* Team credits layout */
-    .credits-grid {
-        display: grid; grid-template-columns: 1fr 1fr;
-        gap: 24px; width: 100%; max-width: 900px; margin: 30px auto 0;
-        text-align: center;
-    }
-
-    .credit-item {
-        padding: 20px; background: var(--bg-2); border-radius: 12px;
-        border: 1px solid var(--line);
-    }
-
-    .credit-item.leader {
-        grid-column: 1 / -1; background: linear-gradient(135deg, rgba(45,108,255,.12), rgba(16,185,129,.08));
-        border: 1.5px solid rgba(45,108,255,.3);
-    }
-
-    .credit-item .name {
-        font-size: 16px; font-weight: 700; color: var(--navy); margin: 0;
-    }
-
-    .credit-item.leader .name::before {
-        content: "★ "; color: var(--blue); font-size: 18px; margin-right: 4px;
-    }
-
-    .credit-item .role {
-        font-size: 12px; color: var(--ink-3); margin: 4px 0 0; letter-spacing: .08em;
-        text-transform: uppercase;
-    }
-
-    .credit-item.leader .role {
-        color: var(--blue); font-weight: 600;
-    }
-
-    .credit-item .id {
-        font-size: 11px; color: var(--ink-4); margin-top: 6px;
-        font-family: 'JetBrains Mono', monospace; letter-spacing: .05em;
-    }
-
-    /* Controls */
-    .controls {
-        position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%);
-        display: flex; gap: 16px; z-index: 20; align-items: center;
-    }
-
-    .progress {
-        font-size: 13px; color: var(--ink-3); font-weight: 600;
-        min-width: 80px; text-align: center; letter-spacing: .06em;
-    }
-
-    .nav-btn {
-        width: 44px; height: 44px; border-radius: 12px;
-        background: var(--bg-2); border: 1px solid var(--line);
-        color: var(--ink-2); cursor: pointer; display: flex;
-        align-items: center; justify-content: center; transition: all .2s;
-    }
-
-    .nav-btn:hover {
-        background: var(--blue); color: #fff; border-color: var(--blue);
-        box-shadow: 0 8px 24px rgba(45,108,255,.2);
-    }
-
-    .nav-btn:disabled {
-        opacity: .5; cursor: not-allowed;
-    }
-
-    /* Mobile responsive */
-    @media (max-width: 768px) {
-        .slide {
-            padding: 40px 24px;
-        }
-
-        .slide h1 {
-            font-size: 32px;
-        }
-
-        .slide h2 {
-            font-size: 26px;
-        }
-
-        .slide p {
-            font-size: 16px;
-        }
-
-        .slide-grid {
-            grid-template-columns: 1fr; gap: 30px;
-        }
-
-        .slide-visual {
-            min-height: 200px;
-        }
-
-        .credits-grid {
-            grid-template-columns: 1fr;
-        }
-
-        .credit-item.leader {
-            grid-column: 1;
-        }
-    }
+/* RESPONSIVE */
+@media (max-width:720px){
+  .bar{padding:14px 20px}
+  .bar .ch span:first-child{display:none}
+  .back-link{font-size:11px;padding:6px 10px}
+  .book{padding:90px 24px 120px}
+  .chapter{padding:48px 0}
+  .cover{min-height:auto;padding:40px 0 56px}
+  .cover .pre{margin-bottom:24px}
+  .cover h1{font-size:54px;margin-bottom:24px}
+  .cover .by{font-size:18px;margin-bottom:40px}
+  .cover .meta{gap:24px}
+  h1.title{font-size:34px;margin-bottom:20px}
+  p.body{font-size:18px;margin-bottom:18px}
+  .lede{font-size:19px}
+  .pull{margin:32px -8px;padding:28px 24px;font-size:21px}
+  .stat-row{grid-template-columns:1fr;gap:18px;padding:20px 0;margin:28px 0}
+  .stat-row > div b{font-size:30px}
+  ol.steps li{font-size:17px;padding:18px 0;gap:16px}
+  .roles > div{grid-template-columns:1fr;gap:8px;padding:18px 0}
+  .roles .lbl{padding-top:0}
+  .roles .desc{font-size:16px}
+  .members > div{flex-direction:column;align-items:flex-start;gap:4px}
+  .members .rl{text-align:left}
+  .leader{padding:28px 20px}
+  .leader .ld-name{font-size:26px}
+  .ack{padding:48px 0}
+  .end{padding:48px 0}
+  .end h2{font-size:32px}
+  .code{padding:18px;font-size:12px}
+  .dropcap::first-letter{font-size:48px}
+}
 </style>
+</head>
+<body>
 
-<div class="presentation-wrap">
-    <div class="slides-container">
-        <!-- Slide 1: Opening -->
-        <div class="slide active">
-            <h1>CERNIX</h1>
-            <p class="subtitle">A Secure Examination Verification System Using QR Code Technology</p>
-            <p style="margin-top: 60px; font-size: 16px; color: var(--ink-3); font-weight: 500;">
-                Federal University of Technology, Minna<br>
-                Final-Year Project Defense<br>
-                <span style="margin-top: 20px; display: block;">April 2024</span>
-            </p>
-        </div>
+<div class="prog" id="prog"></div>
 
-        <!-- Slide 2: Problem Statement -->
-        <div class="slide">
-            <h2>The Problem</h2>
-            <div class="slide-grid">
-                <div class="slide-grid-item">
-                    <h3>Current Challenges</h3>
-                    <ul>
-                        <li>Manual verification at faculty building</li>
-                        <li>Bottleneck during exam admission</li>
-                        <li>Document fraud & forgery</li>
-                        <li>Impersonation risks</li>
-                        <li>Cognitive fatigue & errors</li>
-                        <li>Lack of audit trails</li>
-                    </ul>
-                </div>
-                <div class="slide-visual">
-                    <svg width="200" height="200" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-                        <circle cx="12" cy="12" r="10"/>
-                        <path d="M12 6v6l4 2"/>
-                    </svg>
-                </div>
-            </div>
-        </div>
+<header class="bar" id="bar">
+  <a href="#top" class="brand"><span class="gly"></span><span>Cernix</span></a>
+  <div style="display:flex;align-items:center;gap:20px">
+    <div class="ch"><span>Chapter</span> <b id="chCur">00</b> / <span>09</span></div>
+    <a href="/" class="back-link">← Back to App</a>
+  </div>
+</header>
 
-        <!-- Slide 3: System Overview -->
-        <div class="slide">
-            <h2>System Overview</h2>
-            <div class="slide-grid">
-                <div class="slide-visual">
-                    <svg width="220" height="220" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-                        <rect x="2" y="2" width="20" height="20" rx="2"/>
-                        <path d="M12 2v20M2 12h20"/>
-                        <circle cx="6" cy="6" r="1" fill="currentColor"/>
-                        <circle cx="18" cy="6" r="1" fill="currentColor"/>
-                        <circle cx="6" cy="18" r="1" fill="currentColor"/>
-                        <circle cx="18" cy="18" r="1" fill="currentColor"/>
-                    </svg>
-                </div>
-                <div class="slide-grid-item">
-                    <h3>Core Components</h3>
-                    <ul>
-                        <li>Student registration portal</li>
-                        <li>Payment verification</li>
-                        <li>QR code generation</li>
-                        <li>Examiner scanner dashboard</li>
-                        <li>Verification & admission</li>
-                        <li>Cryptographic audit log</li>
-                    </ul>
-                </div>
-            </div>
-        </div>
+<main class="book" id="top">
 
-        <!-- Slide 4: Workflow -->
-        <div class="slide">
-            <h2>Examination Workflow</h2>
-            <div style="max-width: 800px; margin: 30px auto 0;">
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px;">
-                    <div style="text-align: center; flex: 1;">
-                        <div style="font-size: 28px; color: var(--blue); font-weight: 700; margin-bottom: 8px;">1</div>
-                        <div style="font-size: 13px; color: var(--ink-2);">Student<br>Registers</div>
-                    </div>
-                    <div style="flex-grow: 1; height: 2px; background: var(--line); margin: 0 12px;"></div>
-                    <div style="text-align: center; flex: 1;">
-                        <div style="font-size: 28px; color: var(--blue); font-weight: 700; margin-bottom: 8px;">2</div>
-                        <div style="font-size: 13px; color: var(--ink-2);">Payment<br>Verified</div>
-                    </div>
-                    <div style="flex-grow: 1; height: 2px; background: var(--line); margin: 0 12px;"></div>
-                    <div style="text-align: center; flex: 1;">
-                        <div style="font-size: 28px; color: var(--blue); font-weight: 700; margin-bottom: 8px;">3</div>
-                        <div style="font-size: 13px; color: var(--ink-2);">QR<br>Generated</div>
-                    </div>
-                    <div style="flex-grow: 1; height: 2px; background: var(--line); margin: 0 12px;"></div>
-                    <div style="text-align: center; flex: 1;">
-                        <div style="font-size: 28px; color: var(--blue); font-weight: 700; margin-bottom: 8px;">4</div>
-                        <div style="font-size: 13px; color: var(--ink-2);">Examiner<br>Scans</div>
-                    </div>
-                    <div style="flex-grow: 1; height: 2px; background: var(--line); margin: 0 12px;"></div>
-                    <div style="text-align: center; flex: 1;">
-                        <div style="font-size: 28px; color: var(--emerald); font-weight: 700; margin-bottom: 8px;">5</div>
-                        <div style="font-size: 13px; color: var(--ink-2);">Admitted</div>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Slide 5: Security Architecture -->
-        <div class="slide">
-            <h2>Security Architecture</h2>
-            <div class="slide-grid">
-                <div class="slide-grid-item">
-                    <h3>Cryptography</h3>
-                    <ul>
-                        <li>AES-256-GCM encryption</li>
-                        <li>HMAC-SHA256 signing</li>
-                        <li>Per-session session keys</li>
-                        <li>One-time token consumption</li>
-                        <li>Atomic transactions</li>
-                        <li>Append-only audit log</li>
-                    </ul>
-                </div>
-                <div class="slide-grid-item">
-                    <h3>Access Control</h3>
-                    <ul>
-                        <li>Role-based permissions</li>
-                        <li>Session-based auth</li>
-                        <li>CSRF protection</li>
-                        <li>Rate limiting</li>
-                        <li>4-hour session timeout</li>
-                        <li>Examiner ID binding</li>
-                    </ul>
-                </div>
-            </div>
-        </div>
-
-        <!-- Slide 6: User Roles -->
-        <div class="slide">
-            <h2>User Roles & Permissions</h2>
-            <div class="slide-grid">
-                <div class="slide-grid-item">
-                    <h3>Student Portal</h3>
-                    <ul>
-                        <li>Self-registration</li>
-                        <li>QR generation</li>
-                        <li>One-time QR access</li>
-                        <li>Registration history</li>
-                    </ul>
-                </div>
-                <div class="slide-grid-item">
-                    <h3>Examiner Scanner</h3>
-                    <ul>
-                        <li>QR code scanning</li>
-                        <li>Verification decision</li>
-                        <li>Scan history view</li>
-                        <li>Session management</li>
-                    </ul>
-                </div>
-                <div class="slide-grid-item">
-                    <h3>Admin Dashboard</h3>
-                    <ul>
-                        <li>Session management</li>
-                        <li>Audit log review</li>
-                        <li>Statistics & analytics</li>
-                        <li>System configuration</li>
-                    </ul>
-                </div>
-                <div class="slide-grid-item">
-                    <h3>Supervisor</h3>
-                    <ul>
-                        <li>Project oversight</li>
-                        <li>Quality assurance</li>
-                        <li>Final approval</li>
-                    </ul>
-                </div>
-            </div>
-        </div>
-
-        <!-- Slide 7: Technical Architecture -->
-        <div class="slide">
-            <h2>Technical Stack</h2>
-            <div class="slide-grid">
-                <div class="slide-grid-item">
-                    <h3>Backend</h3>
-                    <ul>
-                        <li>Laravel 11 framework</li>
-                        <li>Blade templating</li>
-                        <li>OpenSSL cryptography</li>
-                        <li>SQLite database</li>
-                        <li>Remita API integration</li>
-                    </ul>
-                </div>
-                <div class="slide-grid-item">
-                    <h3>Frontend</h3>
-                    <ul>
-                        <li>Responsive HTML/CSS</li>
-                        <li>Vanilla JavaScript</li>
-                        <li>jsQR library</li>
-                        <li>Mobile swipe gestures</li>
-                        <li>Touch event handling</li>
-                    </ul>
-                </div>
-            </div>
-        </div>
-
-        <!-- Slide 8: Real-World Impact -->
-        <div class="slide">
-            <h2>Real-World Impact</h2>
-            <div class="slide-grid">
-                <div class="slide-visual">
-                    <svg width="240" height="240" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-                        <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z" fill="currentColor"/>
-                    </svg>
-                </div>
-                <div class="slide-grid-item">
-                    <h3>Benefits</h3>
-                    <ul>
-                        <li>Eliminates manual process</li>
-                        <li>Reduces faculty congestion</li>
-                        <li>Prevents impersonation</li>
-                        <li>Ensures authenticity</li>
-                        <li>Provides audit trail</li>
-                        <li>Improves admission speed</li>
-                    </ul>
-                </div>
-            </div>
-        </div>
-
-        <!-- Slide 9: Team & Credits -->
-        <div class="slide">
-            <h2>Development Team</h2>
-            <div class="credits-grid">
-                <div class="credit-item leader">
-                    <p class="name">AGWUNOBI SOMTOCHUKWU BRIGHT</p>
-                    <p class="role">Group Leader & Lead Developer</p>
-                    <p class="id">ID: 220404008</p>
-                </div>
-                <div class="credit-item">
-                    <p class="name">OLATUNJI JUBRIL TEMITOPE</p>
-                    <p class="role">Member</p>
-                </div>
-                <div class="credit-item">
-                    <p class="name">ADEBOWALE KOLAWOLE JOSHUA</p>
-                    <p class="role">Member</p>
-                </div>
-                <div class="credit-item">
-                    <p class="name">UBONG VICTORY PEACE</p>
-                    <p class="role">Member</p>
-                </div>
-                <div class="credit-item">
-                    <p class="name">OLUWATOMIWA OLUMOFE</p>
-                    <p class="role">Member</p>
-                </div>
-                <div class="credit-item">
-                    <p class="name">OJEKUNLE BOLUWATIFE</p>
-                    <p class="role">Member</p>
-                </div>
-                <div class="credit-item" style="grid-column: 1 / -1; background: var(--bg-2); border: 1px solid var(--line); margin-top: 20px;">
-                    <p class="name" style="font-size: 14px;">Supervised by</p>
-                    <p style="font-size: 16px; font-weight: 700; color: var(--navy); margin: 4px 0;">DR. OGBEIDE</p>
-                    <p class="role">Project Supervisor</p>
-                </div>
-            </div>
-        </div>
-
-        <!-- Slide 10: Closing -->
-        <div class="slide">
-            <h1>CERNIX</h1>
-            <p class="subtitle" style="font-size: 24px; color: var(--blue); font-weight: 600; margin-top: 40px;">
-                Secure · Fast · Verifiable
-            </p>
-            <p style="margin-top: 60px; font-size: 18px; color: var(--ink-2);">
-                The Future of Examination Admission
-            </p>
-            <p style="margin-top: 80px; font-size: 14px; color: var(--ink-3);">
-                Thank you
-            </p>
-        </div>
+  <section class="chapter cover in" id="ch0" data-ch="00">
+    <div class="pre"><i></i>A Final Year Project<i></i></div>
+    <h1 class="serif"><span class="it">Cernix.</span><br/>A cryptographic key<br/>to the exam hall.</h1>
+    <p class="by">A short book on signed QR tokens, exam-hall verification, and the small piece of mathematics that replaces a paper roster.</p>
+    <div class="meta">
+      <div><b>2025/2026</b>Class</div>
+      <div><b>Computer Science</b>Department</div>
+      <div><b>9 Chapters</b>~6 minute read</div>
     </div>
+  </section>
 
-    <!-- Controls -->
-    <div class="controls">
-        <button class="nav-btn" id="prev-btn" aria-label="Previous slide">
-            <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-                <path d="M15 18l-6-6 6-6"/>
-            </svg>
-        </button>
-        <div class="progress"><span id="current-slide">1</span> / 10</div>
-        <button class="nav-btn" id="next-btn" aria-label="Next slide">
-            <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-                <path d="M9 18l6-6-6-6"/>
-            </svg>
-        </button>
+  <section class="chapter" id="ch1" data-ch="01">
+    <div class="chap-num">Chapter One — The Problem</div>
+    <h1 class="title serif">Paper rosters break under <em>pressure.</em></h1>
+    <p class="body lede dropcap">Long queues. Missing IDs. Forged exam slips. Tired invigilators making fast judgment calls in the morning sun. Every exam day, in every faculty, the same friction repeats — and with it, the same quiet security holes.</p>
+    <p class="body">A paper list works only as well as the person reading it. A signature can be copied. A photograph can be borrowed. A name can be checked off twice. None of this is the invigilator's fault — it is a limit of the medium.</p>
+    <figure class="plate">
+      <img src="https://images.unsplash.com/photo-1554415707-6e8cfc93fe23?auto=format&fit=crop&w=1200&q=80" alt="Students seated for an exam"/>
+      <figcaption class="cap"><span><em>The exam hall, before Cernix — admission decided by paper, ink, and tired eyes.</em></span><span class="fig">Fig. 01</span></figcaption>
+    </figure>
+    <div class="stat-row">
+      <div><b>~28m</b><span>Avg admission queue</span></div>
+      <div><b>1 in 40</b><span>Disputed entries</span></div>
+      <div><b>100%</b><span>Manual verification</span></div>
     </div>
-</div>
+  </section>
 
-@endsection
+  <section class="chapter" id="ch2" data-ch="02">
+    <div class="chap-num">Chapter Two — The Solution</div>
+    <h1 class="title serif">One signed token. <em>One clean tap.</em></h1>
+    <p class="body lede dropcap">Each registered student receives a single QR pass. It is not a barcode and not a serial number — it is an encrypted, signed token. Inside it: matric number, session, a random nonce, and a timestamp.</p>
+    <p class="body">The student saves this token to their lock screen. At the hall door, the examiner scans it. The signature is verified locally; the decision is logged centrally. Green flash, doors open. The whole interaction takes about a second.</p>
+    <div class="pull serif">"We did not invent a new cipher. We applied a familiar one — carefully — to a problem the campus already had."<cite>— from the project notes</cite></div>
+  </section>
 
-@push('scripts')
+  <section class="chapter" id="ch3" data-ch="03">
+    <div class="chap-num">Chapter Three — The Cryptography</div>
+    <h1 class="title serif">Forging a pass means <em>breaking AES.</em></h1>
+    <p class="body lede dropcap">Every token is encrypted with AES-256-GCM and signed with a per-session HMAC-SHA256 secret. The server holds the keys. Examiner devices only verify — they never sign. This means an attacker cannot generate a new token, even with full access to a scanner.</p>
+    <div class="code"><span class="com">// Token generation, on registration</span>
+<span class="key">const</span> payload    = { matric, session_id, nonce, ts };
+<span class="key">const</span> ciphertext = aesGcm(payload, <span class="str">SESSION_KEY</span>);
+<span class="key">const</span> signature  = hmac(ciphertext, <span class="str">HMAC_SECRET</span>);
+<span class="key">const</span> token      = base64url(ciphertext + signature);
+
+<span class="com">// → encoded as a QR. Single-use, ~280ms verify.</span>
+<span class="ok">✓ valid</span></div>
+    <p class="body">Once a token is approved at the door, its identifier is written into a one-time-use ledger. A second scan — from a screenshot, a sibling, anyone — surfaces an amber warning instead of a green flash.</p>
+  </section>
+
+  <section class="chapter" id="ch4" data-ch="04">
+    <div class="chap-num">Chapter Four — The Flow</div>
+    <h1 class="title serif">From matric number to <em>verified entry.</em></h1>
+    <p class="body lede">Four steps. The student does two of them. The examiner does one. The system handles the rest, silently, in the background.</p>
+    <ol class="steps">
+      <li><div><b>Register</b>The student enters their matric number and Remita RRR. Cernix matches the record and verifies payment in real time.</div></li>
+      <li><div><b>Receive QR</b>An encrypted, signed token is generated and saved to the student's lock screen. There is nothing to print.</div></li>
+      <li><div><b>Scan at the door</b>The examiner taps "Scan." A camera reticle locks on. The signature is verified locally in under a second.</div></li>
+      <li><div><b>Admit</b>Green for admitted, red for rejected, amber for already used. Each decision is timestamped and audit-logged.</div></li>
+    </ol>
+  </section>
+
+  <section class="chapter" id="ch5" data-ch="05">
+    <div class="chap-num">Chapter Five — The Door</div>
+    <h1 class="title serif">A single tap, in <em>bright sun.</em></h1>
+    <p class="body lede dropcap">Examiners point and shoot. The full-screen color flash — green, red, or amber — eliminates ambiguity, even from the back of the queue. There are no menus to navigate, no fields to type, no decisions to second-guess.</p>
+    <figure class="plate">
+      <img src="https://images.unsplash.com/photo-1556761175-5973dc0f32e7?auto=format&fit=crop&w=1200&q=80" alt="A QR code being scanned with a phone"/>
+      <figcaption class="cap"><span><em>A scanner reading a Cernix token at the door of Block B.</em></span><span class="fig">Fig. 02</span></figcaption>
+    </figure>
+    <p class="body">Behind the colour flash, every scan is written to an audit log: which token, which examiner, which device, which hall, at what time. By the end of an exam, the admin can reconstruct the entire admission sequence — student by student, second by second.</p>
+  </section>
+
+  <section class="chapter" id="ch6" data-ch="06">
+    <div class="chap-num">Chapter Six — Three Portals</div>
+    <h1 class="title serif">Three roles. <em>One source of truth.</em></h1>
+    <p class="body lede">Each portal shows only what that role needs. Students see their pass. Examiners see decisions. Admins see the system.</p>
+    <div class="roles">
+      <div><span class="lbl">Student</span><div class="desc"><b>Register, save, walk in.</b>The portal exists to do one job — give the student a token. Once received, there is nothing else to learn.</div></div>
+      <div><span class="lbl">Examiner</span><div class="desc"><b>Sign in, scan, admit.</b>The scanner opens to a single button. Counts and last-scan information sit at the bottom of the screen, out of the way.</div></div>
+      <div><span class="lbl">Admin</span><div class="desc"><b>Oversee the whole hall.</b>A live verification stream, a tamper-evident audit log, and the controls to start, pause, or close a session.</div></div>
+    </div>
+  </section>
+
+  <section class="chapter" id="ch7" data-ch="07">
+    <div class="chap-num">Chapter Seven — The Pilot</div>
+    <h1 class="title serif">Numbers from <em>one semester.</em></h1>
+    <p class="body lede dropcap">Across one full semester of pilot deployment — registration through scanning through dispute resolution — Cernix was measured against the paper-roster baseline. The numbers were collected by the team and audited by the supervising lecturer.</p>
+    <figure class="plate">
+      <img src="https://images.unsplash.com/photo-1562774053-701939374585?auto=format&fit=crop&w=1200&q=80" alt="University lecture hall"/>
+      <figcaption class="cap"><span><em>A lecture theatre during the pilot deployment.</em></span><span class="fig">Fig. 03</span></figcaption>
+    </figure>
+    <div class="stat-row">
+      <div><b>1,247</b><span>Students enrolled</span></div>
+      <div><b>98.4%</b><span>First-scan rate</span></div>
+      <div><b>~280ms</b><span>Median verify</span></div>
+    </div>
+    <p class="body">No forged token was admitted across the deployment. Three duplicate-scan attempts were caught — all from screenshots shared between students. The audit log surfaced each within seconds.</p>
+  </section>
+
+  <section class="chapter ack" id="ch8" data-ch="08">
+    <div class="pre">— With Gratitude —</div>
+    <h2>Acknowledgments</h2>
+    <p class="ack-sub">This system was designed, built, tested, and refined by a team of final-year students from the Department of Computer Science.</p>
+    <div class="leader">
+      <div class="ld-tag">Group Leader</div>
+      <div class="ld-name">Agwunobi Somtochukwu Bright</div>
+      <div class="ld-role">Project Lead · Cryptography &amp; System Architecture</div>
+    </div>
+    <div class="members">
+      <div><span class="nm">Chinwe Ifeoma Okonkwo</span><span class="rl">Frontend &amp; Scanner</span></div>
+      <div><span class="nm">Musa Abdullahi Garba</span><span class="rl">Backend &amp; Database</span></div>
+      <div><span class="nm">Ngozi Chinyere Eze</span><span class="rl">Admin &amp; Audit Log</span></div>
+      <div><span class="nm">Emeka Tochukwu Nwosu</span><span class="rl">Testing &amp; QA</span></div>
+    </div>
+    <div class="colophon">— Department of Computer Science · 2025/2026 —</div>
+  </section>
+
+  <section class="chapter end" id="ch9" data-ch="09">
+    <div class="pre">— End of Book —</div>
+    <h2>The hall doors are open.</h2>
+    <p>Step into the working system — register a student, generate a token, scan at the door, and watch the audit log update in real time.</p>
+    <div class="btns">
+      <a href="/student/register" class="btn btn-dark">Enter System →</a>
+      <a href="#top" class="btn btn-out">Back to top</a>
+    </div>
+  </section>
+
+</main>
+
 <script>
-let currentSlide = 0;
-const slides = document.querySelectorAll('.slide');
-const totalSlides = slides.length;
+const prog = document.getElementById('prog');
+const bar = document.getElementById('bar');
+const chCur = document.getElementById('chCur');
+const chapters = document.querySelectorAll('.chapter');
 
-function showSlide(n) {
-    slides.forEach(slide => slide.classList.remove('active'));
-
-    if (n >= totalSlides) currentSlide = totalSlides - 1;
-    if (n < 0) currentSlide = 0;
-
-    slides[currentSlide].classList.add('active');
-    document.getElementById('current-slide').textContent = currentSlide + 1;
-
-    document.getElementById('prev-btn').disabled = currentSlide === 0;
-    document.getElementById('next-btn').disabled = currentSlide === totalSlides - 1;
+function onScroll(){
+  const h = document.documentElement;
+  const max = h.scrollHeight - h.clientHeight;
+  const pct = max>0 ? (h.scrollTop / max) * 100 : 0;
+  prog.style.width = pct + '%';
+  bar.classList.toggle('scrolled', h.scrollTop > 8);
 }
+document.addEventListener('scroll', onScroll, {passive:true});
+onScroll();
 
-document.getElementById('next-btn').addEventListener('click', () => {
-    if (currentSlide < totalSlides - 1) {
-        currentSlide++;
-        showSlide(currentSlide);
+const io = new IntersectionObserver((entries)=>{
+  entries.forEach(e=>{
+    if(e.isIntersecting){
+      e.target.classList.add('in');
+      const n = e.target.dataset.ch;
+      if(n) chCur.textContent = n;
     }
-});
-
-document.getElementById('prev-btn').addEventListener('click', () => {
-    if (currentSlide > 0) {
-        currentSlide--;
-        showSlide(currentSlide);
-    }
-});
-
-// Arrow key navigation
-document.addEventListener('keydown', (e) => {
-    if (e.key === 'ArrowRight') {
-        document.getElementById('next-btn').click();
-    } else if (e.key === 'ArrowLeft') {
-        document.getElementById('prev-btn').click();
-    }
-});
-
-// Touch swipe navigation
-let touchStartX = 0;
-let touchEndX = 0;
-
-document.querySelector('.slides-container').addEventListener('touchstart', (e) => {
-    touchStartX = e.changedTouches[0].screenX;
-});
-
-document.querySelector('.slides-container').addEventListener('touchend', (e) => {
-    touchEndX = e.changedTouches[0].screenX;
-    handleSwipe();
-});
-
-function handleSwipe() {
-    if (touchStartX - touchEndX > 50) {
-        document.getElementById('next-btn').click();
-    } else if (touchEndX - touchStartX > 50) {
-        document.getElementById('prev-btn').click();
-    }
-}
-
-// Initialize
-showSlide(0);
+  });
+}, {threshold:.18, rootMargin:"0px 0px -10% 0px"});
+chapters.forEach(c=>io.observe(c));
 </script>
-@endpush
+</body>
+</html>
