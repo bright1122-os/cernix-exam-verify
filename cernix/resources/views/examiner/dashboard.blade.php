@@ -86,8 +86,12 @@
     .stat-tile {
         padding: 10px 8px; background: rgba(255,255,255,.06); border-radius: 12px;
         border: 1px solid rgba(255,255,255,.08); text-align: center;
+        transition: background .18s, transform .18s, border-color .18s;
+        cursor: default;
     }
-    .stat-tile b { display: block; font-size: 18px; font-weight: 700; font-family: 'JetBrains Mono', monospace; }
+    .stat-tile:hover { background: rgba(255,255,255,.11); transform: translateY(-2px) scale(1.02); border-color: rgba(255,255,255,.14); }
+    .stat-tile b { display: block; font-size: 18px; font-weight: 700; font-family: 'JetBrains Mono', monospace; transition: transform .15s; }
+    .stat-tile:hover b { transform: scale(1.06); }
     .stat-tile span { font-size: 9px; letter-spacing: .1em; text-transform: uppercase; color: rgba(255,255,255,.55); }
     .stat-tile.approved b { color: var(--emerald-2); }
     .stat-tile.rejected b { color: var(--red-2); }
@@ -96,6 +100,7 @@
     .last-scan {
         padding: 12px 14px; border-radius: 14px; background: rgba(255,255,255,.06);
         border: 1px solid rgba(255,255,255,.1); display: flex; align-items: center; gap: 12px;
+        transition: background .25s, border-color .25s; animation: slideUp .3s ease both;
     }
     .last-scan .dot { width: 8px; height: 8px; border-radius: 50%; background: rgba(255,255,255,.3); }
     .last-scan.approved { background: rgba(16,185,129,.12); border-color: rgba(16,185,129,.3); }
@@ -116,15 +121,17 @@
         flex: 1; padding: 10px; border-radius: 12px; background: rgba(255,255,255,.08);
         color: #fff; font-size: 13px; font-weight: 500; border: 1px solid rgba(255,255,255,.1);
         display: flex; align-items: center; justify-content: center; gap: 6px; cursor: pointer;
+        transition: background .18s, transform .18s, box-shadow .18s;
     }
-    .scan-actions button:hover { background: rgba(255,255,255,.14); }
+    .scan-actions button:hover { background: rgba(255,255,255,.15); transform: translateY(-1px); box-shadow: 0 4px 14px rgba(0,0,0,.3); }
+    .scan-actions button:active { transform: translateY(0); box-shadow: none; }
     .scan-actions button.primary { background: var(--blue); border-color: var(--blue); }
-    .scan-actions button.primary:hover { background: var(--blue-2); }
+    .scan-actions button.primary:hover { background: var(--blue-2); box-shadow: 0 4px 14px rgba(45,108,255,.4); }
 
     /* Takeovers */
     .takeover {
         position: absolute; inset: 0; display: flex; flex-direction: column; justify-content: space-between;
-        color: #fff; z-index: 100; animation: flash .35s cubic-bezier(.2,.9,.3,1.15) both;
+        color: #fff; z-index: 100; animation: flash .4s cubic-bezier(.16,1,.3,1) both;
         overflow: hidden; display: none;
     }
     .takeover.approved { background: linear-gradient(180deg,#047857 0%, #065f46 100%); }
@@ -169,15 +176,16 @@
     .takeover .bottom button {
         flex: 1; padding: 16px; background: rgba(255,255,255,.18); border: 1px solid rgba(255,255,255,.25);
         color: #fff; font-size: 15px; font-weight: 600; border-radius: 14px; backdrop-filter: blur(8px);
-        cursor: pointer;
+        cursor: pointer; transition: background .18s, transform .18s;
     }
     .takeover .bottom button.primary { background: #fff; color: #065f46; border-color: #fff; }
     .takeover.rejected .bottom button.primary { color: #7f1d1d; }
     .takeover.duplicate .bottom button.primary { color: #78350f; }
-    .takeover .bottom button:hover { background: rgba(255,255,255,.28); }
-    .takeover .bottom button.primary:hover { filter: brightness(.96); }
+    .takeover .bottom button:hover { background: rgba(255,255,255,.28); transform: translateY(-1px); }
+    .takeover .bottom button:active { transform: translateY(0); }
+    .takeover .bottom button.primary:hover { filter: brightness(.96); transform: translateY(-1px); }
 
-    @keyframes flash { from { opacity: 0; transform: scale(.95); } to { opacity: 1; transform: none; } }
+    @keyframes flash { from { opacity: 0; transform: scale(.96); } to { opacity: 1; transform: none; } }
 </style>
 
 <div class="scanner-wrap">

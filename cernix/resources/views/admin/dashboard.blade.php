@@ -61,13 +61,14 @@
     align-items: center; justify-content: center; cursor: pointer; flex-shrink: 0;
 }
 
-.admin-content { padding: 32px; flex: 1; overflow-y: auto; }
+.admin-content { padding: 32px; flex: 1; overflow-y: auto; scroll-behavior: smooth; }
 
 /* ── Session hero ─────────────────────────────────────────────────────────── */
 .session-hero {
     padding: 24px; border-radius: 18px; margin-bottom: 28px;
     background: linear-gradient(135deg, var(--navy) 0%, var(--navy-2) 100%);
     color: #fff; position: relative; overflow: hidden;
+    animation: fadeUp .4s ease both;
 }
 .session-hero::before {
     content: ""; position: absolute; inset: 0;
@@ -98,13 +99,21 @@
 .stat-card {
     background: var(--bg-2); border: 1px solid var(--line); border-radius: 14px;
     padding: 18px 20px; display: flex; flex-direction: column; gap: 6px;
+    transition: transform .22s cubic-bezier(.2,.8,.3,1), box-shadow .22s, border-color .18s;
+    cursor: default;
 }
+.stat-card:hover { transform: translateY(-3px); box-shadow: var(--shadow); border-color: var(--line-2); }
+.stat-card:hover .v { transform: scale(1.04); }
 .stat-card .k { font-size: 11px; color: var(--ink-3); letter-spacing: .06em; text-transform: uppercase; font-weight: 600; }
-.stat-card .v { font-size: 26px; font-weight: 700; font-family: 'JetBrains Mono', monospace; line-height: 1; }
+.stat-card .v { font-size: 26px; font-weight: 700; font-family: 'JetBrains Mono', monospace; line-height: 1; transition: transform .2s; }
 .stat-card .trend { font-size: 11px; color: var(--ink-3); }
 .stat-card.approved .v { color: var(--emerald); }
 .stat-card.rejected .v { color: var(--red); }
 .stat-card.duplicate .v { color: var(--amber); }
+.stat-card:nth-child(1) { animation: fadeUp .35s .05s ease both; }
+.stat-card:nth-child(2) { animation: fadeUp .35s .1s  ease both; }
+.stat-card:nth-child(3) { animation: fadeUp .35s .15s ease both; }
+.stat-card:nth-child(4) { animation: fadeUp .35s .2s  ease both; }
 
 /* ── Tabs ─────────────────────────────────────────────────────────────────── */
 .admin-tabs {
@@ -114,16 +123,20 @@
     padding: 12px 18px; font-size: 13px; font-weight: 600; color: var(--ink-3);
     border: none; background: none; cursor: pointer;
     border-bottom: 2px solid transparent; white-space: nowrap;
-    transition: color .15s, border-color .15s;
+    transition: color .18s, border-color .18s;
 }
-.admin-tabs button:hover { color: var(--ink-2); }
+.admin-tabs button:hover { color: var(--ink); }
 .admin-tabs button.active { color: var(--navy); border-bottom-color: var(--navy); }
+
+/* Tab panel fade-in */
+.tab-panel { animation: fadeUp .25s ease both; }
 
 /* ── Panel ────────────────────────────────────────────────────────────────── */
 .panel {
     background: var(--bg-2); border: 1px solid var(--line); border-radius: 14px;
-    overflow: hidden; margin-bottom: 20px;
+    overflow: hidden; margin-bottom: 20px; transition: box-shadow .2s;
 }
+.panel:hover { box-shadow: var(--shadow-sm); }
 .panel-head {
     padding: 14px 20px; border-bottom: 1px solid var(--line);
     display: flex; justify-content: space-between; align-items: center; gap: 12px;
@@ -137,22 +150,26 @@
     padding: 6px 12px; border-radius: 8px;
     background: var(--bg); border: 1px solid var(--line);
     font-size: 12px; font-weight: 600; color: var(--ink-2);
-    cursor: pointer; transition: background .15s;
+    cursor: pointer; transition: background .15s, transform .15s;
 }
-.refresh-btn:hover { background: var(--line); }
+.refresh-btn:hover { background: var(--line); transform: translateY(-1px); }
+.refresh-btn:active { transform: translateY(0); }
 
 /* ── Filters ──────────────────────────────────────────────────────────────── */
 .filter-bar {
     display: flex; gap: 8px; padding: 12px 20px;
     border-bottom: 1px solid var(--line); flex-wrap: wrap; align-items: center;
+    background: rgba(244,244,239,.5);
 }
 .filter-bar select, .filter-bar input {
     padding: 6px 10px; border: 1px solid var(--line-2); border-radius: 8px;
     font-size: 12px; background: var(--bg-2); color: var(--ink-2); font-family: inherit;
-    outline: none;
+    outline: none; transition: border-color .15s, box-shadow .15s;
+    cursor: pointer;
 }
+.filter-bar select:hover, .filter-bar input:hover { border-color: var(--ink-4); }
 .filter-bar select:focus, .filter-bar input:focus {
-    border-color: var(--blue); box-shadow: 0 0 0 2px rgba(45,108,255,.1);
+    border-color: var(--blue); box-shadow: 0 0 0 3px rgba(45,108,255,.12);
 }
 .filter-bar label { font-size: 12px; color: var(--ink-3); font-weight: 600; }
 
@@ -161,10 +178,18 @@
 .log-row {
     display: grid; grid-template-columns: 44px 1fr auto;
     gap: 12px; align-items: center;
-    padding: 12px 20px; border-top: 1px solid var(--line); transition: background .12s;
+    padding: 12px 20px; border-top: 1px solid var(--line); transition: background .15s;
+    position: relative;
 }
 .log-row:first-child { border-top: none; }
 .log-row:hover { background: var(--bg); }
+.log-row::before {
+    content: ''; position: absolute; left: 0; top: 0; bottom: 0;
+    width: 3px; background: var(--blue); border-radius: 0 2px 2px 0;
+    transform: scaleY(0); transition: transform .15s cubic-bezier(.2,.9,.3,1);
+    transform-origin: center;
+}
+.log-row:hover::before { transform: scaleY(1); }
 .log-row .n {
     font-size: 11px; color: var(--ink-4);
     font-family: 'JetBrains Mono', monospace; text-align: right;
@@ -188,13 +213,62 @@
 .log-icon {
     width: 28px; height: 28px; border-radius: 8px;
     display: flex; align-items: center; justify-content: center;
-    font-size: 14px; background: var(--bg); border: 1px solid var(--line);
+    background: var(--bg); border: 1px solid var(--line);
+    transition: background .15s, border-color .15s;
+    flex-shrink: 0;
 }
+.log-row:hover .log-icon { background: var(--bg-2); border-color: var(--ink-4); }
 
 .empty-state {
     padding: 40px 20px; text-align: center;
     color: var(--ink-3); font-size: 13px;
 }
+
+/* ── Session cards ────────────────────────────────────────────────────────── */
+.session-card {
+    display: flex; align-items: center; gap: 14px;
+    padding: 16px 20px; border-top: 1px solid var(--line); transition: background .15s;
+}
+.session-card:first-child { border-top: none; }
+.session-card:hover { background: var(--bg); }
+.s-ico {
+    width: 36px; height: 36px; border-radius: 10px;
+    background: rgba(45,108,255,.1); color: var(--blue);
+    display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+}
+.s-ico.inactive { background: var(--bg); color: var(--ink-4); }
+.s-body { flex: 1; min-width: 0; }
+.s-body b { display: block; font-size: 13px; font-weight: 600; }
+.s-body span { font-size: 11px; color: var(--ink-3); }
+.s-body b.inactive { color: var(--ink-3); }
+.toggle {
+    width: 36px; height: 20px; border-radius: 999px; background: var(--line-2);
+    position: relative; flex-shrink: 0; transition: background .2s;
+}
+.toggle::after {
+    content: ''; position: absolute; top: 3px; left: 3px;
+    width: 14px; height: 14px; border-radius: 50%; background: #fff;
+    transition: transform .2s; box-shadow: 0 1px 3px rgba(0,0,0,.15);
+}
+.toggle.on { background: var(--emerald); }
+.toggle.on::after { transform: translateX(16px); }
+
+/* ── Examiner rows ────────────────────────────────────────────────────────── */
+.examiner-row {
+    display: flex; align-items: center; gap: 12px;
+    padding: 14px 20px; border-top: 1px solid var(--line); transition: background .15s;
+}
+.examiner-row:first-child { border-top: none; }
+.examiner-row:hover { background: var(--bg); }
+.ex-av {
+    width: 36px; height: 36px; border-radius: 50%;
+    background: var(--navy); color: #fff;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 13px; font-weight: 700; flex-shrink: 0;
+}
+.ex-bd { flex: 1; min-width: 0; }
+.ex-bd b { display: block; font-size: 13px; font-weight: 600; }
+.ex-bd span { font-size: 11px; color: var(--ink-3); font-family: 'JetBrains Mono', monospace; }
 
 /* ── Responsive ───────────────────────────────────────────────────────────── */
 @media (max-width: 1024px) {
@@ -262,17 +336,17 @@
 
         <div class="nav-section">
             <div class="nav-section-title">Setup</div>
-            <a href="#" class="nav-item">
-                <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/></svg>
+            <a href="#" class="nav-item" onclick="switchTab(2);closeSidebar();return false;">
+                <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
                 <span>Sessions</span>
             </a>
-            <a href="#" class="nav-item">
+            <a href="#" class="nav-item" onclick="switchTab(3);closeSidebar();return false;">
                 <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75"/></svg>
                 <span>Examiners</span>
             </a>
             <a href="#" class="nav-item">
                 <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
-                <span>Students</span>
+                <span>Students (SIS)</span>
             </a>
         </div>
 
@@ -317,18 +391,24 @@
 
             <!-- Session hero -->
             @if($activeSession)
+            @php
+                $sSemester = $activeSession->semester      ?? '—';
+                $sYear     = $activeSession->academic_year ?? '—';
+                $sId       = $activeSession->session_id    ?? '—';
+                $sFee      = $activeSession->fee_amount    ?? null;
+            @endphp
             <div class="session-hero">
                 <div class="session-badge">
                     <svg width="10" height="10" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
                     ACTIVE SESSION
                 </div>
-                <h2>{{ $activeSession->semester }} — {{ $activeSession->academic_year }}</h2>
+                <h2>{{ $sSemester }} — {{ $sYear }}</h2>
                 <p class="sub">All verifications are live and cryptographically logged</p>
                 <div class="session-meta">
-                    <div><span class="k">Session ID</span><span class="v">#{{ $activeSession->session_id }}</span></div>
-                    <div><span class="k">Academic Year</span><span class="v">{{ $activeSession->academic_year }}</span></div>
-                    <div><span class="k">Fee</span><span class="v">₦{{ number_format($activeSession->fee_amount) }}</span></div>
-                    <div><span class="k">Examiners</span><span class="v">{{ $stats['examiners'] }}</span></div>
+                    <div><span class="k">Session ID</span><span class="v">#{{ $sId }}</span></div>
+                    <div><span class="k">Academic Year</span><span class="v">{{ $sYear }}</span></div>
+                    <div><span class="k">Fee</span><span class="v">{{ is_numeric($sFee) ? '₦' . number_format($sFee) : '—' }}</span></div>
+                    <div><span class="k">Examiners</span><span class="v">{{ $stats['examiners'] ?? 0 }}</span></div>
                 </div>
             </div>
             @else
@@ -340,12 +420,18 @@
             <!-- Stats -->
             <div class="stat-grid">
                 <div class="stat-card">
-                    <span class="k">Total Scans</span>
+                    <span class="k">
+                        <svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" style="display:inline;vertical-align:-1px;margin-right:4px"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><path d="M14 17h7M17.5 14v7"/></svg>
+                        Total Scans
+                    </span>
                     <span class="v">{{ number_format($stats['total']) }}</span>
                     <span class="trend">All decisions</span>
                 </div>
                 <div class="stat-card approved">
-                    <span class="k">Approved</span>
+                    <span class="k">
+                        <svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24" style="display:inline;vertical-align:-1px;margin-right:4px"><path d="M20 6L9 17l-5-5"/></svg>
+                        Approved
+                    </span>
                     <span class="v">{{ number_format($stats['approved']) }}</span>
                     <span class="trend">
                         @if($stats['total'] > 0)
@@ -356,12 +442,18 @@
                     </span>
                 </div>
                 <div class="stat-card rejected">
-                    <span class="k">Rejected</span>
+                    <span class="k">
+                        <svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24" style="display:inline;vertical-align:-1px;margin-right:4px"><path d="M6 18L18 6M6 6l12 12"/></svg>
+                        Rejected
+                    </span>
                     <span class="v">{{ number_format($stats['rejected']) }}</span>
                     <span class="trend">Invalid / tampered</span>
                 </div>
                 <div class="stat-card duplicate">
-                    <span class="k">Duplicate</span>
+                    <span class="k">
+                        <svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" style="display:inline;vertical-align:-1px;margin-right:4px"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+                        Duplicates
+                    </span>
                     <span class="v">{{ number_format($stats['duplicate']) }}</span>
                     <span class="trend">Replay attempts</span>
                 </div>
@@ -378,6 +470,15 @@
                     <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" style="display:inline;vertical-align:-2px;margin-right:5px"><path d="M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v11a2 2 0 01-2 2z"/></svg>
                     Audit Trail
                     <span style="margin-left:6px;background:var(--line-2);border-radius:999px;padding:1px 7px;font-size:10px;font-weight:700;">{{ $auditLogs->count() }}</span>
+                </button>
+                <button onclick="switchTab(2)">
+                    <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" style="display:inline;vertical-align:-2px;margin-right:5px"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+                    Sessions
+                </button>
+                <button onclick="switchTab(3)">
+                    <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" style="display:inline;vertical-align:-2px;margin-right:5px"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75"/></svg>
+                    Examiners
+                    <span style="margin-left:6px;background:var(--line-2);border-radius:999px;padding:1px 7px;font-size:10px;font-weight:700;">{{ $stats['examiners'] }}</span>
                 </button>
             </div>
 
@@ -411,18 +512,30 @@
                     </form>
                     <div class="log-table">
                         @forelse($verificationLogs as $i => $log)
+                        @php
+                            $examinerLabel = $log->examiner_username ?? ('examiner #' . ($log->examiner_id ?? '—'));
+                            $tokenId       = $log->token_id   ?? '';
+                            $ipAddress     = $log->ip_address ?? '—';
+                            $decision      = $log->decision   ?? 'UNKNOWN';
+                            $logTime       = $log->timestamp  ?? $log->created_at ?? null;
+                            try {
+                                $logTimeFmt = $logTime ? \Carbon\Carbon::parse($logTime)->format('H:i:s') : '—';
+                            } catch (\Throwable $e) {
+                                $logTimeFmt = '—';
+                            }
+                        @endphp
                         <div class="log-row">
-                            <span class="n">#{{ $stats['total'] - $i }}</span>
+                            <span class="n">#{{ max(($stats['total'] ?? 0) - $i, 1) }}</span>
                             <div class="body">
-                                <b>{{ $log->examiner_username ?? 'examiner #'.$log->examiner_id }}</b>
+                                <b>{{ $examinerLabel }}</b>
                                 <span class="sub">
-                                    Token: {{ Str::limit($log->token_id, 16) }}
-                                    · {{ $log->ip_address }}
+                                    Token: {{ $tokenId !== '' ? Str::limit($tokenId, 16) : '—' }}
+                                    · {{ $ipAddress }}
                                 </span>
                             </div>
                             <div class="right">
-                                <span class="t">{{ \Carbon\Carbon::parse($log->timestamp)->format('H:i:s') }}</span>
-                                <span class="s {{ strtolower($log->decision) }}">{{ $log->decision }}</span>
+                                <span class="t">{{ $logTimeFmt }}</span>
+                                <span class="s {{ strtolower($decision) }}">{{ $decision }}</span>
                             </div>
                         </div>
                         @empty
@@ -446,30 +559,44 @@
                     </div>
                     <div class="log-table">
                         @forelse($auditLogs as $log)
+                        @php
+                            $action     = $log->action     ?? 'unknown';
+                            $actorType  = $log->actor_type ?? '—';
+                            $actorId    = $log->actor_id   ?? '—';
+                            $rawContext = $log->metadata   ?? $log->context ?? null;
+                            $decoded    = $rawContext ? @json_decode($rawContext, true) : null;
+                            $eventTime  = $log->timestamp  ?? $log->created_at ?? null;
+                            try {
+                                $eventTimeFmt = $eventTime ? \Carbon\Carbon::parse($eventTime)->format('H:i:s') : '—';
+                            } catch (\Throwable $e) {
+                                $eventTimeFmt = '—';
+                            }
+                        @endphp
                         <div class="log-row">
                             <div class="log-icon">
-                                @php
-                                    $icons = [
-                                        'examiner.login'  => '🔑',
-                                        'examiner.logout' => '🚪',
-                                        'scan.approved'   => '✓',
-                                        'student.register'=> '📝',
-                                    ];
-                                    $icon = $icons[$log->action] ?? '⚙';
-                                @endphp
-                                {{ $icon }}
+                                @if($action === 'examiner.login')
+                                <svg width="14" height="14" fill="none" stroke="var(--blue)" stroke-width="2" viewBox="0 0 24 24"><path d="M15 3h4a2 2 0 012 2v14a2 2 0 01-2 2h-4"/><polyline points="10 17 15 12 10 7"/><line x1="15" y1="12" x2="3" y2="12"/></svg>
+                            @elseif($action === 'examiner.logout')
+                                <svg width="14" height="14" fill="none" stroke="var(--amber)" stroke-width="2" viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+                            @elseif($action === 'scan.approved')
+                                <svg width="14" height="14" fill="none" stroke="var(--emerald)" stroke-width="2.5" viewBox="0 0 24 24"><path d="M20 6L9 17l-5-5"/></svg>
+                            @elseif($action === 'student.register')
+                                <svg width="14" height="14" fill="none" stroke="var(--navy)" stroke-width="2" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+                            @else
+                                <svg width="14" height="14" fill="none" stroke="var(--ink-3)" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-2-2v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg>
+                            @endif
                             </div>
                             <div class="body">
-                                <b>{{ $log->action }}</b>
+                                <b>{{ $action }}</b>
                                 <span class="sub">
-                                    {{ $log->actor_type }} #{{ $log->actor_id }}
-                                    @if($log->context && $decoded = json_decode($log->context, true))
-                                        · {{ collect($decoded)->map(fn($v,$k) => "$k: $v")->implode(' | ') }}
+                                    {{ $actorType }} #{{ $actorId }}
+                                    @if(is_array($decoded) && count($decoded))
+                                        · {{ collect($decoded)->map(fn($v,$k) => "$k: " . (is_scalar($v) ? $v : json_encode($v)))->implode(' | ') }}
                                     @endif
                                 </span>
                             </div>
                             <div class="right">
-                                <span class="t">{{ \Carbon\Carbon::parse($log->created_at)->format('H:i:s') }}</span>
+                                <span class="t">{{ $eventTimeFmt }}</span>
                             </div>
                         </div>
                         @empty
@@ -482,6 +609,73 @@
                 </div>
             </div>
 
+            <!-- Tab: Sessions -->
+            <div class="tab-panel" id="tab-2" style="display:none;">
+                <div class="panel">
+                    <div class="panel-head">
+                        <h3>Exam Sessions</h3>
+                        <span class="count">Manage exam periods</span>
+                    </div>
+                    @if($activeSession)
+                    @php
+                        $ssSemester = $activeSession->semester      ?? '—';
+                        $ssYear     = $activeSession->academic_year ?? '—';
+                        $ssFee      = $activeSession->fee_amount    ?? null;
+                    @endphp
+                    <div class="session-card">
+                        <div class="s-ico">
+                            <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+                        </div>
+                        <div class="s-body">
+                            <b>{{ $ssSemester }} &middot; {{ $ssYear }}</b>
+                            <span>Fee {{ is_numeric($ssFee) ? '₦' . number_format($ssFee) : '—' }} &middot; Active</span>
+                        </div>
+                        <div class="toggle on"></div>
+                    </div>
+                    @else
+                    <div class="empty-state">
+                        <svg width="32" height="32" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24" style="margin:0 auto 10px;display:block;opacity:.3"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+                        No active session. Create a session to begin verification.
+                    </div>
+                    @endif
+                </div>
+            </div>
+
+            <!-- Tab: Examiners -->
+            <div class="tab-panel" id="tab-3" style="display:none;">
+                <div class="panel">
+                    <div class="panel-head">
+                        <h3>Examiners</h3>
+                        <span class="count">{{ $stats['examiners'] }} active</span>
+                    </div>
+                    @php
+                        $examinerList = \Illuminate\Support\Facades\DB::table('examiners')->orderBy('examiner_id')->limit(50)->get();
+                    @endphp
+                    @forelse($examinerList as $ex)
+                    @php
+                        $exName = $ex->full_name ?? $ex->username ?? 'Examiner';
+                        $exInitials = collect(explode(' ', $exName))->map(fn($w) => strtoupper($w[0] ?? ''))->take(2)->implode('');
+                        $exActive = $ex->is_active ?? false;
+                        $exRole = $ex->role ?? 'examiner';
+                    @endphp
+                    <div class="examiner-row">
+                        <div class="ex-av">{{ $exInitials ?: 'EX' }}</div>
+                        <div class="ex-bd">
+                            <b>{{ $exName }}</b>
+                            <span>@{{ $ex->username ?? '—' }}</span>
+                        </div>
+                        <span class="chip {{ $exRole === 'admin' ? 'navy' : '' }}" style="{{ $exRole !== 'admin' ? 'background:rgba(45,108,255,.12);color:var(--blue)' : '' }}">{{ strtoupper($exRole) }}</span>
+                        <span class="chip {{ $exActive ? 'emerald' : 'red' }}">{{ $exActive ? 'ACTIVE' : 'INACTIVE' }}</span>
+                    </div>
+                    @empty
+                    <div class="empty-state">
+                        <svg width="32" height="32" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24" style="margin:0 auto 10px;display:block;opacity:.3"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>
+                        No examiners registered yet.
+                    </div>
+                    @endforelse
+                </div>
+            </div>
+
         </div><!-- /admin-content -->
     </div><!-- /admin-main -->
 </div><!-- /admin-wrap -->
@@ -491,10 +685,25 @@
 <script>
 function switchTab(idx) {
     document.querySelectorAll('.tab-panel').forEach((p, i) => {
-        p.style.display = i === idx ? '' : 'none';
+        if (i === idx) {
+            p.style.display = '';
+            p.style.animation = 'none';
+            void p.offsetWidth;
+            p.style.animation = '';
+        } else {
+            p.style.display = 'none';
+        }
     });
     document.querySelectorAll('.admin-tabs button').forEach((b, i) => {
         b.classList.toggle('active', i === idx);
+    });
+    // Update sidebar nav active state
+    document.querySelectorAll('.admin-sidebar .nav-item').forEach((n, i) => {
+        if (n.getAttribute('onclick') && n.getAttribute('onclick').includes('switchTab(' + idx + ')')) {
+            n.classList.add('on');
+        } else if (n.getAttribute('onclick') && n.getAttribute('onclick').includes('switchTab(')) {
+            n.classList.remove('on');
+        }
     });
 }
 function openSidebar() {
