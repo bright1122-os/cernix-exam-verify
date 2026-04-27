@@ -4,86 +4,176 @@
 
 @section('content')
 <style>
-    .register-wrap { min-height: 100vh; background: var(--bg); display: flex; flex-direction: column; animation: fadeUp .4s ease both; }
+    /* ── Shared shell ─────────────────────────────────────── */
+    .reg-shell { min-height: 100vh; background: var(--bg); display: flex; flex-direction: column; animation: fadeUp .35s ease both; }
 
-    /* Progress dots */
-    .progress-dots { display: flex; gap: 6px; padding: 8px 20px 0; }
-    .progress-dots i { height: 3px; flex: 1; background: var(--line); border-radius: 2px; transition: background .3s, transform .2s; }
-    .progress-dots i.on { background: var(--accent); }
+    /* ── Form layout ──────────────────────────────────────── */
+    .form-body {
+        flex: 1; padding: 24px 20px 40px;
+        max-width: 560px; margin: 0 auto; width: 100%;
+    }
+    @media (min-width: 768px) {
+        .form-body {
+            max-width: 1080px;
+            display: grid;
+            grid-template-columns: 1fr 340px;
+            gap: 48px;
+            padding: 48px 48px 60px;
+            align-items: start;
+        }
+    }
 
     /* Session pill */
     .session-pill {
-        margin: 16px 20px 0; padding: 14px 16px;
+        padding: 14px 16px; margin-bottom: 24px;
         background: linear-gradient(135deg, rgba(15,32,80,.04), rgba(45,108,255,.06));
         border: 1px solid var(--line); border-radius: 14px;
         display: flex; justify-content: space-between; align-items: center; gap: 12px;
-        transition: box-shadow .2s, border-color .2s;
     }
-    .session-pill:hover { box-shadow: var(--shadow-sm); border-color: var(--line-2); }
-    .session-pill .left b  { display: block; font-size: 13px; font-weight: 600; }
-    .session-pill .left span { font-size: 11px; color: var(--ink-3); letter-spacing: .06em; text-transform: uppercase; }
-    .session-pill .fee { font-size: 20px; font-weight: 700; font-family: 'JetBrains Mono', monospace; white-space: nowrap; color: var(--navy); }
+    .session-pill .left b    { display: block; font-size: 13px; font-weight: 600; }
+    .session-pill .left span { font-size: 11px; color: var(--ink-3); text-transform: uppercase; letter-spacing: .06em; }
+    .session-pill .fee       { font-size: 20px; font-weight: 700; font-family: 'JetBrains Mono', monospace; color: var(--navy); white-space: nowrap; }
 
-    /* Security note */
+    /* Sec note */
     .sec-note {
         display: flex; gap: 10px; align-items: flex-start;
         padding: 12px 14px; background: var(--bg); border: 1px dashed var(--line-2);
-        border-radius: 12px; font-size: 11px; color: var(--ink-3); line-height: 1.5; margin-top: 8px;
+        border-radius: 12px; font-size: 11px; color: var(--ink-3); line-height: 1.5;
     }
 
-    /* QR success */
-    .success-header {
-        padding: 40px 24px 60px;
-        background: linear-gradient(180deg, var(--navy) 0%, var(--navy-3) 100%);
-        color: #fff; position: relative; overflow: hidden;
+    /* Desktop info panel */
+    .info-panel { display: none; }
+    @media (min-width: 768px) {
+        .info-panel { display: flex; flex-direction: column; gap: 16px; position: sticky; top: 28px; }
     }
-    .success-header::before {
-        content: ""; position: absolute; inset: 0;
-        background: radial-gradient(circle at 10% 20%, rgba(91,141,255,.2), transparent 40%),
-                    radial-gradient(circle at 90% 80%, rgba(16,185,129,.15), transparent 40%);
+    .info-card {
+        background: var(--bg-2); border: 1px solid var(--line); border-radius: 16px; padding: 20px;
     }
-    .success-header > * { position: relative; z-index: 1; }
-    .success-header .check {
-        width: 56px; height: 56px; border-radius: 50%;
-        background: rgba(16,185,129,.2); border: 2px solid var(--emerald-2);
+    .info-card h3 {
+        font-size: 11px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase;
+        color: var(--ink-4); margin: 0 0 14px;
+    }
+    .demo-pill {
+        display: inline-block; font-family: 'JetBrains Mono', monospace; font-size: 11px;
+        background: var(--bg); border: 1px solid var(--line); border-radius: 8px;
+        padding: 4px 10px; color: var(--navy); margin: 3px 4px 3px 0;
+        cursor: pointer; transition: background .15s, border-color .15s;
+    }
+    .demo-pill:hover { background: rgba(15,32,80,.07); border-color: var(--ink-4); }
+    .sec-list { list-style: none; padding: 0; margin: 0; }
+    .sec-list li {
+        font-size: 12px; color: var(--ink-3); padding: 8px 0;
+        border-bottom: 1px solid var(--line); display: flex; align-items: center; gap: 8px;
+    }
+    .sec-list li:last-child { border-bottom: none; }
+    .sec-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--emerald); flex-shrink: 0; }
+
+    /* ── Pass state ───────────────────────────────────────── */
+    .pass-shell {
+        flex: 1; display: flex; flex-direction: column; align-items: center;
+        padding: 24px 16px 48px; background: var(--bg);
+    }
+    @media (min-width: 768px) { .pass-shell { padding: 52px 40px; } }
+
+    /* Topbar print button */
+    .print-btn {
+        margin-left: auto; display: flex; align-items: center; gap: 6px;
+        font-size: 13px; font-weight: 600; color: var(--ink-3);
+        padding: 8px 14px; border-radius: 10px; border: 1px solid var(--line);
+        background: var(--bg-2); cursor: pointer; transition: all .15s;
+    }
+    .print-btn:hover { border-color: var(--ink-4); color: var(--ink-2); background: var(--bg); }
+
+    /* The pass card */
+    .pass-card {
+        background: var(--bg-2); border: 1px solid var(--line); border-radius: 24px;
+        overflow: hidden; box-shadow: var(--shadow-lg);
+        width: 100%; max-width: 420px;
+        animation: fadeUp .5s cubic-bezier(.16,1,.3,1) both;
+    }
+
+    /* Pass header strip */
+    .pass-hd {
+        background: linear-gradient(135deg, var(--navy) 0%, #071128 100%);
+        padding: 18px 22px; display: flex; align-items: center; justify-content: space-between;
+        position: relative; overflow: hidden;
+    }
+    .pass-hd::before {
+        content: ''; position: absolute; inset: 0;
+        background: radial-gradient(ellipse at 0% 50%, rgba(45,108,255,.22), transparent 55%);
+    }
+    .pass-hd-brand { display: flex; align-items: center; gap: 10px; position: relative; z-index: 1; }
+    .pass-hd-icon {
+        width: 30px; height: 30px; border-radius: 8px; border: 1.5px solid rgba(255,255,255,.25);
+        background: rgba(255,255,255,.1); display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+    }
+    .pass-hd-text b    { display: block; font-size: 12px; font-weight: 700; color: #fff; letter-spacing: .12em; text-transform: uppercase; line-height: 1.2; }
+    .pass-hd-text span { font-size: 10px; color: rgba(255,255,255,.5); letter-spacing: .1em; text-transform: uppercase; }
+    .pass-valid {
+        display: inline-flex; align-items: center; gap: 5px; position: relative; z-index: 1;
+        background: rgba(16,185,129,.2); border: 1px solid rgba(16,185,129,.4);
+        color: #86efca; font-size: 10px; font-weight: 700; letter-spacing: .14em;
+        text-transform: uppercase; padding: 5px 10px; border-radius: 999px;
+    }
+    .pass-valid-dot { width: 6px; height: 6px; border-radius: 50%; background: #6ee7b7; animation: dotPulse 2s infinite; }
+
+    /* QR section */
+    .pass-qr-wrap {
+        padding: 28px 24px 20px; display: flex; flex-direction: column; align-items: center;
+        border-bottom: 1px solid var(--line);
+        background: linear-gradient(180deg, #fff 0%, var(--bg) 100%);
+    }
+    .pass-qr-code {
+        width: 210px; height: 210px; background: #fff; border-radius: 14px; padding: 12px;
         display: flex; align-items: center; justify-content: center;
-        margin-bottom: 16px; animation: flash .5s ease both;
+        box-shadow: 0 2px 16px rgba(0,0,0,.08), 0 0 0 1px var(--line);
+        animation: qrReveal .6s .2s cubic-bezier(.2,.9,.3,1.2) both;
     }
-    .success-header h2 { font-size: 24px; font-weight: 700; margin: 0; letter-spacing: -.02em; }
-    .success-header p  { margin: 6px 0 0; font-size: 14px; color: rgba(255,255,255,.7); }
+    .pass-qr-code svg { width: 100%; height: 100%; display: block; }
+    @media (min-width: 768px) { .pass-qr-code { width: 230px; height: 230px; } }
+    .pass-qr-meta {
+        margin-top: 12px; font-size: 10px; color: var(--ink-4);
+        letter-spacing: .12em; text-transform: uppercase; font-family: 'JetBrains Mono', monospace;
+    }
 
-    .qr-wrap {
-        margin: -40px 20px 0; padding: 20px;
-        background: var(--bg-2); border-radius: 20px; box-shadow: var(--shadow-lg);
-        position: relative; z-index: 2; animation: fadeUp .5s .15s cubic-bezier(.16,1,.3,1) both;
-        border: 1px solid var(--line);
+    /* Identity section */
+    .pass-identity { padding: 20px 22px; border-bottom: 1px solid var(--line); }
+    .pass-name { font-size: 20px; font-weight: 700; color: var(--ink); letter-spacing: -.02em; margin-bottom: 16px; line-height: 1.2; }
+    .pass-fields {
+        display: grid; grid-template-columns: 1fr 1fr;
+        gap: 1px; background: var(--line); border-radius: 12px; overflow: hidden; border: 1px solid var(--line);
     }
-    .qr-wrap-top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; }
-    .qr-code {
-        width: 100%; aspect-ratio: 1; background: #fff; border-radius: 12px; padding: 12px;
-        display: flex; align-items: center; justify-content: center;
-        animation: qrReveal .6s .15s cubic-bezier(.2,.9,.3,1.2) both;
-    }
-    .qr-code svg { width: 100%; height: 100%; }
-    .qr-meta { margin-top: 12px; text-align: center; font-size: 11px; color: var(--ink-3); letter-spacing: .1em; text-transform: uppercase; }
+    .pf { background: var(--bg); padding: 11px 13px; transition: background .15s; }
+    .pf:hover { background: #f0efe9; }
+    .pf .k { font-size: 10px; color: var(--ink-4); text-transform: uppercase; letter-spacing: .1em; margin-bottom: 4px; }
+    .pf .v { font-size: 13px; font-weight: 600; color: var(--ink); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .pf .v.mono { font-family: 'JetBrains Mono', monospace; font-size: 11px; }
 
-    .detail-grid {
-        margin: 20px; display: grid; grid-template-columns: 1fr 1fr;
-        gap: 1px; background: var(--line); border-radius: 14px; overflow: hidden; border: 1px solid var(--line);
-        animation: fadeUp .4s .25s ease both;
+    /* Pass footer */
+    .pass-footer {
+        padding: 12px 22px; display: flex; align-items: center; justify-content: space-between;
+        background: var(--bg); border-top: 1px solid var(--line);
     }
-    .detail-grid > div { padding: 14px; background: var(--bg-2); transition: background .15s; }
-    .detail-grid > div:hover { background: var(--bg); }
-    .detail-grid .k { font-size: 10px; color: var(--ink-3); letter-spacing: .1em; text-transform: uppercase; margin-bottom: 4px; }
-    .detail-grid .v { font-size: 14px; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-    .detail-grid .v.mono { font-family: 'JetBrains Mono', monospace; font-size: 11px; }
+    .pass-sec-note {
+        display: flex; align-items: center; gap: 5px;
+        font-size: 10px; color: var(--ink-4); letter-spacing: .06em;
+    }
 
-    .action-row { padding: 0 20px 36px; display: flex; flex-direction: column; gap: 10px; }
+    /* Actions below card */
+    .pass-actions-row {
+        width: 100%; max-width: 420px; margin-top: 16px;
+    }
+
+    /* Print isolation */
+    @media print {
+        .topbar, .pass-actions-row, .print-btn { display: none !important; }
+        .pass-shell { padding: 0; }
+        .pass-card { box-shadow: none; border: 1px solid #d1d5db; max-width: 100%; }
+    }
 </style>
 
-<!-- FORM STATE -->
-<div id="form-state" class="register-wrap">
-    <!-- Topbar -->
+<!-- ══════════════════════════════════ FORM STATE ═══ -->
+<div id="form-state" class="reg-shell">
     <div class="topbar">
         <a href="/" class="back" aria-label="Back">
             <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M15 18l-6-6 6-6"/></svg>
@@ -91,102 +181,163 @@
         <h1>Exam Registration</h1>
     </div>
 
-    <div class="progress-dots"><i class="on"></i><i></i></div>
-
-    <div style="padding: 20px; flex: 1; max-width: 600px; margin: 0 auto; width: 100%;">
-        <div style="margin-bottom: 22px;">
-            <h2 style="font-size:22px;font-weight:700;letter-spacing:-.02em;margin:0">Let's verify your payment</h2>
-            <p style="font-size:14px;color:var(--ink-3);margin:8px 0 0;line-height:1.5">
-                Enter your matriculation number and the Remita RRR from your fee payment to generate your exam QR.
-            </p>
-        </div>
-
-        <!-- Session pill -->
-        <div class="session-pill">
-            <div class="left">
-                <span>Active Session</span>
-                <b>{{ ($session->semester ?? 'Active Semester') }} &middot; {{ $session->academic_year ?? '' }}</b>
+    <div class="form-body">
+        <!-- ─ Left: Form ─ -->
+        <div>
+            <div style="margin-bottom:24px">
+                <h2 style="font-size:22px;font-weight:700;letter-spacing:-.02em;margin:0 0 8px;color:var(--ink)">Verify your payment</h2>
+                <p style="font-size:14px;color:var(--ink-3);margin:0;line-height:1.6">Enter your matric number and Remita RRR to generate your one-time exam QR.</p>
             </div>
-            <div class="fee">₦{{ number_format($session->fee_amount ?? 0, 0) }}</div>
+
+            <div class="session-pill">
+                <div class="left">
+                    <span>Active Session</span>
+                    <b>{{ ($session->semester ?? 'Active Semester') }} &middot; {{ $session->academic_year ?? '' }}</b>
+                </div>
+                <div class="fee">₦{{ number_format($session->fee_amount ?? 0, 0) }}</div>
+            </div>
+
+            <form id="reg-form">
+                <div class="field mono">
+                    <label for="matric_no">Matriculation Number</label>
+                    <input id="matric_no" type="text" class="input" placeholder="CSC/2021/001" autocomplete="off" required>
+                    <div class="hint">
+                        <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="2" y="6" width="20" height="13" rx="2"/><path d="M7 2h10"/></svg>
+                        Format: DEPT / Year / Number
+                    </div>
+                </div>
+                <div class="field mono">
+                    <label for="rrr_number">Remita RRR Number</label>
+                    <input id="rrr_number" type="text" class="input" placeholder="280007021192" maxlength="12" autocomplete="off" required>
+                    <div class="hint">12-digit Retrieval Reference from your payment receipt</div>
+                </div>
+
+                <div id="error-box" class="error-box" style="display:none;margin-bottom:16px;">
+                    <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" style="flex-shrink:0;margin-top:1px"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+                    <div><b>Registration failed.</b><br><span id="error-text"></span></div>
+                </div>
+
+                <button type="submit" id="submit-btn" class="btn btn-primary btn-block" style="margin-top:4px">
+                    <svg id="btn-icon" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+                    <span id="btn-label">Generate my Exam QR</span>
+                    <span id="btn-dots" class="dots" style="display:none"><span></span><span></span><span></span></span>
+                </button>
+            </form>
+
+            <div class="sec-note" style="margin-top:20px">
+                <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" style="flex-shrink:0;margin-top:1px"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg>
+                Token encrypted with <strong>AES-256-GCM</strong> and HMAC-signed per session. Valid for one-time use only.
+            </div>
         </div>
 
-        <!-- Form -->
-        <form id="reg-form" style="margin-top: 24px;">
-            <div class="field mono">
-                <label for="matric_no">Matriculation Number</label>
-                <input id="matric_no" type="text" class="input" placeholder="CSC/2021/001" autocomplete="off" required>
-                <div class="hint">
-                    <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="2" y="6" width="20" height="13" rx="2"/><path d="M7 2h10"/></svg>
-                    Format: Department / Year / Number
+        <!-- ─ Right: Info panel (desktop only) ─ -->
+        <div class="info-panel">
+            <div class="info-card">
+                <h3>Demo Students</h3>
+                <p style="font-size:12px;color:var(--ink-3);margin:0 0 12px;line-height:1.5">Click any matric to fill the form. Use any 12-digit number as RRR.</p>
+                <div>
+                    <span class="demo-pill" onclick="document.getElementById('matric_no').value=this.dataset.m" data-m="CSC/2021/001">CSC/2021/001</span>
+                    <span class="demo-pill" onclick="document.getElementById('matric_no').value=this.dataset.m" data-m="SEN/2021/002">SEN/2021/002</span>
+                    <span class="demo-pill" onclick="document.getElementById('matric_no').value=this.dataset.m" data-m="IFT/2021/003">IFT/2021/003</span>
+                    <span class="demo-pill" onclick="document.getElementById('matric_no').value=this.dataset.m" data-m="CYS/2021/004">CYS/2021/004</span>
+                    <span class="demo-pill" onclick="document.getElementById('matric_no').value=this.dataset.m" data-m="DTS/2021/005">DTS/2021/005</span>
                 </div>
             </div>
-
-            <div class="field mono">
-                <label for="rrr_number">Remita RRR Number</label>
-                <input id="rrr_number" type="text" class="input" placeholder="280007021192" maxlength="12" autocomplete="off" required>
-                <div class="hint">12-digit Retrieval Reference from your Remita payment receipt</div>
+            <div class="info-card">
+                <h3>Security</h3>
+                <ul class="sec-list">
+                    <li><span class="sec-dot"></span>AES-256-GCM encrypted payload</li>
+                    <li><span class="sec-dot"></span>HMAC-SHA256 signature verification</li>
+                    <li><span class="sec-dot"></span>One-time use enforcement</li>
+                    <li><span class="sec-dot"></span>Session-scoped per-exam keys</li>
+                    <li><span class="sec-dot"></span>Full audit trail on every action</li>
+                </ul>
             </div>
-
-            <div id="error-box" class="error-box" style="display:none;margin-bottom:16px;">
-                <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" style="flex-shrink:0;margin-top:1px"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
-                <div><b>Registration failed.</b><br><span id="error-text"></span></div>
-            </div>
-
-            <button type="submit" id="submit-btn" class="btn btn-primary btn-block" style="margin-top:4px">
-                <svg id="btn-icon" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-                    <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
-                </svg>
-                <span id="btn-label">Generate my Exam QR</span>
-                <span id="btn-dots" class="dots" style="display:none"><span></span><span></span><span></span></span>
-            </button>
-        </form>
-
-        <div class="sec-note" style="margin-top:20px">
-            <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" style="flex-shrink:0;margin-top:1px"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg>
-            Your QR token is encrypted with <strong>AES-256-GCM</strong> and signed with a per-session HMAC key. It is valid for one-time use only.
-        </div>
-
-        <div style="text-align:center;font-size:11px;color:var(--ink-4);margin-top:20px;">
-            Need help? Visit the Bursary office &middot; Block B
         </div>
     </div>
 </div>
 
-<!-- SUCCESS STATE -->
-<div id="success-state" style="display:none; min-height:100vh; background:var(--bg); display:none; flex-direction:column;">
-    <div class="success-header">
-        <div class="check">
-            <svg width="26" height="26" fill="none" stroke="#fff" stroke-width="3" viewBox="0 0 24 24"><path d="M20 6L9 17l-5-5"/></svg>
-        </div>
-        <h2>You're registered.</h2>
-        <p>Show this QR at the exam hall entrance. Do not share it.</p>
-    </div>
-
-    <div class="qr-wrap">
-        <div class="qr-wrap-top">
-            <span class="chip emerald">
-                <svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M20 6L9 17l-5-5"/></svg>
-                VALID
-            </span>
-            <span style="font-size:10px;color:var(--ink-3);letter-spacing:.12em;text-transform:uppercase">One-time use</span>
-        </div>
-        <div class="qr-code" id="qr-container"></div>
-        <div class="qr-meta" id="qr-meta">Session · One-time QR</div>
-    </div>
-
-    <div class="detail-grid">
-        <div style="grid-column:1/-1"><div class="k">Student</div><div class="v" id="res-name"></div></div>
-        <div><div class="k">Matric No.</div><div class="v mono" id="res-matric"></div></div>
-        <div><div class="k">Department</div><div class="v" id="res-dept" style="font-size:12px"></div></div>
-        <div><div class="k">Session</div><div class="v" style="font-size:12px">{{ ($session->semester ?? '') . ' ' . ($session->academic_year ?? '') }}</div></div>
-        <div><div class="k">Token ID</div><div class="v mono" id="res-token" style="font-size:10px"></div></div>
-    </div>
-
-    <div class="action-row">
-        <button class="btn btn-ghost" onclick="resetForm()">
-            <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M3 12a9 9 0 100-4.5"/><path d="M3 3v5h5"/></svg>
-            Register another student
+<!-- ══════════════════════════════════ PASS STATE ═══ -->
+<div id="success-state" style="display:none;" class="reg-shell">
+    <div class="topbar">
+        <button onclick="resetForm()" class="back" aria-label="Back">
+            <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M15 18l-6-6 6-6"/></svg>
         </button>
+        <h1>Exam Pass</h1>
+        <button onclick="window.print()" class="print-btn">
+            <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M6 9V2h12v7M6 18H4a2 2 0 01-2-2v-5a2 2 0 012-2h16a2 2 0 012 2v5a2 2 0 01-2 2h-2M6 14h12v8H6z"/></svg>
+            Print
+        </button>
+    </div>
+
+    <div class="pass-shell">
+
+        <div class="pass-card">
+
+            <!-- Header -->
+            <div class="pass-hd">
+                <div class="pass-hd-brand">
+                    <div class="pass-hd-icon">
+                        <svg width="15" height="15" fill="none" stroke="rgba(255,255,255,.9)" stroke-width="2" viewBox="0 0 24 24"><path d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/></svg>
+                    </div>
+                    <div class="pass-hd-text">
+                        <b>CERNIX</b>
+                        <span>Digital Exam Pass</span>
+                    </div>
+                </div>
+                <div class="pass-valid">
+                    <span class="pass-valid-dot"></span>
+                    VALID
+                </div>
+            </div>
+
+            <!-- QR Code (centerpiece) -->
+            <div class="pass-qr-wrap">
+                <div class="pass-qr-code" id="qr-container"></div>
+                <div class="pass-qr-meta" id="qr-meta">Session · One-time QR</div>
+            </div>
+
+            <!-- Student Identity -->
+            <div class="pass-identity">
+                <div class="pass-name" id="res-name"></div>
+                <div class="pass-fields">
+                    <div class="pf">
+                        <div class="k">Matric No.</div>
+                        <div class="v mono" id="res-matric"></div>
+                    </div>
+                    <div class="pf">
+                        <div class="k">Department</div>
+                        <div class="v" id="res-dept" style="font-size:12px"></div>
+                    </div>
+                    <div class="pf">
+                        <div class="k">Session</div>
+                        <div class="v" style="font-size:12px">{{ trim(($session->semester ?? '') . ' ' . ($session->academic_year ?? '')) ?: '—' }}</div>
+                    </div>
+                    <div class="pf">
+                        <div class="k">Token</div>
+                        <div class="v mono" id="res-token"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Footer -->
+            <div class="pass-footer">
+                <div class="pass-sec-note">
+                    <svg width="11" height="11" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg>
+                    AES-256-GCM · HMAC-SHA256
+                </div>
+                <span style="font-size:10px;color:var(--ink-4);letter-spacing:.1em;text-transform:uppercase">One-time use</span>
+            </div>
+
+        </div>
+
+        <div class="pass-actions-row">
+            <button class="btn btn-ghost btn-block" onclick="resetForm()">
+                <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M3 12a9 9 0 100-4.5"/><path d="M3 3v5h5"/></svg>
+                Register another student
+            </button>
+        </div>
+
     </div>
 </div>
 @endsection
@@ -203,10 +354,10 @@ document.getElementById('reg-form').addEventListener('submit', async (e) => {
     const dots   = document.getElementById('btn-dots');
     const errBox = document.getElementById('error-box');
 
-    label.textContent = 'Verifying payment';
+    label.textContent   = 'Verifying payment';
     icon.style.display  = 'none';
     dots.style.display  = 'inline-flex';
-    btn.disabled = true;
+    btn.disabled        = true;
     errBox.style.display = 'none';
 
     try {
@@ -228,10 +379,8 @@ document.getElementById('reg-form').addEventListener('submit', async (e) => {
         document.getElementById('qr-container').innerHTML = data.data.qr_svg;
         document.getElementById('qr-meta').textContent    = 'SESSION #' + (data.data.session_id ?? '') + ' · ONE-TIME QR';
 
-        document.getElementById('form-state').style.display    = 'none';
-        const s = document.getElementById('success-state');
-        s.style.display = 'flex';
-        s.style.flexDirection = 'column';
+        document.getElementById('form-state').style.display = 'none';
+        document.getElementById('success-state').style.display = 'flex';
 
     } catch (err) {
         document.getElementById('error-text').textContent = err.message;
@@ -249,7 +398,6 @@ function resetForm() {
     document.getElementById('rrr_number').value = '';
     document.getElementById('success-state').style.display = 'none';
     document.getElementById('form-state').style.display    = 'flex';
-    document.getElementById('form-state').style.flexDirection = 'column';
 }
 </script>
 @endpush
