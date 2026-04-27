@@ -110,12 +110,12 @@
     .pass-hd-text b    { display: block; font-size: 12px; font-weight: 700; color: #fff; letter-spacing: .12em; text-transform: uppercase; line-height: 1.2; }
     .pass-hd-text span { font-size: 10px; color: rgba(255,255,255,.5); letter-spacing: .1em; text-transform: uppercase; }
     .pass-valid {
-        display: inline-flex; align-items: center; gap: 5px; position: relative; z-index: 1;
-        background: rgba(16,185,129,.2); border: 1px solid rgba(16,185,129,.4);
-        color: #86efca; font-size: 10px; font-weight: 700; letter-spacing: .14em;
-        text-transform: uppercase; padding: 5px 10px; border-radius: 999px;
+        display: inline-flex; align-items: center; gap: 6px; position: relative; z-index: 1;
+        background: rgba(16,185,129,.25); border: 1px solid rgba(16,185,129,.5);
+        color: #10b981; font-size: 11px; font-weight: 700; letter-spacing: .15em;
+        text-transform: uppercase; padding: 6px 12px; border-radius: 999px;
     }
-    .pass-valid-dot { width: 6px; height: 6px; border-radius: 50%; background: #6ee7b7; animation: dotPulse 2s infinite; }
+    .pass-valid-dot { width: 7px; height: 7px; border-radius: 50%; background: #10b981; animation: dotPulse 2s infinite; }
 
     /* QR section */
     .pass-qr-wrap {
@@ -124,13 +124,13 @@
         background: linear-gradient(180deg, #fff 0%, var(--bg) 100%);
     }
     .pass-qr-code {
-        width: 210px; height: 210px; background: #fff; border-radius: 14px; padding: 12px;
+        width: 220px; height: 220px; background: #fff; border-radius: 14px; padding: 12px;
         display: flex; align-items: center; justify-content: center;
-        box-shadow: 0 2px 16px rgba(0,0,0,.08), 0 0 0 1px var(--line);
+        box-shadow: 0 4px 20px rgba(0,0,0,.1), 0 0 0 1px var(--line);
         animation: qrReveal .6s .2s cubic-bezier(.2,.9,.3,1.2) both;
     }
     .pass-qr-code svg { width: 100%; height: 100%; display: block; }
-    @media (min-width: 768px) { .pass-qr-code { width: 230px; height: 230px; } }
+    @media (min-width: 768px) { .pass-qr-code { width: 240px; height: 240px; } }
     .pass-qr-meta {
         margin-top: 12px; font-size: 10px; color: var(--ink-4);
         letter-spacing: .12em; text-transform: uppercase; font-family: 'JetBrains Mono', monospace;
@@ -151,12 +151,13 @@
 
     /* Pass footer */
     .pass-footer {
-        padding: 12px 22px; display: flex; align-items: center; justify-content: space-between;
-        background: var(--bg); border-top: 1px solid var(--line);
+        padding: 14px 22px; display: flex; align-items: center; justify-content: space-between;
+        background: linear-gradient(135deg, var(--bg) 0%, rgba(15,32,80,.02) 100%);
+        border-top: 1px solid var(--line);
     }
     .pass-sec-note {
         display: flex; align-items: center; gap: 5px;
-        font-size: 10px; color: var(--ink-4); letter-spacing: .06em;
+        font-size: 10px; color: var(--ink-3); letter-spacing: .07em; font-weight: 500;
     }
 
     /* Actions below card */
