@@ -1,6 +1,6 @@
 # CERNIX — Exam Verification System
 
-> **Last updated:** Phase 5 complete — Demo UI, health check, defense preparation  
+> **Last updated:** Phase 5 complete — Light-theme UI redesign, full-screen mobile scanner  
 > **Test suite:** 113 tests · 294 assertions · all passing
 
 ---
@@ -13,12 +13,13 @@
 4. [API Endpoints](#api-endpoints)
 5. [Services](#services)
 6. [Security Model](#security-model)
-7. [Live Demonstration Flow](#live-demonstration-flow)
-8. [Panel Questions & Answers](#panel-questions--answers)
-7. [Environment Variables](#environment-variables)
-8. [Installation & Setup](#installation--setup)
-9. [Running Tests](#running-tests)
-10. [Development Progress](#development-progress)
+7. [UI Design System](#ui-design-system)
+8. [Live Demonstration Flow](#live-demonstration-flow)
+9. [Panel Questions & Answers](#panel-questions--answers)
+10. [Environment Variables](#environment-variables)
+11. [Installation & Setup](#installation--setup)
+12. [Running Tests](#running-tests)
+13. [Development Progress](#development-progress)
 
 ---
 
@@ -724,14 +725,84 @@ Tampered QR ──► status = REJECTED (HMAC mismatch caught before decryption)
 | VerificationService | 10-step examiner QR verification engine — HMAC, atomic lock, append-only log |
 | AuditService | Append-only `audit_log` writer with safe metadata encoding |
 | EndToEndSystemTest | Full SIS→Registration→QR→Scan→Audit lifecycle validated as closed loop |
+| Demo Web UI | Blade views + web controllers for student registration, examiner scanner, admin dashboard, home |
+| UI Redesign (Phase 5) | Light-theme redesign across all portals — navy accent, warm-grey background, full-screen mobile scanner, desktop split layout, mobile takeover overlays |
 
 ### Up next
 
 | Phase | Description |
 |-------|-------------|
-| Examiner API | HTTP endpoints wiring `VerificationService` — POST /examiner/verify |
-| Student API | HTTP endpoints wiring `RegistrationService` — POST /student/register-exam |
 | Admin API | Session management, examiner management, token revocation |
+| Student photo display | Show SIS photo on approved scan result in examiner panel |
+| PWA / offline support | Service worker cache for scanner assets |
+
+---
+
+## UI Design System
+
+All three portals (Student, Examiner, Admin) share a unified light-theme design language.
+
+### Colour palette
+
+| Token | Hex | Usage |
+|-------|-----|-------|
+| `--navy` | `#0f2050` | Primary accent — buttons, icons, topbar branding |
+| `--navy-2` | `#1a3370` | Hover state for navy elements |
+| `--bg` | `#f4f4ef` | Warm light-grey page background |
+| `--bg-2` | `#ffffff` | Card / panel / topbar background |
+| `--green` | `#16a34a` | Approved status |
+| `--red` | `#dc2626` | Rejected status |
+| `--amber` | `#d97706` | Duplicate status |
+| `--ink` through `--ink-4` | opacity steps | Text hierarchy |
+| `--line` / `--line-2` | opacity steps | Borders and dividers |
+
+### Shared components
+
+| Component | Description |
+|-----------|-------------|
+| **Topbar** | White background, 1 px bottom border, navy shield icon + CERNIX wordmark |
+| **Stats bar** | 4-column grid; navy / green / red / amber counters on white |
+| **Buttons** | `.btn-start` (navy fill), `.btn-ghost-sm` (bordered ghost), `.btn-reset` (light ghost) |
+| **Status badges** | Pill with coloured background: green (approved), red (rejected), amber (duplicate) |
+| **Alert panels** | Rounded card with matching tinted background and border |
+| **Takeover overlays** | Full-screen gradient (mobile only); auto-dismiss after 3.5 s |
+
+### Examiner dashboard layout
+
+```
+┌─────────────────────────────────────────────────┐
+│ TOPBAR  (white, 52 px)                          │
+├─────────┬───────────┬───────────┬───────────────┤
+│ Total   │ Approved  │ Rejected  │ Duplicate     │ ← Stats bar
+├─────────┴───────────┴───────────┴───────────────┤
+│                                                  │
+│           CAMERA PANEL (dark #0a0a0a)            │
+│    ┌ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ┐              │
+│    │   corner-bracket reticle    │              │
+│    │   animated scan line        │              │
+│    └ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ┘              │
+│                      [status pill]               │
+├─────────────────────────────────────────────────┤
+│ BOTTOM BAR — last scan · demo buttons (mobile)  │
+└─────────────────────────────────────────────────┘
+
+Desktop (≥ 768 px) — bottom bar hidden, result panel appears on the right:
+
+┌──────────────────────────────┬─────────────────┐
+│                              │  Result panel   │
+│    CAMERA PANEL (flex: 1)    │   (380 px)      │
+│                              │  white, scrolls │
+└──────────────────────────────┴─────────────────┘
+```
+
+The page is **standalone** (does not extend `layouts.app`) so it owns the full `100dvh` viewport — essential for a camera-based scanner UI.
+
+### Mobile behaviour
+
+- Camera panel fills all remaining height with `flex: 1; min-height: 0`
+- Bottom bar is `flex-shrink: 0` so it never compresses the camera
+- On each scan result a full-screen coloured takeover animates in (green / red / amber) and auto-dismisses after 3.5 s
+- Three demo buttons (Approved / Rejected / Duplicate) in the bottom bar allow testing without a real QR code
 
 ---
 
@@ -781,23 +852,25 @@ The form is replaced by a green success panel showing:
 
 Open a new tab and navigate to `http://localhost:8000/examiner/dashboard`.
 
-Click **Start Scan** to activate the WebRTC camera. Point the camera at the QR code on the student tab, or paste the QR JSON manually into the text area and click **Verify Manually**.
+The page loads as a full-screen scanner (light topbar, stats bar, dark camera area). Click **Start Scanning** to activate the WebRTC camera. Point the camera at the QR code on the student tab, or paste the QR JSON manually into the text area at the bottom of the right panel and click **Verify Manually**.
 
 **Step 6 — Show APPROVED result**
 
-The right panel turns green and shows:
-- ✓ **APPROVED**
-- Student name and matric number
-- Token ID and timestamp
+On desktop, the right-side result panel shows:
+- ✓ **APPROVED** badge (green)
+- Student name and matric number card
+- Token ID and scanned-at timestamp
+- "Access Granted" decision cell
 
-The token is now marked `USED` in the database.
+On mobile, a full-screen green takeover overlay animates in with the student name before auto-dismissing.
+
+The token is now marked `USED` in the database and the Approved counter in the stats bar increments.
 
 **Step 7 — Scan the same QR again (replay attack)**
 
-Click **Reset Scan**, then scan or paste the same QR data again.
+Click **Reset / Next Scan**, then scan or paste the same QR data again.
 
-The right panel turns yellow:
-- ! **DUPLICATE** — This QR code has already been used. Entry denied.
+On desktop, the result panel shows an amber **DUPLICATE** badge. On mobile, an amber full-screen overlay appears. The Duplicate counter increments. Only one `APPROVED` decision ever exists in `verification_logs` for this token.
 
 Only one `APPROVED` decision ever exists in `verification_logs` for this token.
 
