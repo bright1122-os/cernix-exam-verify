@@ -460,7 +460,7 @@
         </p>
         <div class="doc-meta-row">
             <div class="doc-chip"><span class="dot"></span> System Operational</div>
-            <div class="doc-chip">Department of Computer Science</div>
+            <div class="doc-chip">Adekunle Ajasin University</div>
             <div class="doc-chip">2025 / 2026 Academic Session</div>
             <div class="doc-chip">Final Year Project</div>
         </div>
@@ -472,14 +472,26 @@
         {{-- ── 1. About the Institution ─────────────────────── --}}
         <div class="doc-section">
             <div class="doc-section-label">01 — About the Institution</div>
-            <h3>Computer Science Department</h3>
+            <h3>Adekunle Ajasin University, Akungba-Akoko</h3>
             <p>
                 CERNIX was developed as a final-year project by a team of undergraduate students from
-                the Department of Computer Science. The project addresses a longstanding operational challenge
-                at the institutional level: manual, paper-based exam admission — which is slow, error-prone,
-                and impossible to audit.
+                the Department of Computer Science, Adekunle Ajasin University (AAUA), Akungba-Akoko, Ondo State.
+                The project addresses a longstanding operational challenge at the institutional level:
+                manual, paper-based exam admission — which is slow, error-prone, and impossible to audit.
             </p>
             <div class="doc-info-block">
+                <div class="doc-info-row">
+                    <div class="dir-key">University</div>
+                    <div class="dir-val">Adekunle Ajasin University (AAUA)</div>
+                </div>
+                <div class="doc-info-row">
+                    <div class="dir-key">Location</div>
+                    <div class="dir-val">Akungba-Akoko, Ondo State, Nigeria</div>
+                </div>
+                <div class="doc-info-row">
+                    <div class="dir-key">Faculty</div>
+                    <div class="dir-val">Science</div>
+                </div>
                 <div class="doc-info-row">
                     <div class="dir-key">Department</div>
                     <div class="dir-val">Computer Science</div>
@@ -785,13 +797,29 @@
             </div>
         </div>
 
-        {{-- ── 8. Development Team ──────────────────────────── --}}
+        {{-- ── 8. Project Supervision ───────────────────────── --}}
         <div class="doc-section">
-            <div class="doc-section-label">08 — Development Team</div>
+            <div class="doc-section-label">08 — Project Supervision</div>
+            <h3>Academic Supervision</h3>
+            <p>
+                This project was carried out under the academic supervision of the Department of Computer Science,
+                Adekunle Ajasin University. The supervisor provided guidance on system design, cryptographic
+                implementation, and evaluation methodology throughout the project lifecycle.
+            </p>
+            <div class="team-leader" style="background:rgba(15,32,80,.03);border-color:rgba(15,32,80,.12);">
+                <div class="tl-tag" style="background:rgba(15,32,80,.07);color:var(--navy)">Supervisor</div>
+                <div class="tl-name">—</div>
+                <div class="tl-role">Department of Computer Science · Adekunle Ajasin University</div>
+            </div>
+        </div>
+
+        {{-- ── 9. Development Team ──────────────────────────── --}}
+        <div class="doc-section">
+            <div class="doc-section-label">09 — Development Team</div>
             <h3>Built by final-year students</h3>
             <p>
-                CERNIX was designed, developed, and tested by a team of five final-year Computer Science students.
-                The project was supervised and evaluated by the department's academic staff.
+                CERNIX was designed, developed, and tested by a team of five final-year Computer Science
+                students at Adekunle Ajasin University, Akungba-Akoko.
             </p>
 
             <div class="team-leader">
@@ -838,7 +866,7 @@
     <div class="doc-footer">
         <span>CERNIX v1.0</span>
         <span class="sep">·</span>
-        <span>Department of Computer Science</span>
+        <span>Adekunle Ajasin University, Akungba-Akoko</span>
         <span class="sep">·</span>
         <span>2025 / 2026</span>
         <span class="sep">·</span>

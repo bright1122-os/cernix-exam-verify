@@ -62,6 +62,15 @@
         letter-spacing: .01em;
         color: var(--ink);
     }
+    .ex-brand-sub {
+        display: block;
+        font-size: 10px;
+        font-weight: 400;
+        color: var(--ink-4);
+        letter-spacing: .02em;
+        line-height: 1;
+        margin-top: 2px;
+    }
     .ex-user {
         display: flex;
         align-items: center;
@@ -666,6 +675,81 @@
     @media (max-width: 767px) {
         .ex-result-panel { display: none; }
     }
+
+    /* ── Scan history panel ───────────────────────────────── */
+    .ex-history {
+        border-top: 1px solid var(--line);
+        flex-shrink: 0;
+        display: flex;
+        flex-direction: column;
+        max-height: 220px;
+    }
+    .ex-history-head {
+        display: flex;
+        align-items: center;
+        padding: 10px 16px 8px;
+        gap: 6px;
+        flex-shrink: 0;
+    }
+    .ex-history-head span {
+        font-size: 10px;
+        font-weight: 700;
+        letter-spacing: .1em;
+        text-transform: uppercase;
+        color: var(--ink-4);
+        flex: 1;
+    }
+    .ex-history-filters {
+        display: flex;
+        gap: 4px;
+    }
+    .ex-history-filters button {
+        padding: 3px 8px;
+        border-radius: 6px;
+        font-size: 10px;
+        font-weight: 600;
+        border: 1px solid var(--line);
+        background: transparent;
+        color: var(--ink-4);
+        cursor: pointer;
+        transition: all .12s;
+        font-family: 'Inter', sans-serif;
+    }
+    .ex-history-filters button.active { background: var(--navy); color: #fff; border-color: var(--navy); }
+    .ex-history-list {
+        overflow-y: auto;
+        flex: 1;
+    }
+    .ex-history-empty {
+        padding: 14px 16px;
+        font-size: 11px;
+        color: var(--ink-4);
+        text-align: center;
+    }
+    .ex-history-row {
+        display: flex;
+        align-items: center;
+        gap: 9px;
+        padding: 7px 16px;
+        border-top: 1px solid var(--line);
+        transition: background .1s;
+    }
+    .ex-history-row:first-child { border-top: none; }
+    .ex-history-row:hover { background: var(--bg-2); }
+    .ex-history-dot {
+        width: 7px;
+        height: 7px;
+        border-radius: 50%;
+        flex-shrink: 0;
+    }
+    .ex-history-dot.approved  { background: var(--emerald); }
+    .ex-history-dot.rejected  { background: var(--red); }
+    .ex-history-dot.duplicate { background: var(--amber); }
+    .ex-history-dot.error     { background: var(--ink-4); }
+    .ex-history-info { flex: 1; min-width: 0; }
+    .ex-history-info .hn { font-size: 11px; font-weight: 600; color: var(--ink); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .ex-history-info .hm { font-size: 10px; color: var(--ink-4); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .ex-history-time { font-size: 10px; color: var(--ink-4); font-family: 'JetBrains Mono', monospace; flex-shrink: 0; }
 </style>
 
 <div class="ex-page">
@@ -678,7 +762,10 @@
                     <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
                 </svg>
             </div>
-            <b>Scanner</b>
+            <div>
+                <b>Scanner</b>
+                <span class="ex-brand-sub">Adekunle Ajasin University</span>
+            </div>
         </div>
         <div class="ex-user">
             <div class="ex-user-info">
@@ -926,6 +1013,22 @@
                 <button onclick="simulateScan('REJECTED')">Test Reject</button>
                 <button onclick="simulateScan('DUPLICATE')">Test Dup</button>
             </div>
+
+            {{-- Scan history --}}
+            <div class="ex-history">
+                <div class="ex-history-head">
+                    <span>Recent Scans</span>
+                    <div class="ex-history-filters">
+                        <button class="active" onclick="setFilter('all')">All</button>
+                        <button onclick="setFilter('approved')">OK</button>
+                        <button onclick="setFilter('rejected')">Fail</button>
+                        <button onclick="setFilter('duplicate')">Dup</button>
+                    </div>
+                </div>
+                <div class="ex-history-list" id="history-list">
+                    <div class="ex-history-empty">No scans yet</div>
+                </div>
+            </div>
         </div>
 
     </div>
@@ -937,7 +1040,8 @@
 <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.min.js"></script>
 <script>
 let stats = { total: 0, approved: 0, rejected: 0, duplicate: 0 };
-let scanning = false, busy = false;
+let scanning = false, busy = false, scanStartTime = 0;
+let scanHistory = [], currentFilter = 'all';
 const csrf = document.querySelector('meta[name="csrf-token"]').content;
 
 function updateStats() {
@@ -945,6 +1049,41 @@ function updateStats() {
     document.getElementById('approved-count').textContent = stats.approved;
     document.getElementById('rejected-count').textContent = stats.rejected;
     document.getElementById('duplicate-count').textContent = stats.duplicate;
+}
+
+function addToHistory(type, name, sub, time) {
+    scanHistory.unshift({ type, name, sub, time });
+    if (scanHistory.length > 50) scanHistory.pop();
+    renderHistory();
+}
+
+function renderHistory() {
+    const list = document.getElementById('history-list');
+    if (!list) return;
+    const rows = currentFilter === 'all' ? scanHistory : scanHistory.filter(r => r.type === currentFilter);
+    if (!rows.length) {
+        list.innerHTML = '<div class="ex-history-empty">No scans yet</div>';
+        return;
+    }
+    list.innerHTML = rows.map(r => `
+        <div class="ex-history-row">
+            <div class="ex-history-dot ${r.type}"></div>
+            <div class="ex-history-info">
+                <div class="hn">${r.name}</div>
+                <div class="hm">${r.sub}</div>
+            </div>
+            <div class="ex-history-time">${r.time}</div>
+        </div>
+    `).join('');
+}
+
+function setFilter(f) {
+    currentFilter = f;
+    document.querySelectorAll('.ex-history-filters button').forEach(b => b.classList.remove('active'));
+    const map = { all: 0, approved: 1, rejected: 2, duplicate: 3 };
+    const btns = document.querySelectorAll('.ex-history-filters button');
+    if (btns[map[f]]) btns[map[f]].classList.add('active');
+    renderHistory();
 }
 
 function setPanelState(state) {
@@ -1019,6 +1158,7 @@ function resetScan() {
 function handleResult(result, now) {
     stats.total++;
     hideVerifying();
+    const elapsed = scanStartTime ? Math.round(Date.now() - scanStartTime) + 'ms' : '—';
 
     if (result.status === 'APPROVED') {
         stats.approved++;
@@ -1036,8 +1176,9 @@ function handleResult(result, now) {
         document.getElementById('approved-token').textContent  = tokenShort;
         document.getElementById('approved-time').textContent   = now;
 
-        updateDesktopResult('approved', { name, matric, dept, initials, token: tokenShort, time: now });
+        updateDesktopResult('approved', { name, matric, dept, initials, token: tokenShort, time: elapsed });
         updateLastScan('approved', name, matric, now);
+        addToHistory('approved', name, matric, now);
         showTakeover('approved');
 
     } else if (result.status === 'DUPLICATE') {
@@ -1055,8 +1196,9 @@ function handleResult(result, now) {
         document.getElementById('dup-count').textContent  = stats.duplicate + 1;
         document.getElementById('duplicate-time').textContent = now;
 
-        updateDesktopResult('duplicate', { name, matric, dept, initials, time: now });
+        updateDesktopResult('duplicate', { name, matric, dept, initials, time: elapsed });
         updateLastScan('duplicate', name, 'Token already redeemed', now);
+        addToHistory('duplicate', name, 'Already used', now);
         showTakeover('duplicate');
 
     } else {
@@ -1064,12 +1206,14 @@ function handleResult(result, now) {
         document.getElementById('rejected-time').textContent = now;
         document.getElementById('rejected-scan').textContent = stats.total;
 
-        updateDesktopResult('rejected', { time: now });
+        updateDesktopResult('rejected', { time: elapsed });
         updateLastScan('rejected', 'Invalid token', 'Bad or tampered QR', now);
+        addToHistory('rejected', 'Invalid token', 'Bad or tampered QR', now);
         showTakeover('rejected');
     }
 
     updateStats();
+    scanStartTime = 0;
 }
 
 async function handleQRCode(rawData) {
@@ -1081,6 +1225,7 @@ async function handleQRCode(rawData) {
     try { qrData = JSON.parse(rawData); } catch { busy = false; scanning = true; return; }
 
     const now = new Date().toLocaleTimeString();
+    scanStartTime = Date.now();
     document.getElementById('scan-prompt').textContent = 'Checking…';
     showVerifying();
 
@@ -1104,14 +1249,9 @@ async function handleQRCode(rawData) {
 
     } catch (err) {
         hideVerifying();
-        stats.total++;
-        stats.rejected++;
-        document.getElementById('rejected-time').textContent = now;
-        document.getElementById('rejected-scan').textContent = stats.total;
-        updateDesktopResult('rejected', { time: now });
         updateLastScan('rejected', 'Network error', 'Could not reach server', now);
-        showTakeover('rejected');
-        updateStats();
+        addToHistory('error', 'Network error', 'Could not reach server', now);
+        setPanelState('idle');
         busy = false;
         scanning = true;
     }
@@ -1150,24 +1290,20 @@ function scanFrame() {
     requestAnimationFrame(scanFrame);
 }
 
-const demoStudents = [
-    { name: 'Adebayo Okafor',   matric: 'CSC/2021/001', department: 'Computer Science' },
-    { name: 'Fatima Aliyu',     matric: 'EEE/2021/042', department: 'Electrical Engineering' },
-    { name: 'Chukwuemeka Eze',  matric: 'MCB/2022/019', department: 'Microbiology' },
-];
-
 function simulateScan(decision) {
     if (busy) return;
-    busy    = true;
+    busy = true;
     scanning = false;
-    const now     = new Date().toLocaleTimeString();
-    const student = demoStudents[Math.floor(Math.random() * demoStudents.length)];
+    const now = new Date().toLocaleTimeString();
+    scanStartTime = Date.now();
     document.getElementById('scan-prompt').textContent = 'Checking…';
     showVerifying();
     setTimeout(() => {
         handleResult({
             status: decision,
-            student: { full_name: student.name, matric_no: student.matric, department: student.department },
+            student: decision !== 'REJECTED' ? {
+                full_name: 'Test Student', matric_no: 'TEST/0000', department: 'Computer Science'
+            } : {},
             token_id: 'tok_' + Date.now()
         }, now);
     }, 800);
