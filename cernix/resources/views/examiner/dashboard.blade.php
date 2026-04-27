@@ -5,17 +5,30 @@
 @section('content')
 <style>
     /* ── Root overrides for scanner page ───────────────────────── */
-    body { overflow: hidden; }
+    /* No body/html overflow lock — .ex-page handles its own containment */
 
     /* ── Layout ─────────────────────────────────────────────────── */
     .ex-page {
+        min-height: 100dvh;
+        min-height: 100vh;
         height: 100dvh;
         height: 100vh;
+        max-height: 100dvh;
+        max-height: 100vh;
         overflow: hidden;
         display: flex;
         flex-direction: column;
         background: var(--bg);
         color: var(--ink);
+    }
+    @media (max-width: 767px) {
+        .ex-page {
+            height: auto;
+            min-height: 100svh;
+            min-height: 100vh;
+            max-height: none;
+            overflow: visible;
+        }
     }
 
     /* ── Topbar ──────────────────────────────────────────────────── */
@@ -133,6 +146,12 @@
         flex-direction: column;
         overflow: hidden;
     }
+    @media (max-width: 767px) {
+        .ex-workspace {
+            overflow: visible;
+            flex: none;
+        }
+    }
 
     /* Camera panel */
     .ex-camera-panel {
@@ -141,6 +160,14 @@
         position: relative;
         background: #1a1c22;
         overflow: hidden;
+    }
+    @media (max-width: 767px) {
+        .ex-camera-panel {
+            flex: none;
+            height: 60vmax;
+            min-height: 300px;
+            max-height: 70vh;
+        }
     }
     .camera-feed {
         position: absolute;
@@ -299,7 +326,9 @@
         flex-direction: column;
         justify-content: space-between;
         z-index: 100;
-        overflow: hidden;
+        overflow-y: auto;
+        overflow-x: hidden;
+        -webkit-overflow-scrolling: touch;
     }
     .takeover.approved {
         background: linear-gradient(160deg, #d1fae5 0%, #a7f3d0 60%, #6ee7b7 100%);
