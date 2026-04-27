@@ -23,5 +23,6 @@ Route::post('/examiner/verify',    [ExaminerWebController::class, 'verify']);
 // Admin portal
 Route::get('/admin/dashboard', [AdminWebController::class, 'index']);
 
-// Presentation
-Route::get('/presentation', fn () => view('presentation'));
+// Documentation (replaces presentation)
+Route::get('/documentation', fn () => view('documentation'));
+Route::get('/presentation',  fn () => view('landing'));

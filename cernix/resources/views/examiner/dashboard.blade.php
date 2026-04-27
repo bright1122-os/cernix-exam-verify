@@ -5,7 +5,7 @@
 @section('content')
 <style>
     /* ── Root overrides for scanner page ───────────────────────── */
-    html, body { height: 100%; overflow: hidden; }
+    body { overflow: hidden; }
 
     /* ── Layout ─────────────────────────────────────────────────── */
     .ex-page {
