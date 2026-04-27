@@ -4,89 +4,144 @@
 
 @section('content')
 <style>
-    /* ── Layout ─────────────────────────────────────────────────────────── */
+    /* ── Layout ────────────────────────────────────────────── */
     .login-page {
         min-height: 100vh;
         display: flex;
         background: var(--bg);
     }
 
-    /* ── Left panel (desktop only) ────────────────────────────────────────── */
-    .login-left {
-        display: none;
+    /* ── Left branding panel (desktop only) ─────────────────── */
+    .login-left { display: none; }
+
+    @media (min-width: 768px) {
+        .login-left {
+            display: flex;
+            flex-direction: column;
+            width: 460px;
+            flex-shrink: 0;
+            background: linear-gradient(160deg, #0f2050 0%, #0a1635 55%, #061022 100%);
+            position: relative;
+            overflow: hidden;
+            color: #fff;
+        }
+        .login-left::before {
+            content: "";
+            position: absolute;
+            inset: 0;
+            background-image:
+                radial-gradient(circle at 20% 80%, rgba(45,108,255,.08) 0%, transparent 50%),
+                radial-gradient(circle at 80% 20%, rgba(16,185,129,.06) 0%, transparent 50%);
+        }
+        .login-left::after {
+            content: "";
+            position: absolute;
+            bottom: -60px;
+            right: -60px;
+            width: 280px;
+            height: 280px;
+            border: 1px solid rgba(255,255,255,.04);
+            border-radius: 50%;
+            box-shadow: inset 0 0 0 40px rgba(255,255,255,.02), inset 0 0 0 80px rgba(255,255,255,.015);
+        }
     }
-    .login-left-content {
+
+    .login-left-body {
         display: flex;
         flex-direction: column;
-        justify-content: center;
-        padding: 60px 48px;
+        justify-content: space-between;
+        flex: 1;
+        padding: 52px 44px;
+        position: relative;
+        z-index: 1;
     }
-    .login-left-logo {
+
+    .login-left-brand {
         display: flex;
         align-items: center;
-        gap: 16px;
-        margin-bottom: 40px;
-    }
-    .login-left-icon {
-        width: 48px;
-        height: 48px;
-        border-radius: 14px;
-        background: var(--blue);
-        display: flex;
-        align-items: center;
-        justify-content: center;
-    }
-    .login-left-icon svg { width: 28px; height: 28px; color: #fff; }
-    .login-left b {
-        display: block;
-        font-size: 22px;
-        font-weight: 700;
-        letter-spacing: -.01em;
-    }
-    .login-left span {
-        display: block;
-        font-size: 12px;
-        color: rgba(255,255,255,.6);
-        margin-top: 2px;
-        letter-spacing: .05em;
-    }
-    .login-left h2 {
-        font-size: 32px;
-        font-weight: 800;
-        letter-spacing: -.02em;
-        margin: 0 0 12px;
-        line-height: 1.1;
-    }
-    .login-left p {
-        font-size: 15px;
-        color: rgba(255,255,255,.75);
-        margin: 0 0 32px;
-        line-height: 1.6;
-    }
-    .login-features {
-        display: flex;
-        flex-direction: column;
         gap: 14px;
+        margin-bottom: 52px;
     }
-    .login-feature {
-        display: flex;
-        gap: 12px;
-    }
-    .login-feature-icon {
-        width: 32px;
-        height: 32px;
-        border-radius: 8px;
-        background: rgba(255,255,255,.08);
+    .login-left-shield {
+        width: 44px;
+        height: 44px;
+        border-radius: 13px;
+        background: rgba(255,255,255,.1);
+        border: 1px solid rgba(255,255,255,.18);
         display: flex;
         align-items: center;
         justify-content: center;
         flex-shrink: 0;
     }
-    .login-feature-icon svg { width: 16px; height: 16px; color: var(--blue); stroke-width: 2.5; }
-    .login-feature-text b { display: block; font-size: 13px; font-weight: 600; margin-bottom: 2px; }
-    .login-feature-text span { display: block; font-size: 12px; color: rgba(255,255,255,.55); }
+    .login-left-brand b {
+        display: block;
+        font-size: 18px;
+        font-weight: 700;
+        letter-spacing: -.01em;
+    }
+    .login-left-brand span {
+        display: block;
+        font-size: 11px;
+        color: rgba(255,255,255,.5);
+        margin-top: 1px;
+        letter-spacing: .08em;
+        text-transform: uppercase;
+    }
 
-    /* ── Right panel (form side) ─────────────────────────────────────────── */
+    .login-left-headline {
+        font-size: 30px;
+        font-weight: 800;
+        line-height: 1.1;
+        letter-spacing: -.02em;
+        margin: 0 0 12px;
+    }
+    .login-left-sub {
+        font-size: 14px;
+        color: rgba(255,255,255,.6);
+        line-height: 1.6;
+        margin: 0 0 36px;
+    }
+
+    .login-features {
+        display: flex;
+        flex-direction: column;
+        gap: 18px;
+    }
+    .login-feature {
+        display: flex;
+        align-items: flex-start;
+        gap: 14px;
+    }
+    .lf-icon {
+        width: 34px;
+        height: 34px;
+        border-radius: 9px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+    }
+    .lf-icon.blue   { background: rgba(45,108,255,.15);  color: var(--blue-2); }
+    .lf-icon.green  { background: rgba(16,185,129,.15);  color: var(--emerald-2); }
+    .lf-icon.amber  { background: rgba(245,158,11,.15);  color: var(--amber-2); }
+    .lf-icon.muted  { background: rgba(255,255,255,.07); color: rgba(255,255,255,.5); }
+    .lf-icon svg { width: 17px; height: 17px; stroke-width: 2; }
+    .lf-text b    { display: block; font-size: 13px; font-weight: 600; line-height: 1.3; }
+    .lf-text span { font-size: 12px; color: rgba(255,255,255,.45); line-height: 1.4; }
+
+    .login-left-footer {
+        margin-top: 48px;
+        padding-top: 24px;
+        border-top: 1px solid rgba(255,255,255,.07);
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        font-size: 11px;
+        color: rgba(255,255,255,.3);
+        letter-spacing: .05em;
+    }
+
+    /* ── Right panel (form side) ─────────────────────────────── */
     .login-right {
         flex: 1;
         display: flex;
@@ -95,18 +150,17 @@
         padding: 24px 20px;
         position: relative;
     }
-    .login-right::before {
-        content: "";
+    .login-right-pattern {
         position: absolute;
         inset: 0;
         background-image:
             linear-gradient(var(--line) 1px, transparent 1px),
             linear-gradient(90deg, var(--line) 1px, transparent 1px);
         background-size: 40px 40px;
-        opacity: .3;
+        opacity: .35;
         pointer-events: none;
-        mask: radial-gradient(circle at 50% 50%, #000 30%, transparent 80%);
-        -webkit-mask: radial-gradient(circle at 50% 50%, #000 30%, transparent 80%);
+        mask: radial-gradient(circle at 50% 50%, #000 25%, transparent 75%);
+        -webkit-mask: radial-gradient(circle at 50% 50%, #000 25%, transparent 75%);
     }
 
     .login-card {
@@ -119,16 +173,17 @@
         max-width: 420px;
         width: 100%;
         animation: fadeUp .4s cubic-bezier(.2,.8,.3,1) both;
-        transition: box-shadow .3s;
     }
     .login-card:focus-within {
         box-shadow: 0 30px 70px -20px rgba(15,32,80,.2), 0 0 0 1px rgba(45,108,255,.1);
     }
-    .login-card .badge {
+    .login-badge {
         display: inline-flex;
-        padding: 6px 12px;
+        align-items: center;
+        gap: 6px;
+        padding: 5px 11px;
         border-radius: 999px;
-        background: rgba(45,108,255,.12);
+        background: rgba(45,108,255,.1);
         color: var(--blue);
         font-size: 11px;
         font-weight: 600;
@@ -136,10 +191,22 @@
         text-transform: uppercase;
         margin-bottom: 16px;
     }
-    .login-card h2 { font-size: 24px; font-weight: 700; margin: 0 0 4px; letter-spacing: -.02em; }
-    .login-card .sub { font-size: 13px; color: var(--ink-3); margin: 0 0 24px; }
+    .login-card h2 {
+        font-size: 24px;
+        font-weight: 700;
+        margin: 0 0 4px;
+        letter-spacing: -.02em;
+        color: var(--ink);
+    }
+    .login-card .sub {
+        font-size: 13px;
+        color: var(--ink-3);
+        margin: 0 0 24px;
+        line-height: 1.5;
+    }
 
-    .show-pw-btn {
+    .pw-wrap { position: relative; }
+    .pw-toggle {
         position: absolute;
         right: 4px;
         top: 4px;
@@ -148,29 +215,31 @@
         display: flex;
         align-items: center;
         justify-content: center;
-        color: var(--ink-3);
+        color: var(--ink-4);
         border-radius: 10px;
+        transition: background .15s, color .15s;
     }
-    .show-pw-btn:hover { background: var(--bg); }
+    .pw-toggle:hover { background: var(--bg); color: var(--ink-2); }
 
-    .divider {
+    .sec-divider {
         display: flex;
         align-items: center;
         gap: 10px;
         margin: 20px 0 16px;
     }
-    .divider::before, .divider::after {
+    .sec-divider::before,
+    .sec-divider::after {
         content: "";
         flex: 1;
         height: 1px;
         background: var(--line);
     }
-    .divider span {
-        font-size: 11px;
+    .sec-divider span {
+        font-size: 10px;
         color: var(--ink-4);
-        letter-spacing: .1em;
+        letter-spacing: .12em;
+        text-transform: uppercase;
     }
-
     .sec-note {
         display: flex;
         gap: 8px;
@@ -183,15 +252,15 @@
         border: 1px solid var(--line);
     }
 
-    /* ── Mobile and back button ──────────────────────────────────────────── */
+    /* ── Back button ─────────────────────────────────────────── */
     .login-back {
         position: fixed;
         top: 20px;
         left: 20px;
-        z-index: 10;
-        width: 40px;
-        height: 40px;
-        border-radius: 12px;
+        z-index: 20;
+        width: 38px;
+        height: 38px;
+        border-radius: 11px;
         display: flex;
         align-items: center;
         justify-content: center;
@@ -202,157 +271,115 @@
         transition: all .15s;
     }
     .login-back:hover {
-        background: var(--bg);
         border-color: var(--ink-4);
+        background: var(--bg);
+        transform: translateX(-1px);
     }
-
-    /* ── Desktop layout ──────────────────────────────────────────────────── */
     @media (min-width: 768px) {
-        .login-page {
-            background: linear-gradient(135deg, var(--navy) 0%, var(--navy-2) 100%);
-        }
-        .login-left {
-            display: flex;
-            flex-direction: column;
-            width: 480px;
-            flex-shrink: 0;
-            background: linear-gradient(135deg, var(--navy) 0%, var(--navy-2) 100%);
-            position: relative;
-            overflow: hidden;
-            color: #fff;
-        }
-        .login-left::before {
-            content: "";
-            position: absolute;
-            inset: 0;
-            background-image: repeating-linear-gradient(45deg, rgba(255,255,255,.03) 0 10px, transparent 10px 20px);
-        }
-        .login-left-content {
-            position: relative;
-            z-index: 1;
-        }
-        .login-right {
-            background: var(--bg);
-        }
-        .login-right::before {
-            background-image:
-                linear-gradient(var(--line) 1px, transparent 1px),
-                linear-gradient(90deg, var(--line) 1px, transparent 1px);
-            background-size: 40px 40px;
-            opacity: .25;
-            mask: radial-gradient(circle at 50% 50%, #000 20%, transparent 70%);
-            -webkit-mask: radial-gradient(circle at 50% 50%, #000 20%, transparent 70%);
-        }
-    }
-
-    @media (max-width: 767px) {
-        .login-back {
-            display: flex;
-        }
-    }
-
-    @keyframes fadeUp {
-        from {
-            opacity: 0;
-            transform: translateY(12px);
-        }
-        to {
-            opacity: 1;
-            transform: none;
-        }
+        .login-back { display: none; }
     }
 </style>
 
 <div class="login-page">
 
-    <!-- Left panel (desktop only) -->
+    <!-- Left branding panel (desktop only) -->
     <div class="login-left">
-        <div class="login-left-content">
-            <div class="login-left-logo">
-                <div class="login-left-icon">
-                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
-                    </svg>
+        <div class="login-left-body">
+            <div>
+                <div class="login-left-brand">
+                    <div class="login-left-shield">
+                        <svg width="22" height="22" fill="none" stroke="#fff" stroke-width="2" viewBox="0 0 24 24">
+                            <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+                        </svg>
+                    </div>
+                    <div>
+                        <b>CERNIX</b>
+                        <span>Exam Verification</span>
+                    </div>
                 </div>
-                <div>
-                    <b>CERNIX</b>
-                    <span>Exam Verification</span>
+
+                <h2 class="login-left-headline">Secure Exam<br>Hall Access</h2>
+                <p class="login-left-sub">Verify student identities and QR tokens in real time with cryptographic confidence.</p>
+
+                <div class="login-features">
+                    <div class="login-feature">
+                        <div class="lf-icon blue">
+                            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><path d="M14 14h.01M14 17h.01M17 14h.01M17 17h.01M20 17h.01M20 20h.01M17 20h.01M14 20h.01M20 14h.01"/></svg>
+                        </div>
+                        <div class="lf-text">
+                            <b>One-scan QR Verification</b>
+                            <span>Real-time token validation via camera</span>
+                        </div>
+                    </div>
+                    <div class="login-feature">
+                        <div class="lf-icon green">
+                            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg>
+                        </div>
+                        <div class="lf-text">
+                            <b>AES-256-GCM Encryption</b>
+                            <span>Military-grade payload protection</span>
+                        </div>
+                    </div>
+                    <div class="login-feature">
+                        <div class="lf-icon amber">
+                            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/></svg>
+                        </div>
+                        <div class="lf-text">
+                            <b>HMAC-SHA256 Signing</b>
+                            <span>Tamper-proof cryptographic integrity</span>
+                        </div>
+                    </div>
+                    <div class="login-feature">
+                        <div class="lf-icon muted">
+                            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+                        </div>
+                        <div class="lf-text">
+                            <b>Full Audit Logging</b>
+                            <span>Every scan tied to your examiner ID</span>
+                        </div>
+                    </div>
                 </div>
             </div>
 
-            <h2>Secure Exam Hall Access</h2>
-            <p>Verify student QR tokens and manage exam room entry with cryptographic authentication.</p>
-
-            <div class="login-features">
-                <div class="login-feature">
-                    <div class="login-feature-icon">
-                        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><rect x="3" y="12" width="18" height="9" rx="2"/><path d="M7 12V7a2 2 0 012-2h6a2 2 0 012 2v5"/></svg>
-                    </div>
-                    <div class="login-feature-text">
-                        <b>QR Verification</b>
-                        <span>Real-time token scanning and validation</span>
-                    </div>
-                </div>
-
-                <div class="login-feature">
-                    <div class="login-feature-icon">
-                        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/></svg>
-                    </div>
-                    <div class="login-feature-text">
-                        <b>AES-256-GCM Encryption</b>
-                        <span>Military-grade payload protection</span>
-                    </div>
-                </div>
-
-                <div class="login-feature">
-                    <div class="login-feature-icon">
-                        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z"/></svg>
-                    </div>
-                    <div class="login-feature-text">
-                        <b>HMAC-SHA256 Signing</b>
-                        <span>Cryptographic integrity verification</span>
-                    </div>
-                </div>
-
-                <div class="login-feature">
-                    <div class="login-feature-icon">
-                        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M9 12h6m-6 4h6m2-12H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V4a2 2 0 00-2-2z"/></svg>
-                    </div>
-                    <div class="login-feature-text">
-                        <b>Audit Logging</b>
-                        <span>Full cryptographic activity trail</span>
-                    </div>
-                </div>
+            <div class="login-left-footer">
+                <svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg>
+                Session-bound · Cryptographic audit · 4-hour timeout
             </div>
         </div>
     </div>
 
-    <!-- Right panel (form side) -->
+    <!-- Right panel (form) -->
     <div class="login-right">
-        <a href="/" class="login-back" aria-label="Back">
-            <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M15 18l-6-6 6-6"/></svg>
+        <div class="login-right-pattern"></div>
+        <a href="/" class="login-back" aria-label="Back to home">
+            <svg width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M15 18l-6-6 6-6"/></svg>
         </a>
 
         <div class="login-card">
-            <span class="badge">Examiner Access</span>
-            <h2>Sign in to begin</h2>
-            <p class="sub">Verify QR tokens at your assigned exam hall.</p>
+            <div class="login-badge">
+                <svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+                Examiner Access
+            </div>
+            <h2>Sign in to scan</h2>
+            <p class="sub">Authenticate to begin verifying student QR tokens at your hall.</p>
 
             <form id="login-form">
                 <div class="field">
                     <label for="username">Username</label>
-                    <input id="username" type="text" class="input" placeholder="examiner1" autocomplete="username" required>
+                    <input id="username" type="text" class="input" placeholder="examiner1"
+                           autocomplete="username" required>
                 </div>
 
-                <div class="field" style="position:relative">
+                <div class="field">
                     <label for="password">Password</label>
-                    <div style="position:relative">
-                        <input id="password" type="password" class="input" placeholder="••••••••••" autocomplete="current-password" style="padding-right:52px" required>
-                        <button type="button" class="show-pw-btn" id="toggle-pw" aria-label="Show password">
-                            <svg id="eye-open" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                    <div class="pw-wrap">
+                        <input id="password" type="password" class="input" placeholder="••••••••••"
+                               autocomplete="current-password" style="padding-right:52px" required>
+                        <button type="button" class="pw-toggle" id="toggle-pw" aria-label="Toggle password">
+                            <svg id="eye-show" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
                                 <path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7-11-7-11-7z"/><circle cx="12" cy="12" r="3"/>
                             </svg>
-                            <svg id="eye-closed" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" style="display:none">
+                            <svg id="eye-hide" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" style="display:none">
                                 <path d="M17.94 17.94A10.07 10.07 0 0112 20c-7 0-11-8-11-8a18.45 18.45 0 015.06-5.94M9.9 4.24A9.12 9.12 0 0112 4c7 0 11 8 11 8a18.5 18.5 0 01-2.16 3.19m-6.72-1.07a3 3 0 11-4.24-4.24"/>
                                 <line x1="1" y1="1" x2="23" y2="23"/>
                             </svg>
@@ -361,12 +388,15 @@
                 </div>
 
                 <div id="login-error" class="error-box" style="display:none;margin-bottom:16px;">
-                    <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" style="flex-shrink:0;margin-top:1px"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+                    <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" style="flex-shrink:0;margin-top:1px">
+                        <path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/>
+                        <line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/>
+                    </svg>
                     <span id="login-error-text"></span>
                 </div>
 
                 <button type="submit" id="login-btn" class="btn btn-primary btn-block" style="margin-top:4px">
-                    <svg id="login-icon" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                    <svg id="login-icon" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
                         <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
                     </svg>
                     <span id="login-label">Sign in to Scanner</span>
@@ -374,11 +404,13 @@
                 </button>
             </form>
 
-            <div class="divider"><span>SECURE ACCESS</span></div>
+            <div class="sec-divider"><span>Secure Access</span></div>
 
             <div class="sec-note">
-                <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" style="flex-shrink:0;margin-top:1px"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
-                Sessions expire after 4 hours of inactivity. All scans are cryptographically logged and tied to your examiner ID.
+                <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" style="flex-shrink:0;margin-top:1px">
+                    <rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0110 0v4"/>
+                </svg>
+                Sessions expire after 4 hours of inactivity. All scan events are cryptographically logged to your examiner ID.
             </div>
         </div>
     </div>
@@ -389,16 +421,12 @@
 <script>
 document.getElementById('toggle-pw').addEventListener('click', () => {
     const pw = document.getElementById('password');
-    const open = document.getElementById('eye-open');
-    const closed = document.getElementById('eye-closed');
+    const show = document.getElementById('eye-show');
+    const hide = document.getElementById('eye-hide');
     if (pw.type === 'password') {
-        pw.type = 'text';
-        open.style.display = 'none';
-        closed.style.display = '';
+        pw.type = 'text'; show.style.display = 'none'; hide.style.display = '';
     } else {
-        pw.type = 'password';
-        open.style.display = '';
-        closed.style.display = 'none';
+        pw.type = 'password'; show.style.display = ''; hide.style.display = 'none';
     }
 });
 
@@ -406,11 +434,11 @@ const csrfToken = document.querySelector('meta[name="csrf-token"]').content;
 
 document.getElementById('login-form').addEventListener('submit', async (e) => {
     e.preventDefault();
-    const btn = document.getElementById('login-btn');
+    const btn   = document.getElementById('login-btn');
     const label = document.getElementById('login-label');
-    const icon = document.getElementById('login-icon');
-    const dots = document.getElementById('login-dots');
-    const err = document.getElementById('login-error');
+    const icon  = document.getElementById('login-icon');
+    const dots  = document.getElementById('login-dots');
+    const err   = document.getElementById('login-error');
 
     label.textContent = 'Signing in';
     icon.style.display = 'none';
@@ -434,9 +462,7 @@ document.getElementById('login-form').addEventListener('submit', async (e) => {
             }),
         });
         const data = await resp.json();
-        if (!resp.ok || data.status === 'error') {
-            throw new Error(data.message || 'Invalid credentials.');
-        }
+        if (!resp.ok || data.status === 'error') throw new Error(data.message || 'Invalid credentials.');
         window.location.href = '/examiner/dashboard';
 
     } catch (ex) {
