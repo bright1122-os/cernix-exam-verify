@@ -26,13 +26,12 @@
     /* Session pill */
     .session-pill {
         padding: 14px 16px; margin-bottom: 24px;
-        background: linear-gradient(135deg, rgba(15,32,80,.04), rgba(45,108,255,.06));
-        border: 1px solid var(--line); border-radius: 14px;
-        display: flex; justify-content: space-between; align-items: center; gap: 12px;
+        background: rgba(17,17,17,.04); border: 1px solid var(--line-2);
+        border-radius: 14px; display: flex; justify-content: space-between; align-items: center; gap: 12px;
     }
-    .session-pill .left b    { display: block; font-size: 13px; font-weight: 600; }
+    .session-pill .left b    { display: block; font-size: 13px; font-weight: 600; color: var(--ink); }
     .session-pill .left span { font-size: 11px; color: var(--ink-3); text-transform: uppercase; letter-spacing: .06em; }
-    .session-pill .fee       { font-size: 20px; font-weight: 700; font-family: 'JetBrains Mono', monospace; color: var(--navy); white-space: nowrap; }
+    .session-pill .fee       { font-size: 20px; font-weight: 700; font-family: 'JetBrains Mono', monospace; color: var(--ink-2); white-space: nowrap; }
 
     /* Sec note */
     .sec-note {
@@ -56,17 +55,17 @@
     .demo-pill {
         display: inline-block; font-family: 'JetBrains Mono', monospace; font-size: 11px;
         background: var(--bg); border: 1px solid var(--line); border-radius: 8px;
-        padding: 4px 10px; color: var(--navy); margin: 3px 4px 3px 0;
+        padding: 4px 10px; color: var(--ink-2); margin: 3px 4px 3px 0;
         cursor: pointer; transition: background .15s, border-color .15s;
     }
-    .demo-pill:hover { background: rgba(15,32,80,.07); border-color: var(--ink-4); }
+    .demo-pill:hover { background: rgba(17,17,17,.06); border-color: var(--line-2); }
     .sec-list { list-style: none; padding: 0; margin: 0; }
     .sec-list li {
         font-size: 12px; color: var(--ink-3); padding: 8px 0;
         border-bottom: 1px solid var(--line); display: flex; align-items: center; gap: 8px;
     }
     .sec-list li:last-child { border-bottom: none; }
-    .sec-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--emerald); flex-shrink: 0; }
+    .sec-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--ink-3); flex-shrink: 0; }
 
     /* ── Pass state ───────────────────────────────────────── */
     .pass-shell {
@@ -94,13 +93,13 @@
 
     /* Pass header strip */
     .pass-hd {
-        background: linear-gradient(135deg, var(--navy) 0%, #071128 100%);
+        background: linear-gradient(135deg, #2d2d2d 0%, #1f1f1f 100%);
         padding: 18px 22px; display: flex; align-items: center; justify-content: space-between;
         position: relative; overflow: hidden;
     }
     .pass-hd::before {
         content: ''; position: absolute; inset: 0;
-        background: radial-gradient(ellipse at 0% 50%, rgba(45,108,255,.22), transparent 55%);
+        background: radial-gradient(ellipse at 0% 50%, rgba(255,255,255,.08), transparent 55%);
     }
     .pass-hd-brand { display: flex; align-items: center; gap: 10px; position: relative; z-index: 1; }
     .pass-hd-icon {
@@ -111,11 +110,11 @@
     .pass-hd-text span { font-size: 10px; color: rgba(255,255,255,.5); letter-spacing: .1em; text-transform: uppercase; }
     .pass-valid {
         display: inline-flex; align-items: center; gap: 6px; position: relative; z-index: 1;
-        background: rgba(16,185,129,.25); border: 1px solid rgba(16,185,129,.5);
-        color: #10b981; font-size: 11px; font-weight: 700; letter-spacing: .15em;
+        background: rgba(255,255,255,.15); border: 1px solid rgba(255,255,255,.3);
+        color: #fff; font-size: 11px; font-weight: 700; letter-spacing: .15em;
         text-transform: uppercase; padding: 6px 12px; border-radius: 999px;
     }
-    .pass-valid-dot { width: 7px; height: 7px; border-radius: 50%; background: #10b981; animation: dotPulse 2s infinite; }
+    .pass-valid-dot { width: 7px; height: 7px; border-radius: 50%; background: #fff; animation: dotPulse 2s infinite; }
 
     /* QR section */
     .pass-qr-wrap {
@@ -152,7 +151,7 @@
     /* Pass footer */
     .pass-footer {
         padding: 14px 22px; display: flex; align-items: center; justify-content: space-between;
-        background: linear-gradient(135deg, var(--bg) 0%, rgba(15,32,80,.02) 100%);
+        background: linear-gradient(135deg, var(--bg) 0%, rgba(17,17,17,.02) 100%);
         border-top: 1px solid var(--line);
     }
     .pass-sec-note {
