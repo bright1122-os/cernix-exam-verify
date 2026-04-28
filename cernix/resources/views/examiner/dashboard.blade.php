@@ -327,14 +327,13 @@
     .scan-actions button:hover { background: var(--line); color: var(--ink); }
     .scan-actions svg { width: 12px; height: 12px; }
 
-    /* ── Takeovers (mobile fullscreen result) ────────────────────── */
-    /* ── Takeover base ─────────────────────────────────────────── */
+    /* ── Takeovers — full-viewport verification card overlay ──────── */
     .takeover {
-        position: absolute;
+        position: fixed;
         inset: 0;
         display: none;
         flex-direction: column;
-        z-index: 100;
+        z-index: 200;
         overflow-y: auto;
         overflow-x: hidden;
         -webkit-overflow-scrolling: touch;
@@ -346,6 +345,49 @@
     .takeover.approved  { background: #f0fdf8; color: #064e3b; }
     .takeover.rejected  { background: #fff5f5; color: #7f1d1d; }
     .takeover.duplicate { background: #fffbeb; color: #78350f; }
+
+    /* ── Card wrapper — mobile is full-bleed, desktop is centered ── */
+    .to-card {
+        width: 100%;
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+    }
+    @media (min-width: 768px) {
+        .takeover {
+            align-items: center;
+            justify-content: center;
+            padding: 40px 20px;
+        }
+        .to-card {
+            flex: none;
+            width: 100%;
+            max-width: 480px;
+            border-radius: 20px;
+            overflow: hidden;
+            box-shadow: 0 36px 90px rgba(0,0,0,.25), inset 0 0 0 1px rgba(255,255,255,.5);
+        }
+    }
+
+    /* ── Examiner reference bar ─────────────────────────────────── */
+    .to-examiner-ref {
+        margin: 0 18px 10px;
+        padding: 8px 12px;
+        background: rgba(0,0,0,.05);
+        border: 1px solid rgba(0,0,0,.08);
+        border-radius: 8px;
+        font-size: 10px;
+        font-family: 'JetBrains Mono', monospace;
+        opacity: .7;
+        display: flex;
+        align-items: center;
+        gap: 7px;
+        letter-spacing: .02em;
+    }
+    .to-examiner-ref .ref-icon {
+        flex-shrink: 0;
+        font-style: normal;
+    }
 
     /* ── Institutional header strip ────────────────────────────── */
     .to-inst-bar {
@@ -948,10 +990,11 @@
 
             {{-- APPROVED takeover --}}
             <div class="takeover approved" id="takeover-approved">
+              <div class="to-card">
                 <div class="to-inst-bar">
                     <div class="to-inst-left">
                         <img src="/aaua-logo.png" alt="AAUA">
-                        <div class="to-inst-name">Adekunle Ajasin University<span>CERNIX Verification System</span></div>
+                        <div class="to-inst-name">Adekunle Ajasin University<span>CERNIX · Secure Exam Verification</span></div>
                     </div>
                     <span class="to-inst-time" id="approved-time">--:--</span>
                 </div>
@@ -962,7 +1005,7 @@
                     <div class="to-verdict">
                         <div class="v-label">Verification Result</div>
                         <h2>VERIFIED</h2>
-                        <p>Access granted — admitted to hall</p>
+                        <p>Access granted — admitted to examination hall</p>
                     </div>
                 </div>
                 <div class="to-student-card">
@@ -982,10 +1025,19 @@
                         <div class="v" id="approved-dept">—</div>
                     </div>
                     <div class="meta-cell">
-                        <div class="k">Token</div>
+                        <div class="k">Token Ref</div>
                         <div class="v" id="approved-token">…</div>
                     </div>
+                    <div class="meta-cell">
+                        <div class="k">Session</div>
+                        <div class="v" id="approved-session">—</div>
+                    </div>
+                    <div class="meta-cell">
+                        <div class="k">Logged</div>
+                        <div class="v">Yes</div>
+                    </div>
                 </div>
+                <div class="to-examiner-ref" id="approved-examiner-ref">Verified by: Examiner</div>
                 <div class="to-seal" style="margin-top:auto;">
                     <img src="/aaua-logo.png" alt="">
                     <span>Adekunle Ajasin University</span>
@@ -1000,14 +1052,16 @@
                     <button onclick="cancelAutoAdvance('approved');resetScan()">Next</button>
                     <button class="primary" onclick="cancelAutoAdvance('approved');resetScan()">Admit</button>
                 </div>
+              </div>
             </div>
 
             {{-- REJECTED takeover --}}
             <div class="takeover rejected" id="takeover-rejected">
+              <div class="to-card">
                 <div class="to-inst-bar">
                     <div class="to-inst-left">
                         <img src="/aaua-logo.png" alt="AAUA">
-                        <div class="to-inst-name">Adekunle Ajasin University<span>CERNIX Verification System</span></div>
+                        <div class="to-inst-name">Adekunle Ajasin University<span>CERNIX · Secure Exam Verification</span></div>
                     </div>
                     <span class="to-inst-time" id="rejected-time">--:--</span>
                 </div>
@@ -1018,7 +1072,7 @@
                     <div class="to-verdict">
                         <div class="v-label">Verification Result</div>
                         <h2>INVALID</h2>
-                        <p>Access denied — bad or tampered token</p>
+                        <p id="rejected-desc">Access denied — bad or tampered token</p>
                     </div>
                 </div>
                 <div class="meta-row" style="margin-top:18px;">
@@ -1031,14 +1085,15 @@
                         <div class="v">Logged</div>
                     </div>
                     <div class="meta-cell">
-                        <div class="k">Reason</div>
-                        <div class="v">Bad token</div>
+                        <div class="k">Reason code</div>
+                        <div class="v" id="rejected-reason">bad_token</div>
                     </div>
                     <div class="meta-cell">
-                        <div class="k">Status</div>
-                        <div class="v">Denied</div>
+                        <div class="k">Decision</div>
+                        <div class="v">Access Denied</div>
                     </div>
                 </div>
+                <div class="to-examiner-ref" id="rejected-examiner-ref">Scanned by: Examiner</div>
                 <div class="to-seal" style="margin-top:auto;">
                     <img src="/aaua-logo.png" alt="">
                     <span>Adekunle Ajasin University</span>
@@ -1053,14 +1108,16 @@
                     <button onclick="cancelAutoAdvance('rejected');resetScan()">Dismiss</button>
                     <button class="primary" onclick="cancelAutoAdvance('rejected');resetScan()">Alert</button>
                 </div>
+              </div>
             </div>
 
             {{-- DUPLICATE takeover --}}
             <div class="takeover duplicate" id="takeover-duplicate">
+              <div class="to-card">
                 <div class="to-inst-bar">
                     <div class="to-inst-left">
                         <img src="/aaua-logo.png" alt="AAUA">
-                        <div class="to-inst-name">Adekunle Ajasin University<span>CERNIX Verification System</span></div>
+                        <div class="to-inst-name">Adekunle Ajasin University<span>CERNIX · Secure Exam Verification</span></div>
                     </div>
                     <span class="to-inst-time" id="duplicate-time">--:--</span>
                 </div>
@@ -1071,7 +1128,7 @@
                     <div class="to-verdict">
                         <div class="v-label">Verification Result</div>
                         <h2>USED</h2>
-                        <p>Token already redeemed — possible replay</p>
+                        <p>Token already redeemed — possible replay attempt</p>
                     </div>
                 </div>
                 <div class="to-student-card">
@@ -1091,10 +1148,19 @@
                         <div class="v" id="dup-dept">—</div>
                     </div>
                     <div class="meta-cell">
-                        <div class="k">Scan count</div>
-                        <div class="v" id="dup-count">2</div>
+                        <div class="k">First Used</div>
+                        <div class="v" id="dup-used-at">—</div>
+                    </div>
+                    <div class="meta-cell">
+                        <div class="k">Decision</div>
+                        <div class="v">Denied</div>
+                    </div>
+                    <div class="meta-cell">
+                        <div class="k">Logged</div>
+                        <div class="v">Yes</div>
                     </div>
                 </div>
+                <div class="to-examiner-ref" id="dup-examiner-ref">Scanned by: Examiner</div>
                 <div class="to-seal" style="margin-top:auto;">
                     <img src="/aaua-logo.png" alt="">
                     <span>Adekunle Ajasin University</span>
@@ -1109,6 +1175,7 @@
                     <button onclick="cancelAutoAdvance('duplicate');resetScan()">Dismiss</button>
                     <button class="primary" onclick="cancelAutoAdvance('duplicate');resetScan()">Review</button>
                 </div>
+              </div>
             </div>
         </div>
 
@@ -1402,27 +1469,55 @@ function resetScan() {
     document.getElementById('scan-prompt').textContent = 'Point at QR code';
 }
 
+// Human-readable labels for server reason codes
+const REASON_LABELS = {
+    'token_already_used': 'Already used',
+    'token_revoked':      'Token revoked',
+    'invalid_session':    'Invalid session',
+    'tampered_token':     'Tampered / invalid',
+    'identity_mismatch':  'Identity mismatch',
+    'token_not_found':    'Token not found',
+    'invalid_format':     'Invalid QR format',
+    'concurrent_scan':    'Concurrent scan',
+};
+
+const REASON_DESCS = {
+    'token_already_used': 'Token already redeemed — possible replay attempt',
+    'token_revoked':      'This token has been revoked by an administrator',
+    'invalid_session':    'QR code does not match the active exam session',
+    'tampered_token':     'Access denied — token is tampered or corrupted',
+    'identity_mismatch':  'Access denied — student identity could not be confirmed',
+    'token_not_found':    'Access denied — token does not exist in the system',
+    'invalid_format':     'Access denied — QR code format is invalid',
+    'concurrent_scan':    'Token was simultaneously scanned by another device',
+};
+
 function handleResult(result, now) {
     stats.total++;
     hideVerifying();
-    const elapsed = scanStartTime ? Math.round(Date.now() - scanStartTime) + 'ms' : '—';
+    const elapsed    = scanStartTime ? Math.round(Date.now() - scanStartTime) + 'ms' : '—';
+    const examinerRef = result.examiner || 'Examiner';
 
     if (result.status === 'APPROVED') {
         stats.approved++;
-        const s       = result.student || {};
-        const name    = s.full_name || 'Unknown';
-        const matric  = s.matric_no || '—';
-        const dept    = s.department || '—';
-        const initials = name.split(' ').map(w => w[0]).slice(0, 2).join('').toUpperCase();
+        const s          = result.student || {};
+        const name       = s.full_name || 'Unknown';
+        const matric     = s.matric_no || '—';
+        const dept       = s.department || '—';
+        const initials   = name.split(' ').map(w => w[0]).slice(0, 2).join('').toUpperCase();
         const tokenShort = (result.token_id || '').slice(0, 8) + '…';
+        const sess       = result.session || {};
+        const sessionStr = [sess.semester, sess.academic_year].filter(Boolean).join(' ') || '—';
 
-        document.getElementById('approved-avatar').textContent   = initials;
-        document.getElementById('approved-name').textContent     = name;
-        document.getElementById('approved-matric').textContent   = matric;
-        document.getElementById('approved-dept').textContent     = dept;
-        document.getElementById('approved-dept-row').textContent = dept;
-        document.getElementById('approved-token').textContent    = tokenShort;
-        document.getElementById('approved-time').textContent     = now;
+        document.getElementById('approved-avatar').textContent       = initials;
+        document.getElementById('approved-name').textContent         = name;
+        document.getElementById('approved-matric').textContent       = matric;
+        document.getElementById('approved-dept').textContent         = dept;
+        document.getElementById('approved-dept-row').textContent     = dept;
+        document.getElementById('approved-token').textContent        = tokenShort;
+        document.getElementById('approved-time').textContent         = now;
+        document.getElementById('approved-session').textContent      = sessionStr;
+        document.getElementById('approved-examiner-ref').textContent = '✓ Verified by: ' + examinerRef;
 
         updateDesktopResult('approved', { name, matric, dept, initials, token: tokenShort, time: elapsed });
         updateLastScan('approved', name, matric, now);
@@ -1432,19 +1527,26 @@ function handleResult(result, now) {
 
     } else if (result.status === 'DUPLICATE') {
         stats.duplicate++;
-        const s      = result.student || {};
-        const name   = s.full_name || 'Unknown';
-        const matric = s.matric_no || '—';
-        const dept   = s.department || '—';
+        const s        = result.student || {};
+        const name     = s.full_name || 'Unknown';
+        const matric   = s.matric_no || '—';
+        const dept     = s.department || '—';
         const initials = name.split(' ').map(w => w[0]).slice(0, 2).join('').toUpperCase();
 
-        document.getElementById('dup-avatar').textContent    = initials;
-        document.getElementById('dup-name').textContent      = name;
-        document.getElementById('dup-matric').textContent    = matric;
-        document.getElementById('dup-dept').textContent      = dept;
-        document.getElementById('dup-dept-row').textContent  = dept;
-        document.getElementById('dup-count').textContent     = stats.duplicate + 1;
-        document.getElementById('duplicate-time').textContent = now;
+        // Format "first used at" timestamp
+        let usedAtStr = '—';
+        if (result.used_at) {
+            try { usedAtStr = new Date(result.used_at).toLocaleString(); } catch {}
+        }
+
+        document.getElementById('dup-avatar').textContent        = initials;
+        document.getElementById('dup-name').textContent          = name;
+        document.getElementById('dup-matric').textContent        = matric;
+        document.getElementById('dup-dept').textContent          = dept;
+        document.getElementById('dup-dept-row').textContent      = dept;
+        document.getElementById('dup-used-at').textContent       = usedAtStr;
+        document.getElementById('duplicate-time').textContent    = now;
+        document.getElementById('dup-examiner-ref').textContent  = '⚠ Scanned by: ' + examinerRef;
 
         updateDesktopResult('duplicate', { name, matric, dept, initials, time: elapsed });
         updateLastScan('duplicate', name, 'Token already redeemed', now);
@@ -1454,12 +1556,19 @@ function handleResult(result, now) {
 
     } else {
         stats.rejected++;
-        document.getElementById('rejected-time').textContent = now;
-        document.getElementById('rejected-scan').textContent = stats.total;
+        const reason     = result.reason || '';
+        const reasonLabel = REASON_LABELS[reason] || 'Bad token';
+        const reasonDesc  = REASON_DESCS[reason]  || 'Access denied — bad or tampered token';
+
+        document.getElementById('rejected-time').textContent         = now;
+        document.getElementById('rejected-scan').textContent         = stats.total;
+        document.getElementById('rejected-reason').textContent       = reasonLabel;
+        document.getElementById('rejected-desc').textContent         = reasonDesc;
+        document.getElementById('rejected-examiner-ref').textContent = '⚠ Scanned by: ' + examinerRef;
 
         updateDesktopResult('rejected', { time: elapsed });
-        updateLastScan('rejected', 'Invalid token', 'Bad or tampered QR', now);
-        addToHistory('rejected', 'Invalid token', 'Bad or tampered QR', now);
+        updateLastScan('rejected', 'Invalid token', reasonLabel, now);
+        addToHistory('rejected', 'Invalid token', reasonLabel, now);
         showTakeover('rejected');
         startAutoAdvance('rejected');
     }
@@ -1552,11 +1661,17 @@ function simulateScan(decision) {
     showVerifying();
     setTimeout(() => {
         handleResult({
-            status: decision,
-            student: decision !== 'REJECTED' ? {
-                full_name: 'Test Student', matric_no: 'TEST/0000', department: 'Computer Science'
-            } : {},
-            token_id: 'tok_' + Date.now()
+            status:   decision,
+            student:  decision !== 'REJECTED' ? {
+                full_name: 'Adebisi Olamide Funmilayo',
+                matric_no: 'CSC/2021/001',
+                department: 'Computer Science',
+            } : null,
+            token_id: 'tok_' + Date.now(),
+            examiner: '{{ $examiner["full_name"] ?? "Examiner" }}',
+            reason:   decision === 'REJECTED' ? 'tampered_token' : (decision === 'DUPLICATE' ? 'token_already_used' : ''),
+            used_at:  decision === 'DUPLICATE' ? new Date(Date.now() - 3600000).toISOString() : null,
+            session:  decision === 'APPROVED'  ? { semester: 'First', academic_year: '2024/2025' } : null,
         }, now);
     }, 800);
 }

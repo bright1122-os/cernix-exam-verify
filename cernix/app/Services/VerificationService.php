@@ -17,23 +17,11 @@ class VerificationService
      *   DUPLICATE — token was already used (replay or concurrent scan)
      *   REJECTED  — any structural, cryptographic, or identity failure
      *
-     * Exact step order (per spec):
-     *  1.  Validate QR structure
-     *  2.  Fetch qr_tokens row
-     *  3.  Check token status (USED → DUPLICATE, REVOKED → REJECTED)
-     *  4.  Fetch and validate exam session
-     *  5.  Decrypt + HMAC-verify payload via CryptoService
-     *  6.  Fetch student record from DB
-     *  7.  Verify identity (session_id match, matric_no constant-time match)
-     *  8.  Atomic UNUSED → USED transition (DB transaction + lockForUpdate)
-     *  9.  Write verification_logs entry
-     *  10. Return structured response
-     *
      * @param  array  $qrData    Decoded JSON from the physical QR scan
      * @param  int    $examinerId
      * @param  string $deviceFp  Device fingerprint
      * @param  string $ip
-     * @return array{status: string, student: array|null, token_id: string|null, timestamp: string}
+     * @return array
      */
     public function verifyQr(array $qrData, int $examinerId, string $deviceFp, string $ip): array
     {
@@ -43,8 +31,7 @@ class VerificationService
         // ── Step 1: Validate QR structure ────────────────────────────────────
         foreach (['token_id', 'encrypted_payload', 'hmac_signature', 'session_id'] as $field) {
             if (empty($qrData[$field])) {
-                // No valid token FK to log against — return silently
-                return $this->response('REJECTED', null, null, $timestamp);
+                return $this->response('REJECTED', null, null, $timestamp, 'invalid_format');
             }
         }
 
@@ -54,19 +41,39 @@ class VerificationService
         $token = DB::table('qr_tokens')->where('token_id', $tokenId)->first();
 
         if (! $token) {
-            // No DB row to anchor a log entry — return silently
-            return $this->response('REJECTED', null, $tokenId, $timestamp);
+            return $this->response('REJECTED', null, $tokenId, $timestamp, 'token_not_found');
         }
 
         // ── Step 3: Check token status ────────────────────────────────────────
         if ($token->status === 'USED') {
+            // Look up student so the result card can identify who this token belongs to
+            $dupStudent = DB::table('students')
+                ->leftJoin('departments', 'students.department_id', '=', 'departments.dept_id')
+                ->where('students.matric_no', $token->student_id)
+                ->select('students.matric_no', 'students.full_name', 'students.photo_path', 'departments.dept_name as department_name')
+                ->first();
+
+            $studentData = $dupStudent ? [
+                'full_name'  => $dupStudent->full_name,
+                'matric_no'  => $dupStudent->matric_no,
+                'department' => $dupStudent->department_name ?? 'N/A',
+                'photo_path' => $dupStudent->photo_path,
+            ] : null;
+
             $this->log($tokenId, $examinerId, 'DUPLICATE', $deviceFp, $ip, $now);
-            return $this->response('DUPLICATE', null, $tokenId, $timestamp);
+            return $this->response(
+                'DUPLICATE',
+                $studentData,
+                $tokenId,
+                $timestamp,
+                'token_already_used',
+                $token->used_at ? (string) $token->used_at : null
+            );
         }
 
         if ($token->status === 'REVOKED') {
             $this->log($tokenId, $examinerId, 'REJECTED', $deviceFp, $ip, $now);
-            return $this->response('REJECTED', null, $tokenId, $timestamp);
+            return $this->response('REJECTED', null, $tokenId, $timestamp, 'token_revoked');
         }
 
         // ── Step 4: Fetch active exam session ─────────────────────────────────
@@ -77,12 +84,10 @@ class VerificationService
 
         if (! $session) {
             $this->log($tokenId, $examinerId, 'REJECTED', $deviceFp, $ip, $now);
-            return $this->response('REJECTED', null, $tokenId, $timestamp);
+            return $this->response('REJECTED', null, $tokenId, $timestamp, 'invalid_session');
         }
 
         // ── Step 5: Decrypt and HMAC-verify payload ───────────────────────────
-        // CryptoService checks HMAC first (constant-time), then decrypts with GCM.
-        // Any tamper or key mismatch throws — we catch it here and reject cleanly.
         try {
             $payload = $this->crypto->decryptPayload(
                 $qrData['encrypted_payload'],
@@ -92,7 +97,7 @@ class VerificationService
             );
         } catch (RuntimeException) {
             $this->log($tokenId, $examinerId, 'REJECTED', $deviceFp, $ip, $now);
-            return $this->response('REJECTED', null, $tokenId, $timestamp);
+            return $this->response('REJECTED', null, $tokenId, $timestamp, 'tampered_token');
         }
 
         // ── Step 6: Fetch student record with resolved department name ───────
@@ -103,10 +108,6 @@ class VerificationService
             ->first();
 
         // ── Step 7: Identity verification ────────────────────────────────────
-        // Three checks in a single gate:
-        //   a) student row must exist
-        //   b) session_id in payload must match the outer QR session_id
-        //   c) decrypted matric_no must equal the DB matric_no (constant-time compare)
         $sessionMatch = isset($payload['session_id'])
             && (int) $payload['session_id'] === (int) $qrData['session_id'];
 
@@ -115,12 +116,10 @@ class VerificationService
 
         if (! $student || ! $sessionMatch || ! $matricMatch) {
             $this->log($tokenId, $examinerId, 'REJECTED', $deviceFp, $ip, $now);
-            return $this->response('REJECTED', null, $tokenId, $timestamp);
+            return $this->response('REJECTED', null, $tokenId, $timestamp, 'identity_mismatch');
         }
 
         // ── Step 8: Atomic UNUSED → USED (DB transaction + row lock) ──────────
-        // lockForUpdate() prevents a concurrent scan from approving twice.
-        // We re-read status inside the transaction to close the race window.
         $decision = DB::transaction(function () use ($tokenId, $now): string {
             $locked = DB::table('qr_tokens')
                 ->where('token_id', $tokenId)
@@ -140,7 +139,12 @@ class VerificationService
 
         if ($decision === 'DUPLICATE') {
             $this->log($tokenId, $examinerId, 'DUPLICATE', $deviceFp, $ip, $now);
-            return $this->response('DUPLICATE', null, $tokenId, $timestamp);
+            return $this->response('DUPLICATE', [
+                'full_name'  => $student->full_name,
+                'matric_no'  => $student->matric_no,
+                'department' => $student->department_name ?? 'N/A',
+                'photo_path' => $student->photo_path,
+            ], $tokenId, $timestamp, 'concurrent_scan');
         }
 
         // ── Step 9: Write verification log (APPROVED) ─────────────────────────
@@ -152,21 +156,35 @@ class VerificationService
             'matric_no'  => $student->matric_no,
             'department' => $student->department_name ?? 'N/A',
             'photo_path' => $student->photo_path,
-        ], $tokenId, $timestamp);
+        ], $tokenId, $timestamp, '', null, [
+            'semester'      => $session->semester ?? '',
+            'academic_year' => $session->academic_year ?? '',
+        ]);
     }
 
     // -------------------------------------------------------------------------
     // Internals
     // -------------------------------------------------------------------------
 
-    private function response(string $status, ?array $student, ?string $tokenId, string $timestamp): array
-    {
-        return [
+    private function response(
+        string  $status,
+        ?array  $student,
+        ?string $tokenId,
+        string  $timestamp,
+        string  $reason  = '',
+        ?string $usedAt  = null,
+        ?array  $session = null
+    ): array {
+        $resp = [
             'status'    => $status,
             'student'   => $student,
             'token_id'  => $tokenId,
             'timestamp' => $timestamp,
         ];
+        if ($reason !== '')   $resp['reason']  = $reason;
+        if ($usedAt !== null) $resp['used_at'] = $usedAt;
+        if ($session !== null) $resp['session'] = $session;
+        return $resp;
     }
 
     /**
