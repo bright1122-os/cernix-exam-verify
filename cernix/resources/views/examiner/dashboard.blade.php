@@ -458,6 +458,29 @@
         flex-shrink: 0;
     }
 
+    /* ── QR lifecycle state badge ──────────────────────────────── */
+    .to-lifecycle {
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+        padding: 3px 9px;
+        border-radius: 99px;
+        font-size: 9px;
+        font-weight: 700;
+        letter-spacing: .1em;
+        text-transform: uppercase;
+        opacity: .75;
+        border: 1px solid currentColor;
+        margin-top: 5px;
+    }
+    .to-lifecycle .lc-dot {
+        width: 5px;
+        height: 5px;
+        border-radius: 50%;
+        background: currentColor;
+        flex-shrink: 0;
+    }
+
     /* ── Status hero ────────────────────────────────────────────── */
     .to-hero {
         padding: 28px 20px 20px;
@@ -1031,6 +1054,7 @@
                         <div class="v-label">Verification Result</div>
                         <h2>VERIFIED</h2>
                         <p>Access granted — admitted to examination hall</p>
+                        <div class="to-lifecycle"><span class="lc-dot"></span>UNUSED → USED</div>
                     </div>
                 </div>
                 <div class="to-student-card">
@@ -1098,6 +1122,7 @@
                         <div class="v-label">Verification Result</div>
                         <h2>INVALID</h2>
                         <p id="rejected-desc">Access denied — bad or tampered token</p>
+                        <div class="to-lifecycle"><span class="lc-dot"></span>REJECTED</div>
                     </div>
                 </div>
                 <div class="meta-row" style="margin-top:18px;">
@@ -1154,6 +1179,7 @@
                         <div class="v-label">Verification Result</div>
                         <h2>USED</h2>
                         <p>Token already redeemed — possible replay attempt</p>
+                        <div class="to-lifecycle"><span class="lc-dot"></span>USED (locked)</div>
                     </div>
                 </div>
                 <div class="to-student-card">
