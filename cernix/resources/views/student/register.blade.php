@@ -85,66 +85,67 @@
 
     /* The pass card */
     .pass-card {
-        background: var(--bg-2); border: 1px solid var(--line); border-radius: 24px;
-        overflow: hidden; box-shadow: var(--shadow-lg);
+        background: var(--bg-2); border: 1px solid var(--line); border-radius: 20px;
+        overflow: hidden;
+        box-shadow: 0 24px 60px -12px rgba(0,0,0,.18), 0 8px 20px -8px rgba(0,0,0,.08);
         width: 100%; max-width: 420px;
         animation: fadeUp .5s cubic-bezier(.16,1,.3,1) both;
     }
 
-    /* Pass header strip */
+    /* Pass header — institutional white */
     .pass-hd {
-        background: linear-gradient(135deg, #2d2d2d 0%, #1f1f1f 100%);
-        padding: 18px 22px; display: flex; align-items: center; justify-content: space-between;
-        position: relative; overflow: hidden;
+        background: #fff;
+        padding: 16px 20px 14px;
+        display: flex; align-items: center; justify-content: space-between;
+        border-bottom: 1px solid var(--line);
     }
-    .pass-hd::before {
-        content: ''; position: absolute; inset: 0;
-        background: radial-gradient(ellipse at 0% 50%, rgba(255,255,255,.08), transparent 55%);
-    }
-    .pass-hd-brand { display: flex; align-items: center; gap: 10px; position: relative; z-index: 1; }
-    .pass-hd-icon {
-        width: 30px; height: 30px; border-radius: 8px; border: 1.5px solid rgba(255,255,255,.25);
-        background: rgba(255,255,255,.1); display: flex; align-items: center; justify-content: center; flex-shrink: 0;
-    }
-    .pass-hd-text b    { display: block; font-size: 12px; font-weight: 700; color: #fff; letter-spacing: .12em; text-transform: uppercase; line-height: 1.2; }
-    .pass-hd-text span { font-size: 10px; color: rgba(255,255,255,.5); letter-spacing: .1em; text-transform: uppercase; }
+    .pass-hd-brand { display: flex; align-items: center; gap: 12px; }
+    .pass-hd-text b    { display: block; font-size: 14px; font-weight: 800; color: var(--navy); letter-spacing: -.02em; line-height: 1.2; }
+    .pass-hd-text span { font-size: 10px; color: var(--ink-4); letter-spacing: .04em; display: block; margin-top: 2px; }
     .pass-valid {
-        display: inline-flex; align-items: center; gap: 6px; position: relative; z-index: 1;
-        background: rgba(255,255,255,.15); border: 1px solid rgba(255,255,255,.3);
-        color: #fff; font-size: 11px; font-weight: 700; letter-spacing: .15em;
-        text-transform: uppercase; padding: 6px 12px; border-radius: 999px;
+        display: inline-flex; align-items: center; gap: 5px; flex-shrink: 0;
+        background: rgba(5,150,105,.08); border: 1px solid rgba(5,150,105,.25);
+        color: var(--emerald); font-size: 10px; font-weight: 700; letter-spacing: .14em;
+        text-transform: uppercase; padding: 5px 11px; border-radius: 999px;
     }
-    .pass-valid-dot { width: 7px; height: 7px; border-radius: 50%; background: #fff; animation: dotPulse 2s infinite; }
+    .pass-valid-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--emerald); animation: dotPulse 2s infinite; }
 
     /* QR section */
     .pass-qr-wrap {
-        padding: 28px 24px 20px; display: flex; flex-direction: column; align-items: center;
+        padding: 22px 24px 20px; display: flex; flex-direction: column; align-items: center;
         border-bottom: 1px solid var(--line);
-        background: linear-gradient(180deg, #fff 0%, var(--bg) 100%);
+        background: var(--bg);
+    }
+    .pass-token-label {
+        font-size: 9px; font-weight: 700; letter-spacing: .2em; text-transform: uppercase;
+        color: var(--ink-4); margin-bottom: 16px; width: 100%;
+        display: flex; align-items: center; gap: 10px;
+    }
+    .pass-token-label::before, .pass-token-label::after {
+        content: ''; flex: 1; height: 1px; background: var(--line);
     }
     .pass-qr-code {
-        width: 220px; height: 220px; background: #fff; border-radius: 14px; padding: 12px;
+        width: 216px; height: 216px; background: #fff; border-radius: 12px; padding: 10px;
         display: flex; align-items: center; justify-content: center;
-        box-shadow: 0 4px 20px rgba(0,0,0,.1), 0 0 0 1px var(--line);
+        box-shadow: 0 4px 20px rgba(0,0,0,.09), 0 0 0 1px var(--line);
         animation: qrReveal .6s .2s cubic-bezier(.2,.9,.3,1.2) both;
     }
     .pass-qr-code svg { width: 100%; height: 100%; display: block; }
-    @media (min-width: 768px) { .pass-qr-code { width: 240px; height: 240px; } }
+    @media (min-width: 768px) { .pass-qr-code { width: 236px; height: 236px; } }
     .pass-qr-meta {
-        margin-top: 12px; font-size: 10px; color: var(--ink-4);
-        letter-spacing: .12em; text-transform: uppercase; font-family: 'JetBrains Mono', monospace;
+        margin-top: 12px; font-size: 9px; color: var(--ink-4);
+        letter-spacing: .14em; text-transform: uppercase; font-family: 'JetBrains Mono', monospace;
+        display: flex; align-items: center; gap: 6px;
     }
-    .qr-issuer-bar {
-        display: flex; align-items: center; justify-content: center;
-        gap: 7px; margin-bottom: 18px; padding: 5px 13px 5px 9px;
-        background: var(--bg-2); border: 1px solid var(--line); border-radius: 20px;
-        font-size: 9px; font-weight: 700; letter-spacing: .1em;
-        text-transform: uppercase; color: var(--ink-4);
+    .pass-qr-meta::before {
+        content: ''; width: 5px; height: 5px; border-radius: 50%;
+        background: var(--emerald); display: block; animation: dotPulse 2s infinite; flex-shrink: 0;
     }
 
     /* Identity section */
-    .pass-identity { padding: 20px 22px; border-bottom: 1px solid var(--line); }
-    .pass-name { font-size: 20px; font-weight: 700; color: var(--ink); letter-spacing: -.02em; margin-bottom: 16px; line-height: 1.2; }
+    .pass-identity { padding: 18px 20px; border-bottom: 1px solid var(--line); }
+    .pass-section-label { font-size: 9px; font-weight: 700; letter-spacing: .14em; text-transform: uppercase; color: var(--ink-4); margin-bottom: 6px; }
+    .pass-name { font-size: 20px; font-weight: 800; color: var(--ink); letter-spacing: -.02em; margin-bottom: 14px; line-height: 1.2; }
     .pass-fields {
         display: grid; grid-template-columns: 1fr 1fr;
         gap: 1px; background: var(--line); border-radius: 12px; overflow: hidden; border: 1px solid var(--line);
@@ -288,15 +289,13 @@
 
         <div class="pass-card">
 
-            <!-- Header -->
+            <!-- Header — institutional white -->
             <div class="pass-hd">
                 <div class="pass-hd-brand">
-                    <div class="pass-hd-icon" style="background:rgba(255,255,255,.15);border-color:rgba(255,255,255,.3);padding:3px;">
-                        <img src="/aaua-logo.png" alt="AAUA" style="height:28px;width:auto;display:block;filter:brightness(0) invert(1);opacity:.9;">
-                    </div>
+                    <img src="/aaua-logo.png" alt="AAUA" style="height:52px;width:auto;display:block;mix-blend-mode:multiply;flex-shrink:0;">
                     <div class="pass-hd-text">
-                        <b>AAUA · CERNIX</b>
-                        <span>Digital Exam Pass</span>
+                        <b>Adekunle Ajasin University</b>
+                        <span>CERNIX · Secure Exam Verification</span>
                     </div>
                 </div>
                 <div class="pass-valid">
@@ -307,16 +306,14 @@
 
             <!-- QR Code (centerpiece) -->
             <div class="pass-qr-wrap">
-                <div class="qr-issuer-bar">
-                    <img src="/aaua-logo.png" alt="" style="height:14px;width:auto;display:block;mix-blend-mode:multiply;">
-                    <span>Adekunle Ajasin University</span>
-                </div>
+                <div class="pass-token-label">EXAM ACCESS TOKEN</div>
                 <div class="pass-qr-code" id="qr-container"></div>
                 <div class="pass-qr-meta" id="qr-meta">Session · One-time QR</div>
             </div>
 
             <!-- Student Identity -->
             <div class="pass-identity">
+                <div class="pass-section-label">Student</div>
                 <div class="pass-name" id="res-name"></div>
                 <div class="pass-fields">
                     <div class="pf">
@@ -344,9 +341,9 @@
                     <svg width="11" height="11" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg>
                     AES-256-GCM · HMAC-SHA256
                 </div>
-                <div style="display:flex;align-items:center;gap:5px;">
-                    <img src="/aaua-logo.png" alt="AAUA" style="height:14px;width:auto;display:block;mix-blend-mode:multiply;opacity:.7;">
-                    <span style="font-size:10px;color:var(--ink-4);letter-spacing:.06em;font-weight:600;">One-time use</span>
+                <div style="display:flex;align-items:center;gap:6px;">
+                    <img src="/aaua-logo.png" alt="AAUA" style="height:20px;width:auto;display:block;mix-blend-mode:multiply;">
+                    <span style="font-size:9px;color:var(--ink-4);letter-spacing:.1em;font-weight:700;text-transform:uppercase;">AAUA</span>
                 </div>
             </div>
 
