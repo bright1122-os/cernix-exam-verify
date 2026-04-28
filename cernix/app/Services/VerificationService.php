@@ -97,9 +97,9 @@ class VerificationService
 
         // ── Step 6: Fetch student record with resolved department name ───────
         $student = DB::table('students')
-            ->leftJoin('departments', 'students.department_id', '=', 'departments.department_id')
+            ->leftJoin('departments', 'students.department_id', '=', 'departments.dept_id')
             ->where('students.matric_no', (string) ($payload['matric_no'] ?? ''))
-            ->select('students.*', 'departments.name as department_name')
+            ->select('students.*', 'departments.dept_name as department_name')
             ->first();
 
         // ── Step 7: Identity verification ────────────────────────────────────

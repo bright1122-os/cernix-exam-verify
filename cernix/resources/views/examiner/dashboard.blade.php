@@ -328,116 +328,199 @@
     .scan-actions svg { width: 12px; height: 12px; }
 
     /* ── Takeovers (mobile fullscreen result) ────────────────────── */
+    /* ── Takeover base ─────────────────────────────────────────── */
     .takeover {
         position: absolute;
         inset: 0;
         display: none;
         flex-direction: column;
-        justify-content: space-between;
         z-index: 100;
         overflow-y: auto;
         overflow-x: hidden;
         -webkit-overflow-scrolling: touch;
     }
-    .takeover.approved {
-        background: linear-gradient(160deg, #d1fae5 0%, #a7f3d0 60%, #6ee7b7 100%);
-        color: #064e3b;
-    }
-    .takeover.rejected {
-        background: linear-gradient(160deg, #fee2e2 0%, #fecaca 60%, #fca5a5 100%);
-        color: #7f1d1d;
-    }
-    .takeover.duplicate {
-        background: linear-gradient(160deg, #fef3c7 0%, #fde68a 60%, #fcd34d 100%);
-        color: #78350f;
-    }
-    .takeover.show { display: flex; animation: takeover-in .3s cubic-bezier(.2,.8,.3,1); }
-    @keyframes takeover-in { from { opacity: 0; transform: scale(.97) translateY(6px); } }
+    .takeover.show { display: flex; animation: takeover-in .28s cubic-bezier(.2,.8,.3,1); }
+    @keyframes takeover-in { from { opacity: 0; transform: scale(.98) translateY(8px); } }
 
-    .to-top {
-        padding: 48px 20px 10px;
-        display: flex;
-        justify-content: space-between;
-        align-items: flex-start;
-    }
-    .to-top .status {
-        font-size: 9px;
-        font-weight: 700;
-        letter-spacing: .14em;
-        opacity: .6;
-    }
-    .to-top .t-time { font-size: 10px; opacity: .55; font-family: 'JetBrains Mono', monospace; }
+    /* ── Colour palettes ───────────────────────────────────────── */
+    .takeover.approved  { background: #f0fdf8; color: #064e3b; }
+    .takeover.rejected  { background: #fff5f5; color: #7f1d1d; }
+    .takeover.duplicate { background: #fffbeb; color: #78350f; }
 
-    .to-center {
-        text-align: center;
-        padding: 0 24px;
-        flex: 1;
+    /* ── Institutional header strip ────────────────────────────── */
+    .to-inst-bar {
         display: flex;
-        flex-direction: column;
         align-items: center;
-        justify-content: center;
+        justify-content: space-between;
+        padding: 14px 18px 12px;
+        border-bottom: 1px solid rgba(0,0,0,.08);
+        background: rgba(255,255,255,.6);
+        backdrop-filter: blur(8px);
+        flex-shrink: 0;
     }
-    .big-icon {
-        width: 96px;
-        height: 96px;
-        border-radius: 50%;
+    .to-inst-left {
+        display: flex;
+        align-items: center;
+        gap: 9px;
+    }
+    .to-inst-left img {
+        height: 28px;
+        width: auto;
+        flex-shrink: 0;
+        display: block;
+    }
+    .to-inst-name {
+        font-size: 10px;
+        font-weight: 700;
+        letter-spacing: .08em;
+        text-transform: uppercase;
+        opacity: .65;
+        line-height: 1.3;
+    }
+    .to-inst-name span {
+        display: block;
+        font-size: 9px;
+        font-weight: 500;
+        letter-spacing: .06em;
+        opacity: .7;
+    }
+    .to-inst-time {
+        font-size: 10px;
+        font-family: 'JetBrains Mono', monospace;
+        opacity: .45;
+        flex-shrink: 0;
+    }
+
+    /* ── Status hero ────────────────────────────────────────────── */
+    .to-hero {
+        padding: 28px 20px 20px;
+        display: flex;
+        align-items: center;
+        gap: 18px;
+        flex-shrink: 0;
+    }
+    .to-icon {
+        width: 64px;
+        height: 64px;
+        border-radius: 18px;
         border: 2px solid currentColor;
         display: flex;
         align-items: center;
         justify-content: center;
-        margin: 0 auto 18px;
-        opacity: .85;
+        flex-shrink: 0;
+        opacity: .9;
     }
-    .big-icon svg { width: 48px; height: 48px; stroke: currentColor; stroke-width: 2.5; fill: none; }
-    .to-center h1 { font-size: 38px; font-weight: 800; margin: 0 0 6px; line-height: 1; letter-spacing: -.01em; }
-    .to-center p { font-size: 14px; margin: 0; opacity: .65; }
+    .to-icon svg { width: 32px; height: 32px; stroke: currentColor; stroke-width: 2.5; fill: none; }
+    .to-verdict {
+        flex: 1;
+        min-width: 0;
+    }
+    .to-verdict .v-label {
+        font-size: 10px;
+        font-weight: 700;
+        letter-spacing: .16em;
+        text-transform: uppercase;
+        opacity: .5;
+        margin-bottom: 3px;
+    }
+    .to-verdict h2 {
+        font-size: 30px;
+        font-weight: 800;
+        letter-spacing: -.02em;
+        margin: 0 0 4px;
+        line-height: 1;
+    }
+    .to-verdict p {
+        font-size: 12px;
+        margin: 0;
+        opacity: .6;
+        line-height: 1.4;
+    }
 
-    /* Student card in takeover */
-    .student-card {
-        margin: 16px 20px 0;
-        padding: 14px;
-        background: rgba(255,255,255,.45);
-        border: 1px solid rgba(255,255,255,.6);
+    /* ── Student card ───────────────────────────────────────────── */
+    .to-student-card {
+        margin: 0 18px;
+        padding: 14px 16px;
+        background: rgba(255,255,255,.55);
+        border: 1px solid rgba(255,255,255,.8);
         border-radius: 14px;
-        display: flex;
-        gap: 12px;
-        align-items: center;
         backdrop-filter: blur(6px);
+        flex-shrink: 0;
+    }
+    .to-sc-row {
+        display: flex;
+        align-items: center;
+        gap: 12px;
     }
     .sc-avatar {
-        width: 44px;
-        height: 44px;
+        width: 42px;
+        height: 42px;
         border-radius: 50%;
-        background: rgba(255,255,255,.5);
-        border: 1.5px solid rgba(255,255,255,.7);
+        background: rgba(0,0,0,.1);
+        border: 1.5px solid rgba(0,0,0,.12);
         display: flex;
         align-items: center;
         justify-content: center;
         font-weight: 700;
-        font-size: 16px;
+        font-size: 15px;
         flex-shrink: 0;
         color: inherit;
     }
-    .student-card .s-info { flex: 1; min-width: 0; }
-    .student-card .nm { font-size: 14px; font-weight: 600; margin: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-    .student-card .mt { font-size: 11px; opacity: .6; margin: 2px 0 0; font-family: 'JetBrains Mono', monospace; }
+    .to-sc-info { flex: 1; min-width: 0; }
+    .to-sc-info .nm {
+        font-size: 14px;
+        font-weight: 700;
+        margin: 0 0 2px;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        letter-spacing: -.01em;
+    }
+    .to-sc-info .mt {
+        font-size: 11px;
+        opacity: .55;
+        font-family: 'JetBrains Mono', monospace;
+    }
+    .to-sc-divider {
+        height: 1px;
+        background: rgba(0,0,0,.08);
+        margin: 11px 0 10px;
+    }
+    .to-sc-dept {
+        font-size: 11px;
+        font-weight: 600;
+        opacity: .6;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+    }
+    .to-sc-dept::before {
+        content: '';
+        display: inline-block;
+        width: 6px;
+        height: 6px;
+        border-radius: 50%;
+        background: currentColor;
+        opacity: .5;
+        flex-shrink: 0;
+    }
 
+    /* ── Metadata grid ──────────────────────────────────────────── */
     .meta-row {
-        margin: 8px 20px 0;
+        margin: 10px 18px 0;
         display: grid;
         grid-template-columns: 1fr 1fr;
         gap: 7px;
     }
     .meta-cell {
-        padding: 9px 11px;
-        background: rgba(255,255,255,.4);
-        border: 1px solid rgba(255,255,255,.55);
+        padding: 9px 12px;
+        background: rgba(255,255,255,.45);
+        border: 1px solid rgba(255,255,255,.7);
         border-radius: 10px;
-        backdrop-filter: blur(4px);
         font-size: 10px;
     }
-    .meta-cell .k { opacity: .55; font-weight: 500; letter-spacing: .03em; }
-    .meta-cell .v { font-weight: 700; margin-top: 2px; font-family: 'JetBrains Mono', monospace; font-size: 11px; }
+    .meta-cell .k { opacity: .5; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; }
+    .meta-cell .v { font-weight: 700; margin-top: 3px; font-family: 'JetBrains Mono', monospace; font-size: 11px; }
 
     /* Identity seal in takeovers */
     .to-seal {
@@ -449,11 +532,12 @@
         opacity: .55;
     }
     .to-seal img {
-        width: 18px;
-        height: 18px;
-        object-fit: contain;
-        mix-blend-mode: multiply;
-        filter: grayscale(1);
+        height: 20px;
+        width: auto;
+        flex-shrink: 0;
+        display: block;
+        filter: brightness(0) invert(1);
+        opacity: .65;
     }
     .to-seal span {
         font-size: 9px;
@@ -811,7 +895,7 @@
     {{-- Topbar --}}
     <div class="ex-topbar">
         <div class="ex-brand">
-            <img src="/aaua-logo.png" alt="AAUA" style="height:30px;width:30px;object-fit:contain;flex-shrink:0;mix-blend-mode:multiply;display:block;">
+            <img src="/aaua-logo.png" alt="AAUA" style="height:32px;width:auto;flex-shrink:0;display:block;">
             <div>
                 <b>Scanner</b>
                 <span class="ex-brand-sub">Adekunle Ajasin University</span>
@@ -865,37 +949,45 @@
 
             {{-- APPROVED takeover --}}
             <div class="takeover approved" id="takeover-approved">
-                <div class="to-top">
-                    <span class="status">APPROVED</span>
-                    <span class="t-time" id="approved-time">--:--</span>
+                <div class="to-inst-bar">
+                    <div class="to-inst-left">
+                        <img src="/aaua-logo.png" alt="AAUA">
+                        <div class="to-inst-name">Adekunle Ajasin University<span>CERNIX Verification System</span></div>
+                    </div>
+                    <span class="to-inst-time" id="approved-time">--:--</span>
                 </div>
-                <div class="to-center">
-                    <div class="big-icon">
+                <div class="to-hero">
+                    <div class="to-icon">
                         <svg viewBox="0 0 24 24"><path d="M5 13l4 4L19 7"/></svg>
                     </div>
-                    <h1>VERIFIED</h1>
-                    <p>Access granted</p>
+                    <div class="to-verdict">
+                        <div class="v-label">Verification Result</div>
+                        <h2>VERIFIED</h2>
+                        <p>Access granted — admitted to hall</p>
+                    </div>
                 </div>
-                <div>
-                    <div class="student-card">
+                <div class="to-student-card">
+                    <div class="to-sc-row">
                         <div class="sc-avatar" id="approved-avatar">A</div>
-                        <div class="s-info">
+                        <div class="to-sc-info">
                             <p class="nm" id="approved-name">Student Name</p>
                             <p class="mt" id="approved-matric">—</p>
                         </div>
                     </div>
-                    <div class="meta-row">
-                        <div class="meta-cell">
-                            <div class="k">Department</div>
-                            <div class="v" id="approved-dept">—</div>
-                        </div>
-                        <div class="meta-cell">
-                            <div class="k">Token</div>
-                            <div class="v" id="approved-token">…</div>
-                        </div>
+                    <div class="to-sc-divider"></div>
+                    <div class="to-sc-dept" id="approved-dept-row">—</div>
+                </div>
+                <div class="meta-row">
+                    <div class="meta-cell">
+                        <div class="k">Department</div>
+                        <div class="v" id="approved-dept">—</div>
+                    </div>
+                    <div class="meta-cell">
+                        <div class="k">Token</div>
+                        <div class="v" id="approved-token">…</div>
                     </div>
                 </div>
-                <div class="to-seal">
+                <div class="to-seal" style="margin-top:auto;">
                     <img src="/aaua-logo.png" alt="">
                     <span>Adekunle Ajasin University</span>
                 </div>
@@ -913,30 +1005,42 @@
 
             {{-- REJECTED takeover --}}
             <div class="takeover rejected" id="takeover-rejected">
-                <div class="to-top">
-                    <span class="status">REJECTED</span>
-                    <span class="t-time" id="rejected-time">--:--</span>
+                <div class="to-inst-bar">
+                    <div class="to-inst-left">
+                        <img src="/aaua-logo.png" alt="AAUA">
+                        <div class="to-inst-name">Adekunle Ajasin University<span>CERNIX Verification System</span></div>
+                    </div>
+                    <span class="to-inst-time" id="rejected-time">--:--</span>
                 </div>
-                <div class="to-center">
-                    <div class="big-icon">
+                <div class="to-hero">
+                    <div class="to-icon">
                         <svg viewBox="0 0 24 24"><path d="M6 18L18 6M6 6l12 12"/></svg>
                     </div>
-                    <h1>INVALID</h1>
-                    <p>Access denied — bad or tampered token</p>
-                </div>
-                <div>
-                    <div class="meta-row">
-                        <div class="meta-cell">
-                            <div class="k">Total scans</div>
-                            <div class="v" id="rejected-scan">1</div>
-                        </div>
-                        <div class="meta-cell">
-                            <div class="k">Action</div>
-                            <div class="v">Logged</div>
-                        </div>
+                    <div class="to-verdict">
+                        <div class="v-label">Verification Result</div>
+                        <h2>INVALID</h2>
+                        <p>Access denied — bad or tampered token</p>
                     </div>
                 </div>
-                <div class="to-seal">
+                <div class="meta-row" style="margin-top:18px;">
+                    <div class="meta-cell">
+                        <div class="k">Scan no.</div>
+                        <div class="v" id="rejected-scan">1</div>
+                    </div>
+                    <div class="meta-cell">
+                        <div class="k">Action taken</div>
+                        <div class="v">Logged</div>
+                    </div>
+                    <div class="meta-cell">
+                        <div class="k">Reason</div>
+                        <div class="v">Bad token</div>
+                    </div>
+                    <div class="meta-cell">
+                        <div class="k">Status</div>
+                        <div class="v">Denied</div>
+                    </div>
+                </div>
+                <div class="to-seal" style="margin-top:auto;">
                     <img src="/aaua-logo.png" alt="">
                     <span>Adekunle Ajasin University</span>
                 </div>
@@ -954,37 +1058,45 @@
 
             {{-- DUPLICATE takeover --}}
             <div class="takeover duplicate" id="takeover-duplicate">
-                <div class="to-top">
-                    <span class="status">DUPLICATE</span>
-                    <span class="t-time" id="duplicate-time">--:--</span>
+                <div class="to-inst-bar">
+                    <div class="to-inst-left">
+                        <img src="/aaua-logo.png" alt="AAUA">
+                        <div class="to-inst-name">Adekunle Ajasin University<span>CERNIX Verification System</span></div>
+                    </div>
+                    <span class="to-inst-time" id="duplicate-time">--:--</span>
                 </div>
-                <div class="to-center">
-                    <div class="big-icon">
+                <div class="to-hero">
+                    <div class="to-icon">
                         <svg viewBox="0 0 24 24"><path d="M12 8v4l3 2m6-2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
                     </div>
-                    <h1>USED</h1>
-                    <p>Token already redeemed</p>
+                    <div class="to-verdict">
+                        <div class="v-label">Verification Result</div>
+                        <h2>USED</h2>
+                        <p>Token already redeemed — possible replay</p>
+                    </div>
                 </div>
-                <div>
-                    <div class="student-card">
+                <div class="to-student-card">
+                    <div class="to-sc-row">
                         <div class="sc-avatar" id="dup-avatar">D</div>
-                        <div class="s-info">
+                        <div class="to-sc-info">
                             <p class="nm" id="dup-name">Student Name</p>
                             <p class="mt" id="dup-matric">—</p>
                         </div>
                     </div>
-                    <div class="meta-row">
-                        <div class="meta-cell">
-                            <div class="k">Department</div>
-                            <div class="v" id="dup-dept">—</div>
-                        </div>
-                        <div class="meta-cell">
-                            <div class="k">Scan count</div>
-                            <div class="v" id="dup-count">2</div>
-                        </div>
+                    <div class="to-sc-divider"></div>
+                    <div class="to-sc-dept" id="dup-dept-row">—</div>
+                </div>
+                <div class="meta-row">
+                    <div class="meta-cell">
+                        <div class="k">Department</div>
+                        <div class="v" id="dup-dept">—</div>
+                    </div>
+                    <div class="meta-cell">
+                        <div class="k">Scan count</div>
+                        <div class="v" id="dup-count">2</div>
                     </div>
                 </div>
-                <div class="to-seal">
+                <div class="to-seal" style="margin-top:auto;">
                     <img src="/aaua-logo.png" alt="">
                     <span>Adekunle Ajasin University</span>
                 </div>
@@ -1088,7 +1200,7 @@
                 </div>
                 {{-- Desktop identity seal --}}
                 <div style="padding:0 20px 14px;display:flex;align-items:center;gap:6px;opacity:.45;">
-                    <img src="/aaua-logo.png" alt="" style="width:14px;height:14px;object-fit:contain;mix-blend-mode:multiply;flex-shrink:0;">
+                    <img src="/aaua-logo.png" alt="" style="height:16px;width:auto;flex-shrink:0;display:block;opacity:.7;">
                     <span style="font-size:9px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-4);">Adekunle Ajasin University</span>
                 </div>
             </div>
@@ -1305,12 +1417,13 @@ function handleResult(result, now) {
         const initials = name.split(' ').map(w => w[0]).slice(0, 2).join('').toUpperCase();
         const tokenShort = (result.token_id || '').slice(0, 8) + '…';
 
-        document.getElementById('approved-avatar').textContent = initials;
-        document.getElementById('approved-name').textContent   = name;
-        document.getElementById('approved-matric').textContent = matric;
-        document.getElementById('approved-dept').textContent   = dept;
-        document.getElementById('approved-token').textContent  = tokenShort;
-        document.getElementById('approved-time').textContent   = now;
+        document.getElementById('approved-avatar').textContent   = initials;
+        document.getElementById('approved-name').textContent     = name;
+        document.getElementById('approved-matric').textContent   = matric;
+        document.getElementById('approved-dept').textContent     = dept;
+        document.getElementById('approved-dept-row').textContent = dept;
+        document.getElementById('approved-token').textContent    = tokenShort;
+        document.getElementById('approved-time').textContent     = now;
 
         updateDesktopResult('approved', { name, matric, dept, initials, token: tokenShort, time: elapsed });
         updateLastScan('approved', name, matric, now);
@@ -1326,11 +1439,12 @@ function handleResult(result, now) {
         const dept   = s.department || '—';
         const initials = name.split(' ').map(w => w[0]).slice(0, 2).join('').toUpperCase();
 
-        document.getElementById('dup-avatar').textContent = initials;
-        document.getElementById('dup-name').textContent   = name;
-        document.getElementById('dup-matric').textContent = matric;
-        document.getElementById('dup-dept').textContent   = dept;
-        document.getElementById('dup-count').textContent  = stats.duplicate + 1;
+        document.getElementById('dup-avatar').textContent    = initials;
+        document.getElementById('dup-name').textContent      = name;
+        document.getElementById('dup-matric').textContent    = matric;
+        document.getElementById('dup-dept').textContent      = dept;
+        document.getElementById('dup-dept-row').textContent  = dept;
+        document.getElementById('dup-count').textContent     = stats.duplicate + 1;
         document.getElementById('duplicate-time').textContent = now;
 
         updateDesktopResult('duplicate', { name, matric, dept, initials, time: elapsed });

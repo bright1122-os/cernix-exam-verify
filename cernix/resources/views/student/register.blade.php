@@ -184,6 +184,13 @@
     <div class="form-body">
         <!-- ─ Left: Form ─ -->
         <div>
+            <div style="display:flex;align-items:center;gap:12px;margin-bottom:24px;padding:14px 16px;background:var(--bg-2);border:1px solid var(--line);border-radius:14px;">
+                <img src="/aaua-logo.png" alt="AAUA" style="height:38px;width:auto;flex-shrink:0;display:block;">
+                <div>
+                    <div style="font-size:12px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-2);">Adekunle Ajasin University</div>
+                    <div style="font-size:10px;color:var(--ink-4);letter-spacing:.06em;margin-top:2px;">Akungba-Akoko · CERNIX Exam Access System</div>
+                </div>
+            </div>
             <div style="margin-bottom:24px">
                 <h2 style="font-size:22px;font-weight:700;letter-spacing:-.02em;margin:0 0 8px;color:var(--ink)">Verify your payment</h2>
                 <p style="font-size:14px;color:var(--ink-3);margin:0;line-height:1.6">Enter your matric number and Remita RRR to generate your one-time exam QR.</p>
@@ -278,7 +285,7 @@
             <div class="pass-hd">
                 <div class="pass-hd-brand">
                     <div class="pass-hd-icon" style="background:rgba(255,255,255,.15);border-color:rgba(255,255,255,.3);padding:3px;">
-                        <img src="/aaua-logo.png" alt="AAUA" style="width:22px;height:22px;object-fit:contain;display:block;filter:brightness(0) invert(1);opacity:.9;">
+                        <img src="/aaua-logo.png" alt="AAUA" style="height:28px;width:auto;display:block;filter:brightness(0) invert(1);opacity:.9;">
                     </div>
                     <div class="pass-hd-text">
                         <b>AAUA · CERNIX</b>
@@ -327,7 +334,7 @@
                     AES-256-GCM · HMAC-SHA256
                 </div>
                 <div style="display:flex;align-items:center;gap:5px;">
-                    <img src="/aaua-logo.png" alt="AAUA" style="width:14px;height:14px;object-fit:contain;mix-blend-mode:multiply;opacity:.5;">
+                    <img src="/aaua-logo.png" alt="AAUA" style="height:14px;width:auto;display:block;opacity:.5;">
                     <span style="font-size:10px;color:var(--ink-4);letter-spacing:.06em;font-weight:600;">One-time use</span>
                 </div>
             </div>
