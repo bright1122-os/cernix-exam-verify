@@ -1033,7 +1033,7 @@
             {{-- Verifying overlay --}}
             <div class="verifying-overlay" id="verifying-overlay">
                 <div class="verifying-spinner"></div>
-                <span class="verifying-label">Verifying…</span>
+                <span class="verifying-label" id="verifying-label">Scanning…</span>
             </div>
 
             {{-- APPROVED takeover --}}
@@ -1465,7 +1465,9 @@ function setPanelState(state) {
     result.classList.toggle('show',   state === 'result');
 }
 
-function showVerifying() {
+function showVerifying(label) {
+    const lbl = document.getElementById('verifying-label');
+    if (lbl) lbl.textContent = label || 'Scanning…';
     document.getElementById('verifying-overlay').classList.add('show');
     setPanelState('scanning');
 }
@@ -1657,8 +1659,12 @@ async function handleQRCode(rawData) {
 
     const now = new Date().toLocaleTimeString();
     scanStartTime = Date.now();
-    document.getElementById('scan-prompt').textContent = 'Checking…';
-    showVerifying();
+    document.getElementById('scan-prompt').textContent = 'QR detected…';
+    showVerifying('Scanning…');
+
+    // Brief pause so "Scanning…" is visible before "Validating…" — feels deliberate, not instant
+    await new Promise(r => setTimeout(r, 280));
+    showVerifying('Validating…');
 
     try {
         const resp = await fetch('/examiner/verify', {
@@ -1727,8 +1733,9 @@ function simulateScan(decision) {
     scanning = false;
     const now = new Date().toLocaleTimeString();
     scanStartTime = Date.now();
-    document.getElementById('scan-prompt').textContent = 'Checking…';
-    showVerifying();
+    document.getElementById('scan-prompt').textContent = 'QR detected…';
+    showVerifying('Scanning…');
+    setTimeout(() => { showVerifying('Validating…'); }, 300);
     setTimeout(() => {
         handleResult({
             status:   decision,
