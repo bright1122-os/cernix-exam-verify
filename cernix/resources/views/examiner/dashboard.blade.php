@@ -439,8 +439,62 @@
     .meta-cell .k { opacity: .55; font-weight: 500; letter-spacing: .03em; }
     .meta-cell .v { font-weight: 700; margin-top: 2px; font-family: 'JetBrains Mono', monospace; font-size: 11px; }
 
+    /* Identity seal in takeovers */
+    .to-seal {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 7px;
+        padding: 8px 20px 0;
+        opacity: .55;
+    }
+    .to-seal img {
+        width: 18px;
+        height: 18px;
+        object-fit: contain;
+        mix-blend-mode: multiply;
+        filter: grayscale(1);
+    }
+    .to-seal span {
+        font-size: 9px;
+        font-weight: 700;
+        letter-spacing: .14em;
+        text-transform: uppercase;
+    }
+
+    /* Auto-advance countdown */
+    .to-countdown {
+        margin: 0 20px 4px;
+        display: none;
+        align-items: center;
+        gap: 8px;
+    }
+    .to-countdown.show { display: flex; }
+    .to-countdown-track {
+        flex: 1;
+        height: 3px;
+        background: rgba(255,255,255,.2);
+        border-radius: 99px;
+        overflow: hidden;
+    }
+    .to-countdown-bar {
+        height: 100%;
+        background: currentColor;
+        opacity: .55;
+        border-radius: 99px;
+        /* duration set inline by JS */
+        transition: width linear;
+    }
+    .to-countdown-label {
+        font-size: 10px;
+        opacity: .55;
+        font-family: 'JetBrains Mono', monospace;
+        white-space: nowrap;
+        flex-shrink: 0;
+    }
+
     .to-bottom {
-        padding: 14px 20px 20px;
+        padding: 8px 20px 20px;
         display: flex;
         gap: 8px;
     }
@@ -757,7 +811,7 @@
     {{-- Topbar --}}
     <div class="ex-topbar">
         <div class="ex-brand">
-            <img src="/aaua-logo.png" alt="AAUA" style="height:28px;width:auto;object-fit:contain;flex-shrink:0;mix-blend-mode:multiply">
+            <img src="/aaua-logo.png" alt="AAUA" style="height:30px;width:30px;object-fit:contain;flex-shrink:0;mix-blend-mode:multiply;display:block;">
             <div>
                 <b>Scanner</b>
                 <span class="ex-brand-sub">Adekunle Ajasin University</span>
@@ -841,9 +895,19 @@
                         </div>
                     </div>
                 </div>
+                <div class="to-seal">
+                    <img src="/aaua-logo.png" alt="">
+                    <span>Adekunle Ajasin University</span>
+                </div>
+                <div class="to-countdown" id="countdown-approved">
+                    <div class="to-countdown-track">
+                        <div class="to-countdown-bar" id="countdown-bar-approved" style="width:100%"></div>
+                    </div>
+                    <span class="to-countdown-label" id="countdown-label-approved">4s</span>
+                </div>
                 <div class="to-bottom">
-                    <button onclick="resetScan()">Next</button>
-                    <button class="primary" onclick="resetScan()">Admit</button>
+                    <button onclick="cancelAutoAdvance('approved');resetScan()">Next</button>
+                    <button class="primary" onclick="cancelAutoAdvance('approved');resetScan()">Admit</button>
                 </div>
             </div>
 
@@ -872,9 +936,19 @@
                         </div>
                     </div>
                 </div>
+                <div class="to-seal">
+                    <img src="/aaua-logo.png" alt="">
+                    <span>Adekunle Ajasin University</span>
+                </div>
+                <div class="to-countdown" id="countdown-rejected">
+                    <div class="to-countdown-track">
+                        <div class="to-countdown-bar" id="countdown-bar-rejected" style="width:100%"></div>
+                    </div>
+                    <span class="to-countdown-label" id="countdown-label-rejected">5s</span>
+                </div>
                 <div class="to-bottom">
-                    <button onclick="resetScan()">Dismiss</button>
-                    <button class="primary" onclick="resetScan()">Alert</button>
+                    <button onclick="cancelAutoAdvance('rejected');resetScan()">Dismiss</button>
+                    <button class="primary" onclick="cancelAutoAdvance('rejected');resetScan()">Alert</button>
                 </div>
             </div>
 
@@ -910,9 +984,19 @@
                         </div>
                     </div>
                 </div>
+                <div class="to-seal">
+                    <img src="/aaua-logo.png" alt="">
+                    <span>Adekunle Ajasin University</span>
+                </div>
+                <div class="to-countdown" id="countdown-duplicate">
+                    <div class="to-countdown-track">
+                        <div class="to-countdown-bar" id="countdown-bar-duplicate" style="width:100%"></div>
+                    </div>
+                    <span class="to-countdown-label" id="countdown-label-duplicate">5s</span>
+                </div>
                 <div class="to-bottom">
-                    <button onclick="resetScan()">Dismiss</button>
-                    <button class="primary" onclick="resetScan()">Review</button>
+                    <button onclick="cancelAutoAdvance('duplicate');resetScan()">Dismiss</button>
+                    <button class="primary" onclick="cancelAutoAdvance('duplicate');resetScan()">Review</button>
                 </div>
             </div>
         </div>
@@ -999,8 +1083,13 @@
                     </div>
                 </div>
                 <div class="res-actions">
-                    <button class="btn-ghost" onclick="resetScan()">Next scan</button>
-                    <button class="btn-approve" id="res-action" onclick="resetScan()">Admit</button>
+                    <button class="btn-ghost" onclick="cancelAllAutoAdvance();resetScan()">Next scan</button>
+                    <button class="btn-approve" id="res-action" onclick="cancelAllAutoAdvance();resetScan()">Admit</button>
+                </div>
+                {{-- Desktop identity seal --}}
+                <div style="padding:0 20px 14px;display:flex;align-items:center;gap:6px;opacity:.45;">
+                    <img src="/aaua-logo.png" alt="" style="width:14px;height:14px;object-fit:contain;mix-blend-mode:multiply;flex-shrink:0;">
+                    <span style="font-size:9px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-4);">Adekunle Ajasin University</span>
                 </div>
             </div>
 
@@ -1039,6 +1128,56 @@ let stats = { total: 0, approved: 0, rejected: 0, duplicate: 0 };
 let scanning = false, busy = false, scanStartTime = 0;
 let scanHistory = [], currentFilter = 'all';
 const csrf = document.querySelector('meta[name="csrf-token"]').content;
+
+// Auto-advance: after a result, auto-reset after N seconds
+const AUTO_ADVANCE = { approved: 4, rejected: 5, duplicate: 5 };
+const autoTimers = {};
+
+function startAutoAdvance(type) {
+    cancelAutoAdvance(type);
+    const seconds = AUTO_ADVANCE[type] || 5;
+    const barEl   = document.getElementById('countdown-bar-' + type);
+    const labelEl = document.getElementById('countdown-label-' + type);
+    const rowEl   = document.getElementById('countdown-' + type);
+    if (!rowEl) return;
+
+    rowEl.classList.add('show');
+    let remaining = seconds;
+    if (labelEl) labelEl.textContent = remaining + 's';
+
+    // Reset bar without transition, then animate drain over full duration
+    if (barEl) {
+        barEl.style.transition = 'none';
+        barEl.style.width = '100%';
+        requestAnimationFrame(() => {
+            requestAnimationFrame(() => {
+                barEl.style.transition = 'width ' + seconds + 's linear';
+                barEl.style.width = '0%';
+            });
+        });
+    }
+
+    autoTimers[type] = setInterval(() => {
+        remaining--;
+        if (labelEl) labelEl.textContent = remaining + 's';
+        if (remaining <= 0) {
+            cancelAutoAdvance(type);
+            resetScan();
+        }
+    }, 1000);
+}
+
+function cancelAutoAdvance(type) {
+    if (autoTimers[type]) { clearInterval(autoTimers[type]); delete autoTimers[type]; }
+    const rowEl = document.getElementById('countdown-' + type);
+    if (rowEl) rowEl.classList.remove('show');
+    const barEl = document.getElementById('countdown-bar-' + type);
+    if (barEl) { barEl.style.transition = 'none'; barEl.style.width = '100%'; }
+}
+
+function cancelAllAutoAdvance() {
+    ['approved', 'rejected', 'duplicate'].forEach(t => cancelAutoAdvance(t));
+}
 
 function updateStats() {
     document.getElementById('total-scans').textContent    = stats.total;
@@ -1145,6 +1284,7 @@ function updateLastScan(cls, title, sub, time) {
 }
 
 function resetScan() {
+    cancelAllAutoAdvance();
     showTakeover(null);
     busy = false;
     scanning = true;
@@ -1176,6 +1316,7 @@ function handleResult(result, now) {
         updateLastScan('approved', name, matric, now);
         addToHistory('approved', name, matric, now);
         showTakeover('approved');
+        startAutoAdvance('approved');
 
     } else if (result.status === 'DUPLICATE') {
         stats.duplicate++;
@@ -1196,6 +1337,7 @@ function handleResult(result, now) {
         updateLastScan('duplicate', name, 'Token already redeemed', now);
         addToHistory('duplicate', name, 'Already used', now);
         showTakeover('duplicate');
+        startAutoAdvance('duplicate');
 
     } else {
         stats.rejected++;
@@ -1206,6 +1348,7 @@ function handleResult(result, now) {
         updateLastScan('rejected', 'Invalid token', 'Bad or tampered QR', now);
         addToHistory('rejected', 'Invalid token', 'Bad or tampered QR', now);
         showTakeover('rejected');
+        startAutoAdvance('rejected');
     }
 
     updateStats();

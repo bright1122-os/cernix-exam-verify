@@ -125,8 +125,8 @@
 
         <div style="max-width:600px; margin:0 auto;">
             <div class="logo-mark">
-                <span class="logo-glyph"></span>
-                <span>CERNIX</span>
+                <img src="/aaua-logo.png" alt="AAUA" style="width:28px;height:28px;object-fit:contain;flex-shrink:0;mix-blend-mode:multiply;display:block;">
+                <span>CERNIX &nbsp;·&nbsp; AAUA</span>
             </div>
 
             <h1 class="brand">
@@ -134,8 +134,8 @@
             </h1>
 
             <p class="tag">
-                End-to-end secure exam hall access control. AES-256-GCM encrypted QR tokens,
-                HMAC-verified identities, one-time admission.
+                End-to-end secure exam hall access control for Adekunle Ajasin University.
+                AES-256-GCM encrypted QR tokens, HMAC-verified identities, one-time admission.
             </p>
 
             <div class="stat-strip">

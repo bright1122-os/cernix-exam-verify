@@ -277,11 +277,11 @@
             <!-- Header -->
             <div class="pass-hd">
                 <div class="pass-hd-brand">
-                    <div class="pass-hd-icon">
-                        <svg width="15" height="15" fill="none" stroke="rgba(255,255,255,.9)" stroke-width="2" viewBox="0 0 24 24"><path d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/></svg>
+                    <div class="pass-hd-icon" style="background:rgba(255,255,255,.15);border-color:rgba(255,255,255,.3);padding:3px;">
+                        <img src="/aaua-logo.png" alt="AAUA" style="width:22px;height:22px;object-fit:contain;display:block;filter:brightness(0) invert(1);opacity:.9;">
                     </div>
                     <div class="pass-hd-text">
-                        <b>CERNIX</b>
+                        <b>AAUA · CERNIX</b>
                         <span>Digital Exam Pass</span>
                     </div>
                 </div>
@@ -326,7 +326,10 @@
                     <svg width="11" height="11" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg>
                     AES-256-GCM · HMAC-SHA256
                 </div>
-                <span style="font-size:10px;color:var(--ink-4);letter-spacing:.1em;text-transform:uppercase">One-time use</span>
+                <div style="display:flex;align-items:center;gap:5px;">
+                    <img src="/aaua-logo.png" alt="AAUA" style="width:14px;height:14px;object-fit:contain;mix-blend-mode:multiply;opacity:.5;">
+                    <span style="font-size:10px;color:var(--ink-4);letter-spacing:.06em;font-weight:600;">One-time use</span>
+                </div>
             </div>
 
         </div>

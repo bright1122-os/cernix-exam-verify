@@ -285,6 +285,7 @@
     }
     .admin-sidebar.open { transform: translateX(0); }
     .hamburger { display: flex; }
+    .admin-logo-mobile { display: block !important; }
     .admin-content { padding: 16px; }
     .admin-header { padding: 12px 16px; }
     .admin-header h1 { font-size: 16px; }
@@ -313,9 +314,9 @@
 <div class="admin-wrap">
     <!-- ── Sidebar ── -->
     <div class="admin-sidebar" id="admin-sidebar">
-        <div class="logo-mini">
-            <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24" style="display:inline;vertical-align:-2px;margin-right:6px"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
-            CERNIX
+        <div class="logo-mini" style="display:flex;align-items:center;gap:8px;padding:0 4px 0 2px;">
+            <img src="/aaua-logo.png" alt="AAUA" style="width:22px;height:22px;object-fit:contain;flex-shrink:0;mix-blend-mode:multiply;">
+            <span style="font-size:11px;font-weight:700;letter-spacing:.1em;color:var(--navy);">CERNIX</span>
         </div>
 
         <div class="nav-section">
@@ -372,6 +373,7 @@
                 <button class="hamburger" onclick="openSidebar()" aria-label="Open menu">
                     <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
                 </button>
+                <img src="/aaua-logo.png" alt="AAUA" style="height:28px;width:28px;object-fit:contain;mix-blend-mode:multiply;display:none;" class="admin-logo-mobile" id="admin-logo-mobile">
                 <h1>Admin Dashboard</h1>
             </div>
             <div class="admin-header-right">

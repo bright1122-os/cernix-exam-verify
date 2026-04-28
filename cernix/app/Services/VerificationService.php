@@ -95,9 +95,11 @@ class VerificationService
             return $this->response('REJECTED', null, $tokenId, $timestamp);
         }
 
-        // ── Step 6: Fetch student record ──────────────────────────────────────
+        // ── Step 6: Fetch student record with resolved department name ───────
         $student = DB::table('students')
-            ->where('matric_no', (string) ($payload['matric_no'] ?? ''))
+            ->leftJoin('departments', 'students.department_id', '=', 'departments.department_id')
+            ->where('students.matric_no', (string) ($payload['matric_no'] ?? ''))
+            ->select('students.*', 'departments.name as department_name')
             ->first();
 
         // ── Step 7: Identity verification ────────────────────────────────────
@@ -146,10 +148,10 @@ class VerificationService
 
         // ── Step 10: Return structured response ───────────────────────────────
         return $this->response('APPROVED', [
-            'full_name'     => $student->full_name,
-            'matric_no'     => $student->matric_no,
-            'department_id' => $student->department_id,
-            'photo_path'    => $student->photo_path,
+            'full_name'  => $student->full_name,
+            'matric_no'  => $student->matric_no,
+            'department' => $student->department_name ?? 'N/A',
+            'photo_path' => $student->photo_path,
         ], $tokenId, $timestamp);
     }
 
