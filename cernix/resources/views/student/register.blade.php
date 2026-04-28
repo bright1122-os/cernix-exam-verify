@@ -193,7 +193,7 @@
         <!-- ─ Left: Form ─ -->
         <div>
             <div style="display:flex;align-items:center;gap:12px;margin-bottom:24px;padding:14px 16px;background:var(--bg-2);border:1px solid var(--line);border-radius:14px;">
-                <img src="/aaua-logo.png" alt="AAUA" style="height:38px;width:auto;flex-shrink:0;display:block;mix-blend-mode:multiply;">
+                <img src="/aaua-logo.png" alt="AAUA" style="height:38px;width:auto;flex-shrink:0;display:block;">
                 <div>
                     <div style="font-size:12px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-2);">Adekunle Ajasin University</div>
                     <div style="font-size:10px;color:var(--ink-4);letter-spacing:.06em;margin-top:2px;">Akungba-Akoko · CERNIX Exam Access System</div>
@@ -292,7 +292,7 @@
             <!-- Header — institutional white -->
             <div class="pass-hd">
                 <div class="pass-hd-brand">
-                    <img src="/aaua-logo.png" alt="AAUA" style="height:52px;width:auto;display:block;mix-blend-mode:multiply;flex-shrink:0;">
+                    <img src="/aaua-logo.png" alt="AAUA" style="height:52px;width:auto;display:block;flex-shrink:0;">
                     <div class="pass-hd-text">
                         <b>Adekunle Ajasin University</b>
                         <span>CERNIX · Secure Exam Verification</span>
@@ -342,7 +342,7 @@
                     AES-256-GCM · HMAC-SHA256
                 </div>
                 <div style="display:flex;align-items:center;gap:6px;">
-                    <img src="/aaua-logo.png" alt="AAUA" style="height:20px;width:auto;display:block;mix-blend-mode:multiply;">
+                    <img src="/aaua-logo.png" alt="AAUA" style="height:20px;width:auto;display:block;">
                     <span style="font-size:9px;color:var(--ink-4);letter-spacing:.1em;font-weight:700;text-transform:uppercase;">AAUA</span>
                 </div>
             </div>

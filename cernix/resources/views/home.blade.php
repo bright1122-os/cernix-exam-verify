@@ -125,7 +125,7 @@
 
         <div style="max-width:600px; margin:0 auto;">
             <div class="logo-mark">
-                <img src="/aaua-logo.png" alt="AAUA" style="height:32px;width:auto;flex-shrink:0;display:block;mix-blend-mode:multiply;">
+                <img src="/aaua-logo.png" alt="AAUA" style="height:32px;width:auto;flex-shrink:0;display:block;">
                 <span>CERNIX &nbsp;·&nbsp; AAUA</span>
             </div>
 
