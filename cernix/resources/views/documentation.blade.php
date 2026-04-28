@@ -452,17 +452,24 @@
 
     {{-- Hero --}}
     <div class="doc-hero">
-        <div class="doc-tag">CERNIX System Documentation</div>
-        <h2>Cryptographic Exam Verification System</h2>
+        <div style="display:flex;align-items:center;gap:16px;margin-bottom:20px;flex-wrap:wrap">
+            <img src="/aaua-logo.jpg" alt="Adekunle Ajasin University" style="height:52px;width:auto;object-fit:contain;display:block">
+            <div>
+                <div style="font-size:13px;font-weight:700;color:var(--ink);line-height:1.2">Adekunle Ajasin University</div>
+                <div style="font-size:11px;color:var(--ink-3);margin-top:2px">P.M.B 001, Akungba-Akoko, Ondo State, Nigeria</div>
+            </div>
+        </div>
+        <div class="doc-tag">CSC 499 — Project Documentation</div>
+        <h2>Secure Examination Verification System</h2>
         <p>
-            Complete documentation for the CERNIX exam access control platform — covering institutional context,
-            system architecture, verification flow, and operational instructions for all user roles.
+            Design and Development of a Secure Examination Verification System Using QR Code Technology —
+            CSC 499 Final Year Project, Faculty of Computing, Adekunle Ajasin University.
         </p>
         <div class="doc-meta-row">
             <div class="doc-chip"><span class="dot"></span> System Operational</div>
             <div class="doc-chip">Adekunle Ajasin University</div>
-            <div class="doc-chip">2025 / 2026 Academic Session</div>
-            <div class="doc-chip">Final Year Project</div>
+            <div class="doc-chip">2025 / 2026 — Semester 1</div>
+            <div class="doc-chip">CSC 499 Seminar</div>
         </div>
     </div>
 
@@ -490,7 +497,7 @@
                 </div>
                 <div class="doc-info-row">
                     <div class="dir-key">Faculty</div>
-                    <div class="dir-val">Science</div>
+                    <div class="dir-val">Faculty of Computing</div>
                 </div>
                 <div class="doc-info-row">
                     <div class="dir-key">Department</div>
@@ -505,12 +512,20 @@
                     <div class="dir-val">2025 / 2026 Academic Year</div>
                 </div>
                 <div class="doc-info-row">
+                    <div class="dir-key">Course</div>
+                    <div class="dir-val">CSC 499 — Project Proposal (Seminar)</div>
+                </div>
+                <div class="doc-info-row">
                     <div class="dir-key">Project title</div>
-                    <div class="dir-val">Cryptographic Exam Registration and Notification with Integrated X-verification (CERNIX)</div>
+                    <div class="dir-val">Design and Development of a Secure Examination Verification System Using QR Code Technology</div>
+                </div>
+                <div class="doc-info-row">
+                    <div class="dir-key">System name</div>
+                    <div class="dir-val">CERNIX — Cryptographic Exam Registration and Notification with Integrated X-verification</div>
                 </div>
                 <div class="doc-info-row">
                     <div class="dir-key">Project type</div>
-                    <div class="dir-val">Final Year Engineering Project — Software Systems Track</div>
+                    <div class="dir-val">Final Year Seminar Paper — CSC 499</div>
                 </div>
             </div>
         </div>
@@ -802,14 +817,14 @@
             <div class="doc-section-label">08 — Project Supervision</div>
             <h3>Academic Supervision</h3>
             <p>
-                This project was carried out under the academic supervision of the Department of Computer Science,
+                This project was conducted under the academic supervision of the Faculty of Computing,
                 Adekunle Ajasin University. The supervisor provided guidance on system design, cryptographic
                 implementation, and evaluation methodology throughout the project lifecycle.
             </p>
             <div class="team-leader" style="background:rgba(15,32,80,.03);border-color:rgba(15,32,80,.12);">
-                <div class="tl-tag" style="background:rgba(15,32,80,.07);color:var(--navy)">Supervisor</div>
-                <div class="tl-name">—</div>
-                <div class="tl-role">Department of Computer Science · Adekunle Ajasin University</div>
+                <div class="tl-tag" style="background:rgba(15,32,80,.07);color:var(--navy)">Project Supervisor</div>
+                <div class="tl-name">Dr. Ogbeide</div>
+                <div class="tl-role">Faculty of Computing · Adekunle Ajasin University, Akungba-Akoko</div>
             </div>
         </div>
 
@@ -818,32 +833,36 @@
             <div class="doc-section-label">09 — Development Team</div>
             <h3>Built by final-year students</h3>
             <p>
-                CERNIX was designed, developed, and tested by a team of five final-year Computer Science
-                students at Adekunle Ajasin University, Akungba-Akoko.
+                CERNIX was designed, developed, and tested by a team of six final-year Computer Science
+                students, Faculty of Computing, Adekunle Ajasin University, Akungba-Akoko.
             </p>
 
             <div class="team-leader">
-                <div class="tl-tag">Group Leader</div>
+                <div class="tl-tag">Group Member · 220404008</div>
                 <div class="tl-name">Agwunobi Somtochukwu Bright</div>
                 <div class="tl-role">Project Lead · Cryptography &amp; System Architecture</div>
             </div>
 
             <div class="team-list">
                 <div class="team-row">
-                    <div class="tr-name">Chinwe Ifeoma Okonkwo</div>
-                    <div class="tr-role">Frontend &amp; Scanner</div>
+                    <div class="tr-name">Olatunji Jubril Temitope</div>
+                    <div class="tr-role">200404169</div>
                 </div>
                 <div class="team-row">
-                    <div class="tr-name">Musa Abdullahi Garba</div>
-                    <div class="tr-role">Backend &amp; Database</div>
+                    <div class="tr-name">Adebowale Kolawole Joshua</div>
+                    <div class="tr-role">220404170</div>
                 </div>
                 <div class="team-row">
-                    <div class="tr-name">Ngozi Chinyere Eze</div>
-                    <div class="tr-role">Admin &amp; Audit Log</div>
+                    <div class="tr-name">Ubong Victory Peace</div>
+                    <div class="tr-role">220404107</div>
                 </div>
                 <div class="team-row">
-                    <div class="tr-name">Emeka Tochukwu Nwosu</div>
-                    <div class="tr-role">Testing &amp; QA</div>
+                    <div class="tr-name">Oluwatomiwa Olumofe</div>
+                    <div class="tr-role">170404081</div>
+                </div>
+                <div class="team-row">
+                    <div class="tr-name">Ojekunle Boluwatife</div>
+                    <div class="tr-role">220404256</div>
                 </div>
             </div>
         </div>

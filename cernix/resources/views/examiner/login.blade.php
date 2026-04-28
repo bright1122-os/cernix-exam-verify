@@ -35,9 +35,12 @@
     </div>
 
     <div class="login-body">
-        <div style="margin-bottom:20px;padding:10px 14px;background:rgba(15,32,80,.04);border:1px solid var(--line);border-radius:10px;display:flex;align-items:center;gap:10px">
-            <svg width="14" height="14" fill="none" stroke="var(--navy)" stroke-width="2" viewBox="0 0 24 24" style="flex-shrink:0"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
-            <span style="font-size:11px;color:var(--ink-3);line-height:1.4"><strong style="color:var(--navy);font-weight:600">Adekunle Ajasin University</strong> &nbsp;·&nbsp; Dept. of Computer Science &nbsp;·&nbsp; CERNIX Exam System</span>
+        <div style="margin-bottom:20px;padding:12px 14px;background:rgba(15,32,80,.03);border:1px solid var(--line);border-radius:12px;display:flex;align-items:center;gap:12px">
+            <img src="/aaua-logo.jpg" alt="AAUA" style="height:32px;width:auto;object-fit:contain;flex-shrink:0;opacity:.85">
+            <div>
+                <div style="font-size:12px;font-weight:700;color:var(--navy);line-height:1.2">Adekunle Ajasin University</div>
+                <div style="font-size:10px;color:var(--ink-4);margin-top:2px">Faculty of Computing · CERNIX Exam System</div>
+            </div>
         </div>
         <div style="margin-bottom:24px">
             <h2 style="font-size:22px;font-weight:700;letter-spacing:-.02em;margin:0 0 8px;color:var(--ink)">Sign in to verify</h2>

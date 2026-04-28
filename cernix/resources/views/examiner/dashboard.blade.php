@@ -757,11 +757,7 @@
     {{-- Topbar --}}
     <div class="ex-topbar">
         <div class="ex-brand">
-            <div class="ex-brand-icon">
-                <svg width="16" height="16" fill="none" stroke="#fff" stroke-width="2.5" viewBox="0 0 24 24">
-                    <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
-                </svg>
-            </div>
+            <img src="/aaua-logo.jpg" alt="AAUA" style="height:26px;width:auto;object-fit:contain;opacity:.75;flex-shrink:0">
             <div>
                 <b>Scanner</b>
                 <span class="ex-brand-sub">Adekunle Ajasin University</span>
