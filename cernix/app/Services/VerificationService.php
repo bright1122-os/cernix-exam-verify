@@ -60,20 +60,22 @@ class VerificationService
                 'photo_path' => $dupStudent->photo_path,
             ] : null;
 
-            $this->log($tokenId, $examinerId, 'DUPLICATE', $deviceFp, $ip, $now);
+            $traceId = $this->log($tokenId, $examinerId, 'DUPLICATE', $deviceFp, $ip, $now);
             return $this->response(
                 'DUPLICATE',
                 $studentData,
                 $tokenId,
                 $timestamp,
                 'token_already_used',
-                $token->used_at ? (string) $token->used_at : null
+                $token->used_at ? (string) $token->used_at : null,
+                null,
+                $traceId
             );
         }
 
         if ($token->status === 'REVOKED') {
-            $this->log($tokenId, $examinerId, 'REJECTED', $deviceFp, $ip, $now);
-            return $this->response('REJECTED', null, $tokenId, $timestamp, 'token_revoked');
+            $traceId = $this->log($tokenId, $examinerId, 'REJECTED', $deviceFp, $ip, $now);
+            return $this->response('REJECTED', null, $tokenId, $timestamp, 'token_revoked', null, null, $traceId);
         }
 
         // ── Step 4: Fetch active exam session ─────────────────────────────────
@@ -83,8 +85,8 @@ class VerificationService
             ->first();
 
         if (! $session) {
-            $this->log($tokenId, $examinerId, 'REJECTED', $deviceFp, $ip, $now);
-            return $this->response('REJECTED', null, $tokenId, $timestamp, 'invalid_session');
+            $traceId = $this->log($tokenId, $examinerId, 'REJECTED', $deviceFp, $ip, $now);
+            return $this->response('REJECTED', null, $tokenId, $timestamp, 'invalid_session', null, null, $traceId);
         }
 
         // ── Step 5: Decrypt and HMAC-verify payload ───────────────────────────
@@ -96,8 +98,8 @@ class VerificationService
                 $session->hmac_secret
             );
         } catch (RuntimeException) {
-            $this->log($tokenId, $examinerId, 'REJECTED', $deviceFp, $ip, $now);
-            return $this->response('REJECTED', null, $tokenId, $timestamp, 'tampered_token');
+            $traceId = $this->log($tokenId, $examinerId, 'REJECTED', $deviceFp, $ip, $now);
+            return $this->response('REJECTED', null, $tokenId, $timestamp, 'tampered_token', null, null, $traceId);
         }
 
         // ── Step 6: Fetch student record with resolved department name ───────
@@ -115,8 +117,8 @@ class VerificationService
             && hash_equals((string) $student->matric_no, (string) ($payload['matric_no'] ?? ''));
 
         if (! $student || ! $sessionMatch || ! $matricMatch) {
-            $this->log($tokenId, $examinerId, 'REJECTED', $deviceFp, $ip, $now);
-            return $this->response('REJECTED', null, $tokenId, $timestamp, 'identity_mismatch');
+            $traceId = $this->log($tokenId, $examinerId, 'REJECTED', $deviceFp, $ip, $now);
+            return $this->response('REJECTED', null, $tokenId, $timestamp, 'identity_mismatch', null, null, $traceId);
         }
 
         // ── Step 8: Atomic UNUSED → USED (DB transaction + row lock) ──────────
@@ -138,17 +140,17 @@ class VerificationService
         });
 
         if ($decision === 'DUPLICATE') {
-            $this->log($tokenId, $examinerId, 'DUPLICATE', $deviceFp, $ip, $now);
+            $traceId = $this->log($tokenId, $examinerId, 'DUPLICATE', $deviceFp, $ip, $now);
             return $this->response('DUPLICATE', [
                 'full_name'  => $student->full_name,
                 'matric_no'  => $student->matric_no,
                 'department' => $student->department_name ?? 'N/A',
                 'photo_path' => $student->photo_path,
-            ], $tokenId, $timestamp, 'concurrent_scan');
+            ], $tokenId, $timestamp, 'concurrent_scan', null, null, $traceId);
         }
 
         // ── Step 9: Write verification log (APPROVED) ─────────────────────────
-        $this->log($tokenId, $examinerId, 'APPROVED', $deviceFp, $ip, $now);
+        $traceId = $this->log($tokenId, $examinerId, 'APPROVED', $deviceFp, $ip, $now);
 
         // ── Step 10: Return structured response ───────────────────────────────
         return $this->response('APPROVED', [
@@ -159,7 +161,7 @@ class VerificationService
         ], $tokenId, $timestamp, '', null, [
             'semester'      => $session->semester ?? '',
             'academic_year' => $session->academic_year ?? '',
-        ]);
+        ], $traceId);
     }
 
     // -------------------------------------------------------------------------
@@ -171,9 +173,10 @@ class VerificationService
         ?array  $student,
         ?string $tokenId,
         string  $timestamp,
-        string  $reason  = '',
-        ?string $usedAt  = null,
-        ?array  $session = null
+        string  $reason   = '',
+        ?string $usedAt   = null,
+        ?array  $session  = null,
+        ?int    $traceId  = null
     ): array {
         $resp = [
             'status'    => $status,
@@ -181,14 +184,16 @@ class VerificationService
             'token_id'  => $tokenId,
             'timestamp' => $timestamp,
         ];
-        if ($reason !== '')   $resp['reason']  = $reason;
-        if ($usedAt !== null) $resp['used_at'] = $usedAt;
-        if ($session !== null) $resp['session'] = $session;
+        if ($reason !== '')     $resp['reason']    = $reason;
+        if ($usedAt !== null)   $resp['used_at']   = $usedAt;
+        if ($session !== null)  $resp['session']   = $session;
+        if ($traceId !== null)  $resp['trace_id']  = $traceId;
         return $resp;
     }
 
     /**
-     * Append an entry to verification_logs.
+     * Append an entry to verification_logs and return its auto-increment ID.
+     * The ID is surfaced in the result card as an audit trace reference.
      * Only called when both token_id and examiner_id FKs are confirmed valid.
      */
     private function log(
@@ -198,8 +203,8 @@ class VerificationService
         string $deviceFp,
         string $ip,
         mixed  $now
-    ): void {
-        DB::table('verification_logs')->insert([
+    ): int {
+        return (int) DB::table('verification_logs')->insertGetId([
             'token_id'    => $tokenId,
             'examiner_id' => $examinerId,
             'decision'    => $decision,

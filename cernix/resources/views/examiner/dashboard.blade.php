@@ -1575,7 +1575,8 @@ function handleResult(result, now) {
         document.getElementById('approved-token').textContent        = tokenShort;
         document.getElementById('approved-time').textContent         = now;
         document.getElementById('approved-session').textContent      = sessionStr;
-        document.getElementById('approved-examiner-ref').textContent = '✓ Verified by: ' + examinerRef;
+        const approvedTrace = result.trace_id ? ' · #SCAN-' + result.trace_id : '';
+        document.getElementById('approved-examiner-ref').textContent = '✓ Verified by: ' + examinerRef + approvedTrace;
 
         updateDesktopResult('approved', { name, matric, dept, initials, token: tokenShort, time: elapsed });
         updateLastScan('approved', name, matric, now);
@@ -1604,7 +1605,8 @@ function handleResult(result, now) {
         document.getElementById('dup-dept-row').textContent      = dept;
         document.getElementById('dup-used-at').textContent       = usedAtStr;
         document.getElementById('duplicate-time').textContent    = now;
-        document.getElementById('dup-examiner-ref').textContent  = '⚠ Scanned by: ' + examinerRef;
+        const dupTrace = result.trace_id ? ' · #SCAN-' + result.trace_id : '';
+        document.getElementById('dup-examiner-ref').textContent  = '⚠ Scanned by: ' + examinerRef + dupTrace;
 
         updateDesktopResult('duplicate', { name, matric, dept, initials, time: elapsed });
         updateLastScan('duplicate', name, 'Token already redeemed', now);
@@ -1622,7 +1624,8 @@ function handleResult(result, now) {
         document.getElementById('rejected-scan').textContent         = stats.total;
         document.getElementById('rejected-reason').textContent       = reasonLabel;
         document.getElementById('rejected-desc').textContent         = reasonDesc;
-        document.getElementById('rejected-examiner-ref').textContent = '⚠ Scanned by: ' + examinerRef;
+        const rejTrace = result.trace_id ? ' · #SCAN-' + result.trace_id : '';
+        document.getElementById('rejected-examiner-ref').textContent = '⚠ Scanned by: ' + examinerRef + rejTrace;
 
         updateDesktopResult('rejected', { time: elapsed });
         updateLastScan('rejected', 'Invalid token', reasonLabel, now);
