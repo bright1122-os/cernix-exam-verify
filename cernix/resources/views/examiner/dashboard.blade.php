@@ -196,6 +196,17 @@
         background: repeating-linear-gradient(45deg, rgba(255,255,255,.03) 0 10px, transparent 10px 20px);
         border-radius: 8px;
     }
+    /* Institutional watermark on camera standby screen.
+       .fake-hall is hidden once the live stream starts, so the
+       watermark naturally disappears with it.                   */
+    .fake-hall::after {
+        content: '';
+        position: absolute;
+        inset: -10% -17%;   /* fill the camera panel, not just fake-hall inset */
+        background: url('/aaua-logo.png') center / 36% auto no-repeat;
+        opacity: .12;
+        pointer-events: none;
+    }
 
     .reticle {
         position: absolute;
@@ -342,9 +353,23 @@
     @keyframes takeover-in { from { opacity: 0; transform: scale(.98) translateY(8px); } }
 
     /* ── Colour palettes ───────────────────────────────────────── */
-    .takeover.approved  { background: #f0fdf8; color: #064e3b; }
-    .takeover.rejected  { background: #fff5f5; color: #7f1d1d; }
-    .takeover.duplicate { background: #fffbeb; color: #78350f; }
+    .takeover.approved  { background: #f0fdf8; color: #064e3b; position: relative; }
+    .takeover.rejected  { background: #fff5f5; color: #7f1d1d; position: relative; }
+    .takeover.duplicate { background: #fffbeb; color: #78350f; position: relative; }
+
+    /* ── Institutional watermark — logo ghost behind card content ── */
+    /* Applied to each takeover overlay so the background reads like
+       printed institutional paper when the card is screenshotted       */
+    .takeover::before {
+        content: '';
+        position: fixed;
+        inset: 0;
+        background: url('/aaua-logo.png') center / 52% auto no-repeat;
+        opacity: .038;
+        pointer-events: none;
+        z-index: 0;
+    }
+    .to-card { position: relative; z-index: 1; }
 
     /* ── Card wrapper — mobile is full-bleed, desktop is centered ── */
     .to-card {

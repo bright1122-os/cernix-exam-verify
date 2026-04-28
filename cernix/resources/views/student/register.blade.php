@@ -90,7 +90,20 @@
         box-shadow: 0 24px 60px -12px rgba(0,0,0,.18), 0 8px 20px -8px rgba(0,0,0,.08);
         width: 100%; max-width: 420px;
         animation: fadeUp .5s cubic-bezier(.16,1,.3,1) both;
+        position: relative;
     }
+    /* Institutional watermark — ghost logo behind card content (printed-paper feel) */
+    .pass-card::before {
+        content: '';
+        position: absolute;
+        inset: 0;
+        background: url('/aaua-logo.png') center / 68% auto no-repeat;
+        opacity: .04;
+        pointer-events: none;
+        z-index: 0;
+        border-radius: 20px;
+    }
+    .pass-card > * { position: relative; z-index: 1; }
 
     /* Pass header — institutional white */
     .pass-hd {
