@@ -134,6 +134,13 @@
         margin-top: 12px; font-size: 10px; color: var(--ink-4);
         letter-spacing: .12em; text-transform: uppercase; font-family: 'JetBrains Mono', monospace;
     }
+    .qr-issuer-bar {
+        display: flex; align-items: center; justify-content: center;
+        gap: 7px; margin-bottom: 18px; padding: 5px 13px 5px 9px;
+        background: var(--bg-2); border: 1px solid var(--line); border-radius: 20px;
+        font-size: 9px; font-weight: 700; letter-spacing: .1em;
+        text-transform: uppercase; color: var(--ink-4);
+    }
 
     /* Identity section */
     .pass-identity { padding: 20px 22px; border-bottom: 1px solid var(--line); }
@@ -185,7 +192,7 @@
         <!-- ─ Left: Form ─ -->
         <div>
             <div style="display:flex;align-items:center;gap:12px;margin-bottom:24px;padding:14px 16px;background:var(--bg-2);border:1px solid var(--line);border-radius:14px;">
-                <img src="/aaua-logo.png" alt="AAUA" style="height:38px;width:auto;flex-shrink:0;display:block;">
+                <img src="/aaua-logo.png" alt="AAUA" style="height:38px;width:auto;flex-shrink:0;display:block;mix-blend-mode:multiply;">
                 <div>
                     <div style="font-size:12px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-2);">Adekunle Ajasin University</div>
                     <div style="font-size:10px;color:var(--ink-4);letter-spacing:.06em;margin-top:2px;">Akungba-Akoko · CERNIX Exam Access System</div>
@@ -300,6 +307,10 @@
 
             <!-- QR Code (centerpiece) -->
             <div class="pass-qr-wrap">
+                <div class="qr-issuer-bar">
+                    <img src="/aaua-logo.png" alt="" style="height:14px;width:auto;display:block;mix-blend-mode:multiply;">
+                    <span>Adekunle Ajasin University</span>
+                </div>
                 <div class="pass-qr-code" id="qr-container"></div>
                 <div class="pass-qr-meta" id="qr-meta">Session · One-time QR</div>
             </div>
@@ -334,7 +345,7 @@
                     AES-256-GCM · HMAC-SHA256
                 </div>
                 <div style="display:flex;align-items:center;gap:5px;">
-                    <img src="/aaua-logo.png" alt="AAUA" style="height:14px;width:auto;display:block;opacity:.5;">
+                    <img src="/aaua-logo.png" alt="AAUA" style="height:14px;width:auto;display:block;mix-blend-mode:multiply;opacity:.7;">
                     <span style="font-size:10px;color:var(--ink-4);letter-spacing:.06em;font-weight:600;">One-time use</span>
                 </div>
             </div>

@@ -368,6 +368,7 @@
         width: auto;
         flex-shrink: 0;
         display: block;
+        mix-blend-mode: multiply;
     }
     .to-inst-name {
         font-size: 10px;
@@ -536,8 +537,8 @@
         width: auto;
         flex-shrink: 0;
         display: block;
-        filter: brightness(0) invert(1);
-        opacity: .65;
+        mix-blend-mode: multiply;
+        opacity: .7;
     }
     .to-seal span {
         font-size: 9px;
@@ -895,7 +896,7 @@
     {{-- Topbar --}}
     <div class="ex-topbar">
         <div class="ex-brand">
-            <img src="/aaua-logo.png" alt="AAUA" style="height:32px;width:auto;flex-shrink:0;display:block;">
+            <img src="/aaua-logo.png" alt="AAUA" style="height:32px;width:auto;flex-shrink:0;display:block;mix-blend-mode:multiply;">
             <div>
                 <b>Scanner</b>
                 <span class="ex-brand-sub">Adekunle Ajasin University</span>
@@ -1200,7 +1201,7 @@
                 </div>
                 {{-- Desktop identity seal --}}
                 <div style="padding:0 20px 14px;display:flex;align-items:center;gap:6px;opacity:.45;">
-                    <img src="/aaua-logo.png" alt="" style="height:16px;width:auto;flex-shrink:0;display:block;opacity:.7;">
+                    <img src="/aaua-logo.png" alt="" style="height:16px;width:auto;flex-shrink:0;display:block;mix-blend-mode:multiply;opacity:.8;">
                     <span style="font-size:9px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-4);">Adekunle Ajasin University</span>
                 </div>
             </div>

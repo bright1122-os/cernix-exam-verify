@@ -446,7 +446,7 @@
         <a href="/" class="back" aria-label="Back to home">
             <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M15 18l-6-6 6-6"/></svg>
         </a>
-        <img src="/aaua-logo.png" alt="AAUA" style="height:26px;width:auto;flex-shrink:0;display:block;">
+        <img src="/aaua-logo.png" alt="AAUA" style="height:26px;width:auto;flex-shrink:0;display:block;mix-blend-mode:multiply;">
         <h1>Documentation</h1>
         <span class="version">v1.0</span>
     </div>

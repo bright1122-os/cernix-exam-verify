@@ -315,7 +315,7 @@
     <!-- ── Sidebar ── -->
     <div class="admin-sidebar" id="admin-sidebar">
         <div class="logo-mini" style="display:flex;align-items:center;gap:8px;padding:0 4px 0 2px;">
-            <img src="/aaua-logo.png" alt="AAUA" style="height:26px;width:auto;flex-shrink:0;display:block;">
+            <img src="/aaua-logo.png" alt="AAUA" style="height:26px;width:auto;flex-shrink:0;display:block;mix-blend-mode:multiply;">
             <span style="font-size:11px;font-weight:700;letter-spacing:.1em;color:var(--navy);">CERNIX</span>
         </div>
 
@@ -373,7 +373,7 @@
                 <button class="hamburger" onclick="openSidebar()" aria-label="Open menu">
                     <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
                 </button>
-                <img src="/aaua-logo.png" alt="AAUA" style="height:28px;width:auto;display:none;flex-shrink:0;" class="admin-logo-mobile" id="admin-logo-mobile">
+                <img src="/aaua-logo.png" alt="AAUA" style="height:28px;width:auto;display:none;flex-shrink:0;mix-blend-mode:multiply;" class="admin-logo-mobile" id="admin-logo-mobile">
                 <h1>Admin Dashboard</h1>
             </div>
             <div class="admin-header-right">
