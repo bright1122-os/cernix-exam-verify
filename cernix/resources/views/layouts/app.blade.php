@@ -36,7 +36,7 @@
                 </button>
             </div>
             <!-- Mobile nav -->
-            <div id="nav-mobile" class="hidden sm:hidden pb-3 text-sm flex-col gap-1">
+            <div id="nav-mobile" class="hidden sm:hidden pb-3 text-sm">
                 <a href="/student/register" class="block px-3 py-2 rounded hover:bg-white/10">Student Portal</a>
                 <a href="/examiner/dashboard" class="block px-3 py-2 rounded hover:bg-white/10">Examiner Portal</a>
                 <a href="/admin/dashboard" class="block px-3 py-2 rounded hover:bg-white/10">Admin Portal</a>

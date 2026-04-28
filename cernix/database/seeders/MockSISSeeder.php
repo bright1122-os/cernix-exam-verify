@@ -42,6 +42,6 @@ class MockSISSeeder extends Seeder
             ],
         ];
 
-        DB::table('mock_sis')->insert($students);
+        DB::table('mock_sis')->insertOrIgnore($students);
     }
 }
