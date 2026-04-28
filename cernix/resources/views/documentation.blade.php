@@ -452,11 +452,12 @@
 
     {{-- Hero --}}
     <div class="doc-hero">
-        <div style="display:flex;align-items:center;gap:16px;margin-bottom:20px;flex-wrap:wrap">
-            <img src="/aaua-logo.jpg" alt="Adekunle Ajasin University" style="height:52px;width:auto;object-fit:contain;display:block">
+        <div style="display:flex;align-items:center;gap:14px;margin-bottom:20px;flex-wrap:wrap">
+            <img src="/aaua-logo.png" alt="Adekunle Ajasin University" style="height:56px;width:auto;object-fit:contain;display:block;mix-blend-mode:multiply;flex-shrink:0">
             <div>
-                <div style="font-size:13px;font-weight:700;color:var(--ink);line-height:1.2">Adekunle Ajasin University</div>
-                <div style="font-size:11px;color:var(--ink-3);margin-top:2px">P.M.B 001, Akungba-Akoko, Ondo State, Nigeria</div>
+                <div style="font-size:14px;font-weight:700;color:var(--ink);line-height:1.2;letter-spacing:-.01em">Adekunle Ajasin University</div>
+                <div style="font-size:11px;color:var(--ink-3);margin-top:3px">P.M.B 001, Akungba-Akoko, Ondo State, Nigeria</div>
+                <div style="font-size:10px;color:var(--ink-4);margin-top:1px;font-style:italic">For Learning and Service</div>
             </div>
         </div>
         <div class="doc-tag">CSC 499 — Project Documentation</div>

@@ -35,8 +35,8 @@
     </div>
 
     <div class="login-body">
-        <div style="margin-bottom:20px;padding:12px 14px;background:rgba(15,32,80,.03);border:1px solid var(--line);border-radius:12px;display:flex;align-items:center;gap:12px">
-            <img src="/aaua-logo.jpg" alt="AAUA" style="height:32px;width:auto;object-fit:contain;flex-shrink:0;opacity:.85">
+        <div style="margin-bottom:20px;padding:10px 14px;background:rgba(15,32,80,.03);border:1px solid var(--line);border-radius:12px;display:flex;align-items:center;gap:12px">
+            <img src="/aaua-logo.png" alt="AAUA" style="height:36px;width:auto;object-fit:contain;flex-shrink:0;mix-blend-mode:multiply">
             <div>
                 <div style="font-size:12px;font-weight:700;color:var(--navy);line-height:1.2">Adekunle Ajasin University</div>
                 <div style="font-size:10px;color:var(--ink-4);margin-top:2px">Faculty of Computing · CERNIX Exam System</div>

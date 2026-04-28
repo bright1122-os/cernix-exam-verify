@@ -757,7 +757,7 @@
     {{-- Topbar --}}
     <div class="ex-topbar">
         <div class="ex-brand">
-            <img src="/aaua-logo.jpg" alt="AAUA" style="height:26px;width:auto;object-fit:contain;opacity:.75;flex-shrink:0">
+            <img src="/aaua-logo.png" alt="AAUA" style="height:28px;width:auto;object-fit:contain;flex-shrink:0;mix-blend-mode:multiply">
             <div>
                 <b>Scanner</b>
                 <span class="ex-brand-sub">Adekunle Ajasin University</span>
