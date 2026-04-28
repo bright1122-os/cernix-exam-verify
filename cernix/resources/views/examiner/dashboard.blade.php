@@ -1332,6 +1332,11 @@ let scanning = false, busy = false, scanStartTime = 0;
 let scanHistory = [], currentFilter = 'all';
 const csrf = document.querySelector('meta[name="csrf-token"]').content;
 
+// Deduplication: after a scan is processed, the same raw QR data is
+// suppressed for 2 s so a QR still in frame doesn't instantly re-trigger.
+let lastScannedData = null;
+let scanCooldownEnd  = 0;
+
 // Auto-advance: after a result, auto-reset after N seconds
 const AUTO_ADVANCE = { approved: 4, rejected: 5, duplicate: 5 };
 const autoTimers = {};
@@ -1491,6 +1496,8 @@ function resetScan() {
     showTakeover(null);
     busy = false;
     scanning = true;
+    // Suppress same-QR re-trigger for 2 s (QR may still be in frame)
+    scanCooldownEnd = Date.now() + 2000;
     document.getElementById('scan-prompt').textContent = 'Point at QR code';
 }
 
@@ -1604,11 +1611,20 @@ function handleResult(result, now) {
 
 async function handleQRCode(rawData) {
     if (busy) return;
+    // Suppress same QR within cooldown window (prevents double-scan on dismiss)
+    if (rawData === lastScannedData && Date.now() < scanCooldownEnd) return;
+
     busy    = true;
     scanning = false;
+    lastScannedData = rawData;
 
     let qrData;
     try { qrData = JSON.parse(rawData); } catch { busy = false; scanning = true; return; }
+
+    // Silently ignore non-CERNIX QR codes (e.g. website URLs, product codes)
+    if (!qrData || typeof qrData !== 'object' || !qrData.token_id) {
+        busy = false; scanning = true; return;
+    }
 
     const now = new Date().toLocaleTimeString();
     scanStartTime = Date.now();
@@ -1670,7 +1686,7 @@ function scanFrame() {
         const ctx = canvas.getContext('2d');
         ctx.drawImage(video, 0, 0);
         const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-        const code = jsQR(imageData.data, imageData.width, imageData.height, { inversionAttempts: 'dontInvert' });
+        const code = jsQR(imageData.data, imageData.width, imageData.height, { inversionAttempts: 'attemptBoth' });
         if (code?.data) { handleQRCode(code.data); }
     }
     requestAnimationFrame(scanFrame);
