@@ -365,7 +365,7 @@
         position: fixed;
         inset: 0;
         background: url('/aaua-logo.png') center / 52% auto no-repeat;
-        opacity: .038;
+        opacity: .09;
         pointer-events: none;
         z-index: 0;
     }
@@ -690,6 +690,157 @@
         border-color: rgba(255,255,255,.85);
     }
     .to-bottom button.primary:hover { background: rgba(255,255,255,.9); }
+
+    /* ── Document accent stripe (top of card) ────────────────────── */
+    .to-doc-accent {
+        height: 5px;
+        background: currentColor;
+        opacity: .45;
+        flex-shrink: 0;
+    }
+
+    /* ── Document type label in header ──────────────────────────── */
+    .to-doc-type {
+        font-size: 8px;
+        font-weight: 700;
+        letter-spacing: .14em;
+        text-transform: uppercase;
+        opacity: .45;
+        display: block;
+        margin-bottom: 2px;
+        text-align: right;
+    }
+
+    /* ── Section header labels ───────────────────────────────────── */
+    .to-section-label {
+        padding: 10px 18px 5px;
+        font-size: 8px;
+        font-weight: 700;
+        letter-spacing: .13em;
+        text-transform: uppercase;
+        opacity: .38;
+        flex-shrink: 0;
+    }
+
+    /* ── Encoded Verification Data section ───────────────────────── */
+    .to-enc-section {
+        margin: 8px 18px 0;
+        border: 1px solid rgba(0,0,0,.1);
+        border-radius: 10px;
+        background: rgba(0,0,0,.03);
+        overflow: hidden;
+        flex-shrink: 0;
+    }
+    .to-enc-head {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 8px 11px;
+        cursor: pointer;
+        user-select: none;
+        -webkit-user-select: none;
+        transition: background .12s;
+    }
+    .to-enc-head:hover { background: rgba(0,0,0,.04); }
+    .to-enc-title {
+        font-size: 9px;
+        font-weight: 700;
+        letter-spacing: .1em;
+        text-transform: uppercase;
+        opacity: .5;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+    }
+    .to-enc-chevron {
+        font-size: 10px;
+        opacity: .35;
+        transition: transform .2s cubic-bezier(.2,.8,.3,1);
+        flex-shrink: 0;
+    }
+    .to-enc-section.open .to-enc-chevron { transform: rotate(180deg); }
+    .to-enc-body {
+        display: none;
+        padding: 0 11px 10px;
+        flex-direction: column;
+        gap: 8px;
+        border-top: 1px solid rgba(0,0,0,.07);
+    }
+    .to-enc-section.open .to-enc-body { display: flex; }
+    .to-enc-row { display: flex; flex-direction: column; gap: 3px; }
+    .to-enc-lbl {
+        font-size: 8px;
+        font-weight: 700;
+        letter-spacing: .09em;
+        text-transform: uppercase;
+        opacity: .4;
+        padding-top: 8px;
+    }
+    .to-enc-val {
+        font-family: 'JetBrains Mono', monospace;
+        font-size: 9px;
+        word-break: break-all;
+        white-space: pre-wrap;
+        line-height: 1.75;
+        opacity: .6;
+        background: rgba(0,0,0,.04);
+        padding: 7px 9px;
+        border-radius: 7px;
+        border: 1px solid rgba(0,0,0,.07);
+    }
+
+    /* ── Verification document footer ────────────────────────────── */
+    .to-footer {
+        margin-top: auto;
+        padding: 10px 18px 8px;
+        border-top: 1px solid rgba(0,0,0,.07);
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 10px;
+        flex-shrink: 0;
+    }
+    .to-footer-seal {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        opacity: .5;
+        min-width: 0;
+    }
+    .to-footer-seal img {
+        height: 18px;
+        width: auto;
+        flex-shrink: 0;
+        display: block;
+    }
+    .to-footer-seal-text {
+        display: flex;
+        flex-direction: column;
+        gap: 1px;
+        min-width: 0;
+    }
+    .to-footer-seal-text .seal-inst {
+        font-size: 9px;
+        font-weight: 700;
+        letter-spacing: .08em;
+        text-transform: uppercase;
+    }
+    .to-footer-seal-text .seal-ref {
+        font-size: 8px;
+        font-family: 'JetBrains Mono', monospace;
+        opacity: .75;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+    .to-footer-trace {
+        font-size: 8px;
+        font-family: 'JetBrains Mono', monospace;
+        opacity: .38;
+        text-align: right;
+        flex-shrink: 0;
+        letter-spacing: .04em;
+    }
 
     /* ── Desktop layout ──────────────────────────────────────────── */
     @media (min-width: 768px) {
@@ -1039,12 +1190,16 @@
             {{-- APPROVED takeover --}}
             <div class="takeover approved" id="takeover-approved">
               <div class="to-card">
+                <div class="to-doc-accent"></div>
                 <div class="to-inst-bar">
                     <div class="to-inst-left">
                         <img src="/aaua-logo.png" alt="AAUA">
                         <div class="to-inst-name">Adekunle Ajasin University<span>CERNIX · Secure Exam Verification</span></div>
                     </div>
-                    <span class="to-inst-time" id="approved-time">--:--</span>
+                    <div>
+                        <span class="to-doc-type">Verification Document</span>
+                        <span class="to-inst-time" id="approved-time">--:--</span>
+                    </div>
                 </div>
                 <div class="to-hero">
                     <div class="to-icon">
@@ -1057,7 +1212,8 @@
                         <div class="to-lifecycle"><span class="lc-dot"></span>UNUSED → USED</div>
                     </div>
                 </div>
-                <div class="to-student-card">
+                <div class="to-section-label">Student Information</div>
+                <div class="to-student-card" style="margin-top:4px;">
                     <div class="to-sc-row">
                         <div class="sc-avatar" id="approved-avatar">A</div>
                         <div class="to-sc-info">
@@ -1068,7 +1224,8 @@
                     <div class="to-sc-divider"></div>
                     <div class="to-sc-dept" id="approved-dept-row">—</div>
                 </div>
-                <div class="meta-row">
+                <div class="to-section-label">Verification Details</div>
+                <div class="meta-row" style="margin-top:4px;">
                     <div class="meta-cell">
                         <div class="k">Department</div>
                         <div class="v" id="approved-dept">—</div>
@@ -1086,10 +1243,34 @@
                         <div class="v">Yes</div>
                     </div>
                 </div>
-                <div class="to-examiner-ref" id="approved-examiner-ref">Verified by: Examiner</div>
-                <div class="to-seal" style="margin-top:auto;">
-                    <img src="/aaua-logo.png" alt="">
-                    <span>Adekunle Ajasin University</span>
+                <div class="to-enc-section" id="approved-enc">
+                    <div class="to-enc-head" onclick="toggleEnc('approved-enc')">
+                        <div class="to-enc-title">
+                            <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg>
+                            Encoded Verification Data
+                        </div>
+                        <span class="to-enc-chevron">▾</span>
+                    </div>
+                    <div class="to-enc-body">
+                        <div class="to-enc-row">
+                            <div class="to-enc-lbl">Encrypted Payload (AES-256-GCM)</div>
+                            <div class="to-enc-val" id="approved-enc-payload">—</div>
+                        </div>
+                        <div class="to-enc-row">
+                            <div class="to-enc-lbl">HMAC Signature (SHA-256)</div>
+                            <div class="to-enc-val" id="approved-enc-hmac">—</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="to-footer">
+                    <div class="to-footer-seal">
+                        <img src="/aaua-logo.png" alt="">
+                        <div class="to-footer-seal-text">
+                            <span class="seal-inst">Adekunle Ajasin University</span>
+                            <span class="seal-ref" id="approved-examiner-ref">Verified by: Examiner</span>
+                        </div>
+                    </div>
+                    <div class="to-footer-trace" id="approved-trace-id"></div>
                 </div>
                 <div class="to-countdown" id="countdown-approved">
                     <div class="to-countdown-track">
@@ -1107,12 +1288,16 @@
             {{-- REJECTED takeover --}}
             <div class="takeover rejected" id="takeover-rejected">
               <div class="to-card">
+                <div class="to-doc-accent"></div>
                 <div class="to-inst-bar">
                     <div class="to-inst-left">
                         <img src="/aaua-logo.png" alt="AAUA">
                         <div class="to-inst-name">Adekunle Ajasin University<span>CERNIX · Secure Exam Verification</span></div>
                     </div>
-                    <span class="to-inst-time" id="rejected-time">--:--</span>
+                    <div>
+                        <span class="to-doc-type">Verification Document</span>
+                        <span class="to-inst-time" id="rejected-time">--:--</span>
+                    </div>
                 </div>
                 <div class="to-hero">
                     <div class="to-icon">
@@ -1125,7 +1310,8 @@
                         <div class="to-lifecycle"><span class="lc-dot"></span>REJECTED</div>
                     </div>
                 </div>
-                <div class="meta-row" style="margin-top:18px;">
+                <div class="to-section-label">Rejection Details</div>
+                <div class="meta-row" style="margin-top:4px;">
                     <div class="meta-cell">
                         <div class="k">Scan no.</div>
                         <div class="v" id="rejected-scan">1</div>
@@ -1143,10 +1329,34 @@
                         <div class="v">Access Denied</div>
                     </div>
                 </div>
-                <div class="to-examiner-ref" id="rejected-examiner-ref">Scanned by: Examiner</div>
-                <div class="to-seal" style="margin-top:auto;">
-                    <img src="/aaua-logo.png" alt="">
-                    <span>Adekunle Ajasin University</span>
+                <div class="to-enc-section" id="rejected-enc">
+                    <div class="to-enc-head" onclick="toggleEnc('rejected-enc')">
+                        <div class="to-enc-title">
+                            <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg>
+                            Encoded Verification Data
+                        </div>
+                        <span class="to-enc-chevron">▾</span>
+                    </div>
+                    <div class="to-enc-body">
+                        <div class="to-enc-row">
+                            <div class="to-enc-lbl">Encrypted Payload (AES-256-GCM)</div>
+                            <div class="to-enc-val" id="rejected-enc-payload">—</div>
+                        </div>
+                        <div class="to-enc-row">
+                            <div class="to-enc-lbl">HMAC Signature (SHA-256)</div>
+                            <div class="to-enc-val" id="rejected-enc-hmac">—</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="to-footer">
+                    <div class="to-footer-seal">
+                        <img src="/aaua-logo.png" alt="">
+                        <div class="to-footer-seal-text">
+                            <span class="seal-inst">Adekunle Ajasin University</span>
+                            <span class="seal-ref" id="rejected-examiner-ref">Scanned by: Examiner</span>
+                        </div>
+                    </div>
+                    <div class="to-footer-trace" id="rejected-trace-id"></div>
                 </div>
                 <div class="to-countdown" id="countdown-rejected">
                     <div class="to-countdown-track">
@@ -1164,12 +1374,16 @@
             {{-- DUPLICATE takeover --}}
             <div class="takeover duplicate" id="takeover-duplicate">
               <div class="to-card">
+                <div class="to-doc-accent"></div>
                 <div class="to-inst-bar">
                     <div class="to-inst-left">
                         <img src="/aaua-logo.png" alt="AAUA">
                         <div class="to-inst-name">Adekunle Ajasin University<span>CERNIX · Secure Exam Verification</span></div>
                     </div>
-                    <span class="to-inst-time" id="duplicate-time">--:--</span>
+                    <div>
+                        <span class="to-doc-type">Verification Document</span>
+                        <span class="to-inst-time" id="duplicate-time">--:--</span>
+                    </div>
                 </div>
                 <div class="to-hero">
                     <div class="to-icon">
@@ -1182,7 +1396,8 @@
                         <div class="to-lifecycle"><span class="lc-dot"></span>USED (locked)</div>
                     </div>
                 </div>
-                <div class="to-student-card">
+                <div class="to-section-label">Student on Record</div>
+                <div class="to-student-card" style="margin-top:4px;">
                     <div class="to-sc-row">
                         <div class="sc-avatar" id="dup-avatar">D</div>
                         <div class="to-sc-info">
@@ -1193,7 +1408,8 @@
                     <div class="to-sc-divider"></div>
                     <div class="to-sc-dept" id="dup-dept-row">—</div>
                 </div>
-                <div class="meta-row">
+                <div class="to-section-label">Duplicate Details</div>
+                <div class="meta-row" style="margin-top:4px;">
                     <div class="meta-cell">
                         <div class="k">Department</div>
                         <div class="v" id="dup-dept">—</div>
@@ -1211,10 +1427,34 @@
                         <div class="v">Yes</div>
                     </div>
                 </div>
-                <div class="to-examiner-ref" id="dup-examiner-ref">Scanned by: Examiner</div>
-                <div class="to-seal" style="margin-top:auto;">
-                    <img src="/aaua-logo.png" alt="">
-                    <span>Adekunle Ajasin University</span>
+                <div class="to-enc-section" id="dup-enc">
+                    <div class="to-enc-head" onclick="toggleEnc('dup-enc')">
+                        <div class="to-enc-title">
+                            <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg>
+                            Encoded Verification Data
+                        </div>
+                        <span class="to-enc-chevron">▾</span>
+                    </div>
+                    <div class="to-enc-body">
+                        <div class="to-enc-row">
+                            <div class="to-enc-lbl">Encrypted Payload (AES-256-GCM)</div>
+                            <div class="to-enc-val" id="dup-enc-payload">—</div>
+                        </div>
+                        <div class="to-enc-row">
+                            <div class="to-enc-lbl">HMAC Signature (SHA-256)</div>
+                            <div class="to-enc-val" id="dup-enc-hmac">—</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="to-footer">
+                    <div class="to-footer-seal">
+                        <img src="/aaua-logo.png" alt="">
+                        <div class="to-footer-seal-text">
+                            <span class="seal-inst">Adekunle Ajasin University</span>
+                            <span class="seal-ref" id="dup-examiner-ref">Scanned by: Examiner</span>
+                        </div>
+                    </div>
+                    <div class="to-footer-trace" id="dup-trace-id"></div>
                 </div>
                 <div class="to-countdown" id="countdown-duplicate">
                     <div class="to-countdown-track">
@@ -1413,6 +1653,16 @@ function cancelAllAutoAdvance() {
     ['approved', 'rejected', 'duplicate'].forEach(t => cancelAutoAdvance(t));
 }
 
+function toggleEnc(id) {
+    const el = document.getElementById(id);
+    if (el) el.classList.toggle('open');
+}
+
+function formatEncData(str) {
+    if (!str) return '—';
+    return str.replace(/(.{44})/g, '$1\n').trimEnd();
+}
+
 function updateStats() {
     document.getElementById('total-scans').textContent    = stats.total;
     document.getElementById('approved-count').textContent = stats.approved;
@@ -1552,7 +1802,9 @@ const REASON_DESCS = {
     'concurrent_scan':    'Token was simultaneously scanned by another device',
 };
 
-function handleResult(result, now) {
+function handleResult(result, now, encPayload, encHmac) {
+    encPayload = encPayload || '';
+    encHmac    = encHmac    || '';
     stats.total++;
     hideVerifying();
     const elapsed    = scanStartTime ? Math.round(Date.now() - scanStartTime) + 'ms' : '—';
@@ -1577,8 +1829,13 @@ function handleResult(result, now) {
         document.getElementById('approved-token').textContent        = tokenShort;
         document.getElementById('approved-time').textContent         = now;
         document.getElementById('approved-session').textContent      = sessionStr;
-        const approvedTrace = result.trace_id ? ' · #SCAN-' + result.trace_id : '';
-        document.getElementById('approved-examiner-ref').textContent = '✓ Verified by: ' + examinerRef + approvedTrace;
+        document.getElementById('approved-examiner-ref').textContent = 'Verified by: ' + examinerRef;
+        const approvedTraceEl = document.getElementById('approved-trace-id');
+        if (approvedTraceEl) approvedTraceEl.textContent = result.trace_id ? '#SCAN-' + result.trace_id : '';
+        const approvedEncPayloadEl = document.getElementById('approved-enc-payload');
+        if (approvedEncPayloadEl) approvedEncPayloadEl.textContent = formatEncData(encPayload) || '—';
+        const approvedEncHmacEl = document.getElementById('approved-enc-hmac');
+        if (approvedEncHmacEl) approvedEncHmacEl.textContent = encHmac || '—';
 
         updateDesktopResult('approved', { name, matric, dept, initials, token: tokenShort, time: elapsed });
         updateLastScan('approved', name, matric, now);
@@ -1607,8 +1864,13 @@ function handleResult(result, now) {
         document.getElementById('dup-dept-row').textContent      = dept;
         document.getElementById('dup-used-at').textContent       = usedAtStr;
         document.getElementById('duplicate-time').textContent    = now;
-        const dupTrace = result.trace_id ? ' · #SCAN-' + result.trace_id : '';
-        document.getElementById('dup-examiner-ref').textContent  = '⚠ Scanned by: ' + examinerRef + dupTrace;
+        document.getElementById('dup-examiner-ref').textContent  = 'Scanned by: ' + examinerRef;
+        const dupTraceEl = document.getElementById('dup-trace-id');
+        if (dupTraceEl) dupTraceEl.textContent = result.trace_id ? '#SCAN-' + result.trace_id : '';
+        const dupEncPayloadEl = document.getElementById('dup-enc-payload');
+        if (dupEncPayloadEl) dupEncPayloadEl.textContent = formatEncData(encPayload) || '—';
+        const dupEncHmacEl = document.getElementById('dup-enc-hmac');
+        if (dupEncHmacEl) dupEncHmacEl.textContent = encHmac || '—';
 
         updateDesktopResult('duplicate', { name, matric, dept, initials, time: elapsed });
         updateLastScan('duplicate', name, 'Token already redeemed', now);
@@ -1626,8 +1888,13 @@ function handleResult(result, now) {
         document.getElementById('rejected-scan').textContent         = stats.total;
         document.getElementById('rejected-reason').textContent       = reasonLabel;
         document.getElementById('rejected-desc').textContent         = reasonDesc;
-        const rejTrace = result.trace_id ? ' · #SCAN-' + result.trace_id : '';
-        document.getElementById('rejected-examiner-ref').textContent = '⚠ Scanned by: ' + examinerRef + rejTrace;
+        document.getElementById('rejected-examiner-ref').textContent = 'Scanned by: ' + examinerRef;
+        const rejTraceEl = document.getElementById('rejected-trace-id');
+        if (rejTraceEl) rejTraceEl.textContent = result.trace_id ? '#SCAN-' + result.trace_id : '';
+        const rejEncPayloadEl = document.getElementById('rejected-enc-payload');
+        if (rejEncPayloadEl) rejEncPayloadEl.textContent = formatEncData(encPayload) || '—';
+        const rejEncHmacEl = document.getElementById('rejected-enc-hmac');
+        if (rejEncHmacEl) rejEncHmacEl.textContent = encHmac || '—';
 
         updateDesktopResult('rejected', { time: elapsed });
         updateLastScan('rejected', 'Invalid token', reasonLabel, now);
@@ -1657,6 +1924,9 @@ async function handleQRCode(rawData) {
         busy = false; scanning = true; return;
     }
 
+    const encPayload = (qrData.encrypted_payload || '').toString();
+    const encHmac    = (qrData.hmac_signature    || '').toString();
+
     const now = new Date().toLocaleTimeString();
     scanStartTime = Date.now();
     document.getElementById('scan-prompt').textContent = 'QR detected…';
@@ -1682,7 +1952,7 @@ async function handleQRCode(rawData) {
         if (resp.status === 401) { window.location.href = '/examiner/login'; return; }
 
         const result = await resp.json();
-        handleResult(result, now);
+        handleResult(result, now, encPayload, encHmac);
 
     } catch (err) {
         hideVerifying();
@@ -1736,6 +2006,8 @@ function simulateScan(decision) {
     document.getElementById('scan-prompt').textContent = 'QR detected…';
     showVerifying('Scanning…');
     setTimeout(() => { showVerifying('Validating…'); }, 300);
+    const mockEncPayload = 'AbC3dEfGhIjKlMnOpQrStUvWxYzAbC3dEfGhIjKlMnOpQrStUvWxYzAbC3dEfGhIjKlMn+Op1QrS2tUv3wXy4Z==';
+    const mockEncHmac    = 'a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6e7f8a9b0c1d2e3f4a5b6c7d8e9f0a1b2';
     setTimeout(() => {
         handleResult({
             status:   decision,
@@ -1749,7 +2021,7 @@ function simulateScan(decision) {
             reason:   decision === 'REJECTED' ? 'tampered_token' : (decision === 'DUPLICATE' ? 'token_already_used' : ''),
             used_at:  decision === 'DUPLICATE' ? new Date(Date.now() - 3600000).toISOString() : null,
             session:  decision === 'APPROVED'  ? { semester: 'First', academic_year: '2024/2025' } : null,
-        }, now);
+        }, now, mockEncPayload, mockEncHmac);
     }, 800);
 }
 
