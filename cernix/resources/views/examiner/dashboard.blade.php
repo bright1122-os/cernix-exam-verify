@@ -588,6 +588,27 @@
         font-size: 18px;
         color: inherit;
     }
+    /* Shimmer while passport photo is in-flight */
+    .sc-passport-wrap.photo-loading {
+        background: rgba(0,0,0,.08);
+    }
+    .sc-passport-wrap.photo-loading::after {
+        content: '';
+        position: absolute;
+        inset: 0;
+        background: linear-gradient(90deg,
+            transparent 0%,
+            rgba(255,255,255,.38) 50%,
+            transparent 100%);
+        background-size: 200% 100%;
+        animation: photo-shimmer 1.1s ease-in-out infinite;
+        border-radius: inherit;
+        pointer-events: none;
+    }
+    @keyframes photo-shimmer {
+        0%   { background-position: 200% 0; }
+        100% { background-position: -200% 0; }
+    }
     .to-sc-info { flex: 1; min-width: 0; }
     .to-sc-info .nm {
         font-size: 14px;
@@ -1655,19 +1676,77 @@ let scanning = false, busy = false, scanStartTime = 0;
 let scanHistory = [], currentFilter = 'all';
 const csrf = document.querySelector('meta[name="csrf-token"]').content;
 
-function setPassportPhoto(imgId, fallbackId, photoPath, initials) {
-    const img = document.getElementById(imgId);
-    const fb  = document.getElementById(fallbackId);
-    if (!img) return;
-    if (photoPath) {
-        img.onload  = () => { img.style.display = 'block'; if (fb) fb.style.display = 'none'; };
-        img.onerror = () => { img.style.display = 'none';  if (fb) { fb.style.display = ''; fb.textContent = initials; } };
-        img.src = photoPath.startsWith('/') ? photoPath : '/' + photoPath;
-        if (fb) fb.textContent = initials;
-    } else {
-        img.style.display = 'none';
-        if (fb) { fb.style.display = ''; fb.textContent = initials; }
+// ── Identity photo helpers ───────────────────────────────────────────────
+
+// Resolved thumbnail URL cache: url → true | false | 'pending'
+const photoCache = new Map();
+
+// Convert any photo_path to the thumbnail endpoint
+function thumbUrl(photoPath) {
+    if (!photoPath) return null;
+    const base = photoPath.replace(/^\//, '').split('/').pop();
+    return '/photo-thumb/' + base;
+}
+
+// Fire-and-forget preload — warms the browser HTTP cache so the image is
+// already in-flight (or fully cached) before setPassportPhoto needs it.
+function preloadPhoto(photoPath) {
+    const url = thumbUrl(photoPath);
+    if (!url || photoCache.has(url)) return;
+    photoCache.set(url, 'pending');
+    const img = new Image();
+    img.onload  = () => photoCache.set(url, true);
+    img.onerror = () => photoCache.set(url, false);
+    img.src = url;
+}
+
+// Set passport photo in a frame element.
+// Shows a shimmer placeholder while loading.
+// Calls onReady() once the image is visible (or fallback is shown).
+// onReady is optional — omit for cases that don't need a callback (desktop panel).
+function setPassportPhoto(imgId, fallbackId, photoPath, initials, onReady) {
+    const img  = document.getElementById(imgId);
+    const fb   = document.getElementById(fallbackId);
+    const wrap = img && img.closest('.sc-passport-wrap');
+    if (!img) { if (onReady) onReady(); return; }
+
+    const url = thumbUrl(photoPath);
+
+    const finish = (ok) => {
+        if (wrap) wrap.classList.remove('photo-loading');
+        if (ok) {
+            img.style.display = 'block';
+            if (fb) fb.style.display = 'none';
+        } else {
+            img.style.display = 'none';
+            if (fb) { fb.style.display = ''; fb.textContent = initials; }
+        }
+        if (onReady) onReady();
+    };
+
+    if (!url) { finish(false); return; }
+
+    // Already fully loaded in cache — instant show
+    if (photoCache.get(url) === true) {
+        img.src = url;
+        img.style.display = 'block';
+        if (fb) fb.style.display = 'none';
+        if (wrap) wrap.classList.remove('photo-loading');
+        if (onReady) onReady();
+        return;
     }
+
+    // Confirmed error — show fallback immediately
+    if (photoCache.get(url) === false) { finish(false); return; }
+
+    // In-flight or not started — shimmer + dots while waiting
+    img.style.display = 'none';
+    if (fb) { fb.style.display = ''; fb.textContent = '···'; }
+    if (wrap) wrap.classList.add('photo-loading');
+
+    img.onload  = () => { photoCache.set(url, true);  finish(true);  };
+    img.onerror = () => { photoCache.set(url, false); finish(false); };
+    img.src = url;
 }
 
 // Deduplication: after a scan is processed, the same raw QR data is
@@ -1894,7 +1973,9 @@ function handleResult(result, now, encPayload, encHmac) {
         const sess       = result.session || {};
         const sessionStr = [sess.semester, sess.academic_year].filter(Boolean).join(' ') || '—';
 
-        setPassportPhoto('approved-photo', 'approved-initials', s.photo_path, initials);
+        // Kick off image fetch immediately — before any DOM work
+        if (s.photo_path) preloadPhoto(s.photo_path);
+
         document.getElementById('approved-name').textContent         = name;
         document.getElementById('approved-matric').textContent       = matric;
         document.getElementById('approved-dept').textContent         = dept;
@@ -1914,7 +1995,11 @@ function handleResult(result, now, encPayload, encHmac) {
         updateLastScan('approved', name, matric, now);
         addToHistory('approved', name, matric, now);
         showTakeover('approved');
-        startAutoAdvance('approved');
+
+        // Timer starts ONLY after identity photo is visible (or fallback is shown)
+        setPassportPhoto('approved-photo', 'approved-initials', s.photo_path, initials, () => {
+            startAutoAdvance('approved');
+        });
 
     } else if (result.status === 'DUPLICATE') {
         stats.duplicate++;
@@ -1924,13 +2009,15 @@ function handleResult(result, now, encPayload, encHmac) {
         const dept     = s.department || '—';
         const initials = name.split(' ').map(w => w[0]).slice(0, 2).join('').toUpperCase();
 
+        // Kick off image fetch immediately — before any DOM work
+        if (s.photo_path) preloadPhoto(s.photo_path);
+
         // Format "first used at" timestamp
         let usedAtStr = '—';
         if (result.used_at) {
             try { usedAtStr = new Date(result.used_at).toLocaleString(); } catch {}
         }
 
-        setPassportPhoto('dup-photo', 'dup-initials', s.photo_path, initials);
         document.getElementById('dup-name').textContent          = name;
         document.getElementById('dup-matric').textContent        = matric;
         document.getElementById('dup-dept').textContent          = dept;
@@ -1949,7 +2036,11 @@ function handleResult(result, now, encPayload, encHmac) {
         updateLastScan('duplicate', name, 'Token already redeemed', now);
         addToHistory('duplicate', name, 'Already used', now);
         showTakeover('duplicate');
-        startAutoAdvance('duplicate');
+
+        // Timer starts ONLY after identity photo is visible (or fallback is shown)
+        setPassportPhoto('dup-photo', 'dup-initials', s.photo_path, initials, () => {
+            startAutoAdvance('duplicate');
+        });
 
     } else {
         stats.rejected++;
