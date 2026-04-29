@@ -353,9 +353,9 @@
     @keyframes takeover-in { from { opacity: 0; transform: scale(.98) translateY(8px); } }
 
     /* ── Colour palettes ───────────────────────────────────────── */
-    .takeover.approved  { background: #f0fdf8; color: #064e3b; position: relative; }
-    .takeover.rejected  { background: #fff5f5; color: #7f1d1d; position: relative; }
-    .takeover.duplicate { background: #fffbeb; color: #78350f; position: relative; }
+    .takeover.approved  { background: #f0fdf8; color: #064e3b; }
+    .takeover.rejected  { background: #fff5f5; color: #7f1d1d; }
+    .takeover.duplicate { background: #fffbeb; color: #78350f; }
 
     /* ── Institutional watermark — logo ghost behind card content ── */
     /* Applied to each takeover overlay so the background reads like
@@ -374,7 +374,8 @@
     /* ── Card wrapper — mobile is full-bleed, desktop is centered ── */
     .to-card {
         width: 100%;
-        flex: 1;
+        flex: none;
+        min-height: 100%;
         display: flex;
         flex-direction: column;
     }
@@ -386,6 +387,7 @@
         }
         .to-card {
             flex: none;
+            min-height: 0;
             width: 100%;
             max-width: 480px;
             border-radius: 20px;
