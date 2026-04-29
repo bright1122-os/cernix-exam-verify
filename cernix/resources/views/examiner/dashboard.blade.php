@@ -556,6 +556,36 @@
         flex-shrink: 0;
         color: inherit;
     }
+
+    /* Passport photo frame in identity blocks */
+    .sc-passport-wrap {
+        width: 56px;
+        height: 70px;
+        border-radius: 5px;
+        overflow: hidden;
+        border: 2px solid rgba(0,0,0,.16);
+        flex-shrink: 0;
+        background: rgba(0,0,0,.07);
+        position: relative;
+        box-shadow: 0 2px 8px rgba(0,0,0,.15);
+    }
+    .sc-passport-img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        object-position: center top;
+        display: block;
+    }
+    .sc-passport-fallback {
+        position: absolute;
+        inset: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: 700;
+        font-size: 18px;
+        color: inherit;
+    }
     .to-sc-info { flex: 1; min-width: 0; }
     .to-sc-info .nm {
         font-size: 14px;
@@ -952,9 +982,9 @@
             transition: border-color .15s;
         }
         .res-av {
-            width: 46px;
-            height: 46px;
-            border-radius: 50%;
+            width: 50px;
+            height: 63px;
+            border-radius: 6px;
             background: var(--navy);
             color: #fff;
             display: flex;
@@ -963,6 +993,22 @@
             font-weight: 700;
             font-size: 16px;
             flex-shrink: 0;
+            overflow: hidden;
+            border: 1.5px solid var(--line-2);
+            position: relative;
+        }
+        .res-av-photo {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            object-position: center top;
+            display: none;
+            position: absolute;
+            inset: 0;
+        }
+        .res-av-initials {
+            position: relative;
+            z-index: 1;
         }
         .res-card .nm { font-size: 14px; font-weight: 600; margin: 0; color: var(--ink); }
         .res-card .mt { font-size: 11px; color: var(--ink-3); margin: 3px 0 0; font-family: 'JetBrains Mono', monospace; }
@@ -1215,7 +1261,10 @@
                 <div class="to-section-label">Student Information</div>
                 <div class="to-student-card" style="margin-top:4px;">
                     <div class="to-sc-row">
-                        <div class="sc-avatar" id="approved-avatar">A</div>
+                        <div class="sc-passport-wrap">
+                            <img class="sc-passport-img" id="approved-photo" src="" alt="">
+                            <div class="sc-passport-fallback" id="approved-initials">A</div>
+                        </div>
                         <div class="to-sc-info">
                             <p class="nm" id="approved-name">Student Name</p>
                             <p class="mt" id="approved-matric">—</p>
@@ -1399,7 +1448,10 @@
                 <div class="to-section-label">Student on Record</div>
                 <div class="to-student-card" style="margin-top:4px;">
                     <div class="to-sc-row">
-                        <div class="sc-avatar" id="dup-avatar">D</div>
+                        <div class="sc-passport-wrap">
+                            <img class="sc-passport-img" id="dup-photo" src="" alt="">
+                            <div class="sc-passport-fallback" id="dup-initials">D</div>
+                        </div>
                         <div class="to-sc-info">
                             <p class="nm" id="dup-name">Student Name</p>
                             <p class="mt" id="dup-matric">—</p>
@@ -1526,7 +1578,10 @@
                 </div>
                 <div class="res-student" id="res-student">
                     <div class="res-card">
-                        <div class="res-av" id="res-av">—</div>
+                        <div class="res-av" id="res-av">
+                            <img class="res-av-photo" id="res-av-photo" src="" alt="">
+                            <span class="res-av-initials" id="res-av-initials">—</span>
+                        </div>
                         <div style="flex:1;min-width:0">
                             <p class="nm" id="res-name">Student</p>
                             <p class="mt" id="res-matric">—</p>
@@ -1597,6 +1652,21 @@ let stats = { total: 0, approved: 0, rejected: 0, duplicate: 0 };
 let scanning = false, busy = false, scanStartTime = 0;
 let scanHistory = [], currentFilter = 'all';
 const csrf = document.querySelector('meta[name="csrf-token"]').content;
+
+function setPassportPhoto(imgId, fallbackId, photoPath, initials) {
+    const img = document.getElementById(imgId);
+    const fb  = document.getElementById(fallbackId);
+    if (!img) return;
+    if (photoPath) {
+        img.onload  = () => { img.style.display = 'block'; if (fb) fb.style.display = 'none'; };
+        img.onerror = () => { img.style.display = 'none';  if (fb) { fb.style.display = ''; fb.textContent = initials; } };
+        img.src = photoPath.startsWith('/') ? photoPath : '/' + photoPath;
+        if (fb) fb.textContent = initials;
+    } else {
+        img.style.display = 'none';
+        if (fb) { fb.style.display = ''; fb.textContent = initials; }
+    }
+}
 
 // Deduplication: after a scan is processed, the same raw QR data is
 // suppressed for 2 s so a QR still in frame doesn't instantly re-trigger.
@@ -1745,7 +1815,8 @@ function updateDesktopResult(type, data) {
     document.getElementById('res-time').textContent = data.time || '—';
 
     if (data.name) {
-        document.getElementById('res-av').textContent      = data.initials || '?';
+        document.getElementById('res-av-initials').textContent = data.initials || '?';
+        setPassportPhoto('res-av-photo', 'res-av-initials', data.photoPath, data.initials || '?');
         document.getElementById('res-name').textContent    = data.name;
         document.getElementById('res-matric').textContent  = data.matric || '—';
         document.getElementById('res-dept').textContent    = data.dept || '—';
@@ -1821,7 +1892,7 @@ function handleResult(result, now, encPayload, encHmac) {
         const sess       = result.session || {};
         const sessionStr = [sess.semester, sess.academic_year].filter(Boolean).join(' ') || '—';
 
-        document.getElementById('approved-avatar').textContent       = initials;
+        setPassportPhoto('approved-photo', 'approved-initials', s.photo_path, initials);
         document.getElementById('approved-name').textContent         = name;
         document.getElementById('approved-matric').textContent       = matric;
         document.getElementById('approved-dept').textContent         = dept;
@@ -1837,7 +1908,7 @@ function handleResult(result, now, encPayload, encHmac) {
         const approvedEncHmacEl = document.getElementById('approved-enc-hmac');
         if (approvedEncHmacEl) approvedEncHmacEl.textContent = encHmac || '—';
 
-        updateDesktopResult('approved', { name, matric, dept, initials, token: tokenShort, time: elapsed });
+        updateDesktopResult('approved', { name, matric, dept, initials, token: tokenShort, time: elapsed, photoPath: s.photo_path });
         updateLastScan('approved', name, matric, now);
         addToHistory('approved', name, matric, now);
         showTakeover('approved');
@@ -1857,7 +1928,7 @@ function handleResult(result, now, encPayload, encHmac) {
             try { usedAtStr = new Date(result.used_at).toLocaleString(); } catch {}
         }
 
-        document.getElementById('dup-avatar').textContent        = initials;
+        setPassportPhoto('dup-photo', 'dup-initials', s.photo_path, initials);
         document.getElementById('dup-name').textContent          = name;
         document.getElementById('dup-matric').textContent        = matric;
         document.getElementById('dup-dept').textContent          = dept;
@@ -1872,7 +1943,7 @@ function handleResult(result, now, encPayload, encHmac) {
         const dupEncHmacEl = document.getElementById('dup-enc-hmac');
         if (dupEncHmacEl) dupEncHmacEl.textContent = encHmac || '—';
 
-        updateDesktopResult('duplicate', { name, matric, dept, initials, time: elapsed });
+        updateDesktopResult('duplicate', { name, matric, dept, initials, time: elapsed, photoPath: s.photo_path });
         updateLastScan('duplicate', name, 'Token already redeemed', now);
         addToHistory('duplicate', name, 'Already used', now);
         showTakeover('duplicate');
@@ -2012,9 +2083,10 @@ function simulateScan(decision) {
         handleResult({
             status:   decision,
             student:  decision !== 'REJECTED' ? {
-                full_name: 'Adebisi Olamide Funmilayo',
-                matric_no: 'CSC/2021/001',
-                department: 'Computer Science',
+                full_name:   'Adebayo Oluwaseun Emmanuel',
+                matric_no:   'CSC/2021/001',
+                department:  'Computer Science',
+                photo_path:  'photos/student1.jpg',
             } : null,
             token_id: 'tok_' + Date.now(),
             examiner: '{{ $examiner["full_name"] ?? "Examiner" }}',
