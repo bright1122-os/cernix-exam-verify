@@ -1538,8 +1538,8 @@
                     <span class="to-countdown-label" id="countdown-label-duplicate">14s</span>
                 </div>
                 <div class="to-bottom">
-                    <button onclick="cancelAutoAdvance('duplicate');resetScan()">Dismiss</button>
-                    <button class="primary" onclick="cancelAutoAdvance('duplicate');resetScan()">Review</button>
+                    <button id="dup-dismiss-btn" onclick="cancelAutoAdvance('duplicate');resetScan()">Dismiss</button>
+                    <button class="primary" id="dup-review-btn" onclick="reviewDuplicate()">Review</button>
                 </div>
               </div>
             </div>
@@ -1809,6 +1809,38 @@ function toggleEnc(id) {
     if (el) el.classList.toggle('open');
 }
 
+// Review action for DUPLICATE scans.
+// Pauses the auto-dismiss timer, expands the cryptographic evidence panel so
+// the examiner can read the full token details, and marks the button as reviewed.
+function reviewDuplicate() {
+    // Pause auto-advance — examiner is actively reviewing
+    cancelAutoAdvance('duplicate');
+
+    // Expand the encoded data section so evidence is visible
+    const encSection = document.getElementById('dup-enc');
+    if (encSection && !encSection.classList.contains('open')) {
+        encSection.classList.add('open');
+    }
+
+    // Scroll the takeover to show the evidence block
+    if (encSection) {
+        encSection.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    }
+
+    // Update button state to confirm review is logged
+    const reviewBtn  = document.getElementById('dup-review-btn');
+    const dismissBtn = document.getElementById('dup-dismiss-btn');
+    if (reviewBtn) {
+        reviewBtn.textContent = '✓ Reviewed';
+        reviewBtn.disabled    = true;
+        reviewBtn.style.opacity = '0.6';
+    }
+    if (dismissBtn) {
+        dismissBtn.textContent = 'Close';
+        dismissBtn.className   = 'primary';
+    }
+}
+
 function formatEncData(str) {
     if (!str) return '—';
     return str.replace(/(.{44})/g, '$1\n').trimEnd();
@@ -1929,6 +1961,11 @@ function resetScan() {
     // Suppress same-QR re-trigger for 2 s (QR may still be in frame)
     scanCooldownEnd = Date.now() + 2000;
     document.getElementById('scan-prompt').textContent = 'Point at QR code';
+    // Reset duplicate review button state for next scan
+    const reviewBtn  = document.getElementById('dup-review-btn');
+    const dismissBtn = document.getElementById('dup-dismiss-btn');
+    if (reviewBtn)  { reviewBtn.textContent = 'Review'; reviewBtn.disabled = false; reviewBtn.style.opacity = ''; }
+    if (dismissBtn) { dismissBtn.textContent = 'Dismiss'; dismissBtn.className = ''; }
 }
 
 // Human-readable labels for server reason codes
