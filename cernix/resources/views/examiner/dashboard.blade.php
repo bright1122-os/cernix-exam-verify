@@ -1325,7 +1325,7 @@
                     <div class="to-countdown-track">
                         <div class="to-countdown-bar" id="countdown-bar-approved" style="width:100%"></div>
                     </div>
-                    <span class="to-countdown-label" id="countdown-label-approved">4s</span>
+                    <span class="to-countdown-label" id="countdown-label-approved">12s</span>
                 </div>
                 <div class="to-bottom">
                     <button onclick="cancelAutoAdvance('approved');resetScan()">Next</button>
@@ -1411,7 +1411,7 @@
                     <div class="to-countdown-track">
                         <div class="to-countdown-bar" id="countdown-bar-rejected" style="width:100%"></div>
                     </div>
-                    <span class="to-countdown-label" id="countdown-label-rejected">5s</span>
+                    <span class="to-countdown-label" id="countdown-label-rejected">14s</span>
                 </div>
                 <div class="to-bottom">
                     <button onclick="cancelAutoAdvance('rejected');resetScan()">Dismiss</button>
@@ -1512,7 +1512,7 @@
                     <div class="to-countdown-track">
                         <div class="to-countdown-bar" id="countdown-bar-duplicate" style="width:100%"></div>
                     </div>
-                    <span class="to-countdown-label" id="countdown-label-duplicate">5s</span>
+                    <span class="to-countdown-label" id="countdown-label-duplicate">14s</span>
                 </div>
                 <div class="to-bottom">
                     <button onclick="cancelAutoAdvance('duplicate');resetScan()">Dismiss</button>
@@ -1674,7 +1674,7 @@ let lastScannedData = null;
 let scanCooldownEnd  = 0;
 
 // Auto-advance: after a result, auto-reset after N seconds
-const AUTO_ADVANCE = { approved: 4, rejected: 5, duplicate: 5 };
+const AUTO_ADVANCE = { approved: 12, rejected: 14, duplicate: 14 };
 const autoTimers = {};
 
 function startAutoAdvance(type) {

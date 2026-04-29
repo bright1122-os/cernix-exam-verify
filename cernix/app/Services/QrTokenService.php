@@ -223,6 +223,47 @@ class QrTokenService
             'session_id'        => $tokenData['session_id'],
         ], JSON_THROW_ON_ERROR);
 
-        return (string) QrCode::format('svg')->size($size)->generate($content);
+        // Error correction H (30 % recovery) allows a logo to cover the center
+        // without breaking the scan — keeps the QR readable on any device.
+        $svg = (string) QrCode::format('svg')
+            ->size($size)
+            ->errorCorrection('H')
+            ->generate($content);
+
+        return $this->injectLogoWatermark($svg, $size);
+    }
+
+    /**
+     * Inject the AAUA logo into the centre of a generated QR SVG.
+     *
+     * The logo sits inside a small white rect so it reads cleanly against
+     * the QR modules.  At ~15 % of the QR edge it is well within the 30 %
+     * error-correction budget, so scanning is not affected.
+     */
+    private function injectLogoWatermark(string $svg, int $size): string
+    {
+        $logoPath = public_path('aaua-logo.png');
+        if (! file_exists($logoPath)) {
+            return $svg;
+        }
+
+        $logoData = base64_encode((string) file_get_contents($logoPath));
+
+        $logoSize = (int) ($size * 0.16);   // 16 % of QR edge
+        $logoX    = (int) (($size - $logoSize) / 2);
+        $logoY    = (int) (($size - $logoSize) / 2);
+        $pad      = 5;
+        $bgSize   = $logoSize + $pad * 2;
+        $bgX      = $logoX - $pad;
+        $bgY      = $logoY - $pad;
+
+        $watermark =
+            "<rect x=\"{$bgX}\" y=\"{$bgY}\" width=\"{$bgSize}\" height=\"{$bgSize}\" " .
+                "fill=\"white\" rx=\"4\" ry=\"4\"/>" .
+            "<image href=\"data:image/png;base64,{$logoData}\" " .
+                "x=\"{$logoX}\" y=\"{$logoY}\" width=\"{$logoSize}\" height=\"{$logoSize}\" " .
+                "opacity=\"0.78\" preserveAspectRatio=\"xMidYMid meet\"/>";
+
+        return str_replace('</svg>', $watermark . '</svg>', $svg);
     }
 }
