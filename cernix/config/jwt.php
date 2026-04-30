@@ -25,7 +25,7 @@ return [
     |
     */
 
-    'secret' => env('APP_JWT_SECRET'),
+    'secret' => env('APP_JWT_SECRET', env('JWT_SECRET')),
 
     /*
     |--------------------------------------------------------------------------

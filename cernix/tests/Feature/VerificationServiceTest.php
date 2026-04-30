@@ -170,7 +170,7 @@ class VerificationServiceTest extends TestCase
         $result = $this->service->verifyQr($qrData, $this->examinerId, 'fp', '127.0.0.1');
 
         $this->assertSame('DUPLICATE', $result['status']);
-        $this->assertNull($result['student']);
+        $this->assertSame($this->matricNo, $result['student']['matric_no']);
         $this->assertSame($qrData['token_id'], $result['token_id']);
     }
 
@@ -228,9 +228,32 @@ class VerificationServiceTest extends TestCase
         $this->assertNull($result['student']);
     }
 
+    public function test_tampered_used_token_is_rejected_before_duplicate_status(): void
+    {
+        $qrData = $this->issueToken('USED');
+        $qrData['hmac_signature'] = str_repeat('0', 64);
+
+        $result = $this->service->verifyQr($qrData, $this->examinerId, 'fp', '127.0.0.1');
+
+        $this->assertSame('REJECTED', $result['status']);
+        $this->assertSame('tampered_token', $result['reason']);
+        $this->assertNull($result['student']);
+    }
+
     // -------------------------------------------------------------------------
     // Steps 6–7 — Identity / session mismatch
     // -------------------------------------------------------------------------
+
+    public function test_string_session_id_from_qr_json_matches_integer_payload_and_database(): void
+    {
+        $qrData = $this->issueToken();
+        $qrData['session_id'] = (string) $qrData['session_id'];
+
+        $result = $this->service->verifyQr($qrData, $this->examinerId, 'fp-device', '10.0.0.1');
+
+        $this->assertSame('APPROVED', $result['status']);
+        $this->assertSame($this->matricNo, $result['student']['matric_no']);
+    }
 
     public function test_session_id_mismatch_in_payload_returns_rejected(): void
     {
@@ -300,7 +323,7 @@ class VerificationServiceTest extends TestCase
 
         $this->assertSame('APPROVED',   $first['status']);
         $this->assertSame('DUPLICATE',  $second['status']);
-        $this->assertNull($second['student']);
+        $this->assertSame($this->matricNo, $second['student']['matric_no']);
     }
 
     public function test_reused_qr_writes_duplicate_log(): void

@@ -193,7 +193,7 @@ class EndToEndSystemTest extends TestCase
 
         $this->assertSame('APPROVED',  $first['status']);
         $this->assertSame('DUPLICATE', $second['status']);
-        $this->assertNull($second['student']);
+        $this->assertSame('CSC/2021/001', $second['student']['matric_no']);
 
         // Security: only one APPROVED decision was ever written — replay did not grant access
         $approvedCount = DB::table('verification_logs')

@@ -35,7 +35,8 @@ class VerificationService
             }
         }
 
-        $tokenId = (string) $qrData['token_id'];
+        $tokenId     = (string) $qrData['token_id'];
+        $qrSessionId = (int) $qrData['session_id'];
 
         // ── Step 2: Fetch token record ────────────────────────────────────────
         $token = DB::table('qr_tokens')->where('token_id', $tokenId)->first();
@@ -44,43 +45,9 @@ class VerificationService
             return $this->response('REJECTED', null, $tokenId, $timestamp, 'token_not_found');
         }
 
-        // ── Step 3: Check token status ────────────────────────────────────────
-        if ($token->status === 'USED') {
-            // Look up student so the result card can identify who this token belongs to
-            $dupStudent = DB::table('students')
-                ->leftJoin('departments', 'students.department_id', '=', 'departments.dept_id')
-                ->where('students.matric_no', $token->student_id)
-                ->select('students.matric_no', 'students.full_name', 'students.photo_path', 'departments.dept_name as department_name')
-                ->first();
-
-            $studentData = $dupStudent ? [
-                'full_name'  => $dupStudent->full_name,
-                'matric_no'  => $dupStudent->matric_no,
-                'department' => $dupStudent->department_name ?? 'N/A',
-                'photo_path' => $dupStudent->photo_path,
-            ] : null;
-
-            $traceId = $this->log($tokenId, $examinerId, 'DUPLICATE', $deviceFp, $ip, $now);
-            return $this->response(
-                'DUPLICATE',
-                $studentData,
-                $tokenId,
-                $timestamp,
-                'token_already_used',
-                $token->used_at ? (string) $token->used_at : null,
-                null,
-                $traceId
-            );
-        }
-
-        if ($token->status === 'REVOKED') {
-            $traceId = $this->log($tokenId, $examinerId, 'REJECTED', $deviceFp, $ip, $now);
-            return $this->response('REJECTED', null, $tokenId, $timestamp, 'token_revoked', null, null, $traceId);
-        }
-
-        // ── Step 4: Fetch active exam session ─────────────────────────────────
+        // ── Step 3: Fetch active exam session ─────────────────────────────────
         $session = DB::table('exam_sessions')
-            ->where('session_id', (int) $qrData['session_id'])
+            ->where('session_id', $qrSessionId)
             ->where('is_active', true)
             ->first();
 
@@ -89,7 +56,7 @@ class VerificationService
             return $this->response('REJECTED', null, $tokenId, $timestamp, 'invalid_session', null, null, $traceId);
         }
 
-        // ── Step 5: Decrypt and HMAC-verify payload ───────────────────────────
+        // ── Step 4: Decrypt and HMAC-verify payload ───────────────────────────
         try {
             $payload = $this->crypto->decryptPayload(
                 $qrData['encrypted_payload'],
@@ -102,16 +69,18 @@ class VerificationService
             return $this->response('REJECTED', null, $tokenId, $timestamp, 'tampered_token', null, null, $traceId);
         }
 
-        // ── Step 6: Fetch student record with resolved department name ───────
+        // ── Step 5: Fetch student record with resolved department name ───────
         $student = DB::table('students')
             ->leftJoin('departments', 'students.department_id', '=', 'departments.dept_id')
             ->where('students.matric_no', (string) ($payload['matric_no'] ?? ''))
             ->select('students.*', 'departments.dept_name as department_name')
             ->first();
 
-        // ── Step 7: Identity verification ────────────────────────────────────
+        // ── Step 6: Identity verification ────────────────────────────────────
         $sessionMatch = isset($payload['session_id'])
-            && (int) $payload['session_id'] === (int) $qrData['session_id'];
+            && (int) $payload['session_id'] === $qrSessionId
+            && (int) $session->session_id === $qrSessionId
+            && (int) $token->session_id === $qrSessionId;
 
         $matricMatch = $student
             && hash_equals((string) $student->matric_no, (string) ($payload['matric_no'] ?? ''));
@@ -121,41 +90,83 @@ class VerificationService
             return $this->response('REJECTED', null, $tokenId, $timestamp, 'identity_mismatch', null, null, $traceId);
         }
 
-        // ── Step 8: Atomic UNUSED → USED (DB transaction + row lock) ──────────
-        $decision = DB::transaction(function () use ($tokenId, $now): string {
+        // ── Step 7: Atomic status decision (DB transaction + row lock) ────────
+        $statusResult = DB::transaction(function () use ($tokenId, $now): array {
             $locked = DB::table('qr_tokens')
                 ->where('token_id', $tokenId)
                 ->lockForUpdate()
                 ->first();
 
-            if (! $locked || $locked->status !== 'UNUSED') {
-                return 'DUPLICATE';
+            if (! $locked) {
+                return [
+                    'decision' => 'REJECTED',
+                    'reason'   => 'token_not_found',
+                    'used_at'  => null,
+                ];
+            }
+
+            if ($locked->status === 'USED') {
+                return [
+                    'decision' => 'DUPLICATE',
+                    'reason'   => 'token_already_used',
+                    'used_at'  => $locked->used_at ? (string) $locked->used_at : null,
+                ];
+            }
+
+            if ($locked->status === 'REVOKED') {
+                return [
+                    'decision' => 'REJECTED',
+                    'reason'   => 'token_revoked',
+                    'used_at'  => null,
+                ];
+            }
+
+            if ($locked->status !== 'UNUSED') {
+                return [
+                    'decision' => 'REJECTED',
+                    'reason'   => 'invalid_status',
+                    'used_at'  => null,
+                ];
             }
 
             DB::table('qr_tokens')
                 ->where('token_id', $tokenId)
                 ->update(['status' => 'USED', 'used_at' => $now]);
 
-            return 'APPROVED';
+            return [
+                'decision' => 'APPROVED',
+                'reason'   => '',
+                'used_at'  => null,
+            ];
         });
 
-        if ($decision === 'DUPLICATE') {
+        if ($statusResult['decision'] === 'DUPLICATE') {
             $traceId = $this->log($tokenId, $examinerId, 'DUPLICATE', $deviceFp, $ip, $now);
             return $this->response('DUPLICATE', [
                 'full_name'  => $student->full_name,
                 'matric_no'  => $student->matric_no,
+                'department_id' => $student->department_id,
                 'department' => $student->department_name ?? 'N/A',
                 'photo_path' => $student->photo_path,
-            ], $tokenId, $timestamp, 'concurrent_scan', null, null, $traceId);
+            ], $tokenId, $timestamp, $statusResult['reason'], $statusResult['used_at'], null, $traceId);
         }
 
-        // ── Step 9: Write verification log (APPROVED) ─────────────────────────
+        if ($statusResult['decision'] === 'REJECTED') {
+            $traceId = $statusResult['reason'] === 'token_not_found'
+                ? null
+                : $this->log($tokenId, $examinerId, 'REJECTED', $deviceFp, $ip, $now);
+
+            return $this->response('REJECTED', null, $tokenId, $timestamp, $statusResult['reason'], null, null, $traceId);
+        }
+
+        // ── Step 8: Write verification log (APPROVED) ─────────────────────────
         $traceId = $this->log($tokenId, $examinerId, 'APPROVED', $deviceFp, $ip, $now);
 
-        // ── Step 10: Return structured response ───────────────────────────────
+        // ── Step 9: Return structured response ────────────────────────────────
         return $this->response('APPROVED', [
             'full_name'  => $student->full_name,
             'matric_no'  => $student->matric_no,
+            'department_id' => $student->department_id,
             'department' => $student->department_name ?? 'N/A',
             'photo_path' => $student->photo_path,
         ], $tokenId, $timestamp, '', null, [
