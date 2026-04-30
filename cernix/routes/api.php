@@ -38,12 +38,15 @@ Route::middleware('auth:api')->prefix('student')->group(function () {
 });
 
 // ── Examiner protected routes ──────────────────────────────────────────────────
-Route::middleware('auth:api')->prefix('examiner')->group(function () {
+Route::middleware(['auth:api', 'role:EXAMINER'])->prefix('examiner')->group(function () {
     Route::post('verify', [ExaminerVerifyController::class, 'verify']);
+    Route::get('stats', [ExaminerVerifyController::class, 'stats']);
+    Route::get('history', [ExaminerVerifyController::class, 'history']);
+    Route::get('student-trace', [ExaminerVerifyController::class, 'studentTrace']);
 });
 
 // ── Admin protected routes ─────────────────────────────────────────────────────
-Route::middleware('auth:api')->prefix('admin')->group(function () {
+Route::middleware(['auth:api', 'role:ADMIN,SUPER_ADMIN'])->prefix('admin')->group(function () {
     Route::get('sessions',                      [AdminDashboardController::class, 'sessions']);
     Route::post('sessions',                     [AdminDashboardController::class, 'createSession']);
     Route::patch('sessions/{id}/activate',      [AdminDashboardController::class, 'activateSession']);
@@ -53,4 +56,6 @@ Route::middleware('auth:api')->prefix('admin')->group(function () {
     Route::post('tokens/{id}/revoke',           [AdminDashboardController::class, 'revokeToken']);
     Route::get('logs',                          [AdminDashboardController::class, 'logs']);
     Route::get('stats',                         [AdminDashboardController::class, 'stats']);
+    Route::get('student-trace',                 [AdminDashboardController::class, 'studentTrace']);
+    Route::get('audit-trail',                   [AdminDashboardController::class, 'auditTrail']);
 });

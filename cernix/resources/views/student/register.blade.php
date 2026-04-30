@@ -32,6 +32,58 @@
     .session-pill .left b    { display: block; font-size: 13px; font-weight: 600; color: var(--ink); }
     .session-pill .left span { font-size: 11px; color: var(--ink-3); text-transform: uppercase; letter-spacing: .06em; }
     .session-pill .fee       { font-size: 20px; font-weight: 700; font-family: 'JetBrains Mono', monospace; color: var(--ink-2); white-space: nowrap; }
+    .session-meta {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        margin: -10px 0 22px;
+    }
+    .session-tag {
+        display: inline-flex;
+        align-items: center;
+        gap: 7px;
+        min-height: 32px;
+        padding: 0 12px;
+        border-radius: 999px;
+        background: var(--bg-2);
+        border: 1px solid var(--line);
+        font-size: 11px;
+        color: var(--ink-3);
+    }
+    .session-tag .tag-dot {
+        width: 7px;
+        height: 7px;
+        border-radius: 50%;
+        background: var(--emerald);
+        box-shadow: 0 0 0 4px rgba(5,150,105,.12);
+    }
+    .progress-note {
+        display: none;
+        align-items: center;
+        gap: 10px;
+        margin-top: 12px;
+        padding: 11px 13px;
+        border-radius: 12px;
+        background: rgba(45,108,255,.06);
+        border: 1px solid rgba(45,108,255,.14);
+        font-size: 11px;
+        color: var(--ink-3);
+    }
+    .progress-note.show { display: flex; }
+    .progress-note .pulse {
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        background: var(--blue);
+        box-shadow: 0 0 0 0 rgba(45,108,255,.25);
+        animation: regPulse 1.4s ease-out infinite;
+        flex-shrink: 0;
+    }
+    @keyframes regPulse {
+        0% { box-shadow: 0 0 0 0 rgba(45,108,255,.25); }
+        70% { box-shadow: 0 0 0 10px rgba(45,108,255,0); }
+        100% { box-shadow: 0 0 0 0 rgba(45,108,255,0); }
+    }
 
     /* Sec note */
     .sec-note {
@@ -298,6 +350,11 @@
                 </div>
                 <div class="fee">₦{{ number_format($session->fee_amount ?? 0, 0) }}</div>
             </div>
+            <div class="session-meta">
+                <div class="session-tag"><span class="tag-dot"></span><span>Live registration window</span></div>
+                <div class="session-tag">One-time QR issuance</div>
+                <div class="session-tag">HTTPS scanner compatible</div>
+            </div>
 
             <form id="reg-form" enctype="multipart/form-data">
                 <div class="field mono">
@@ -361,6 +418,10 @@
                     <span id="btn-label">Generate my Exam QR</span>
                     <span id="btn-dots" class="dots" style="display:none"><span></span><span></span><span></span></span>
                 </button>
+                <div class="progress-note" id="reg-progress">
+                    <span class="pulse"></span>
+                    <span id="reg-progress-text">Checking payment and preparing your secure pass…</span>
+                </div>
             </form>
 
             <div class="sec-note" style="margin-top:20px">
@@ -508,6 +569,16 @@
 <script>
 const csrfToken = document.querySelector('meta[name="csrf-token"]').content;
 let selectedPhotoFile = null;
+let regProgressTimers = [];
+
+function clearRegistrationProgressTimers() {
+    regProgressTimers.forEach((timer) => clearTimeout(timer));
+    regProgressTimers = [];
+}
+
+function setRegistrationProgress(message) {
+    document.getElementById('reg-progress-text').textContent = message;
+}
 
 function triggerPhotoInput(e) {
     if (e.target.closest('.photo-clear-btn')) return;
@@ -543,12 +614,23 @@ document.getElementById('reg-form').addEventListener('submit', async (e) => {
     const icon   = document.getElementById('btn-icon');
     const dots   = document.getElementById('btn-dots');
     const errBox = document.getElementById('error-box');
+    const progress = document.getElementById('reg-progress');
 
-    label.textContent   = 'Verifying payment';
+    clearRegistrationProgressTimers();
+    label.textContent   = 'Preparing secure pass';
     icon.style.display  = 'none';
     dots.style.display  = 'inline-flex';
     btn.disabled        = true;
     errBox.style.display = 'none';
+    progress.classList.add('show');
+    setRegistrationProgress('Checking payment and validating student record…');
+
+    regProgressTimers.push(setTimeout(() => {
+        setRegistrationProgress('Issuing one-time encrypted token…');
+    }, 450));
+    regProgressTimers.push(setTimeout(() => {
+        setRegistrationProgress('Rendering your QR pass for hall entry…');
+    }, 1100));
 
     try {
         const formData = new FormData();
@@ -598,10 +680,12 @@ document.getElementById('reg-form').addEventListener('submit', async (e) => {
         document.getElementById('error-text').textContent = err.message;
         errBox.style.display = 'flex';
     } finally {
+        clearRegistrationProgressTimers();
         label.textContent   = 'Generate my Exam QR';
         icon.style.display  = '';
         dots.style.display  = 'none';
         btn.disabled = false;
+        progress.classList.remove('show');
     }
 });
 

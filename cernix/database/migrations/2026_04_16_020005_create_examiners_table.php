@@ -13,9 +13,13 @@ return new class extends Migration
             $table->string('full_name');
             $table->string('username')->unique();
             $table->string('password_hash');
-            $table->enum('role', ['examiner', 'admin']);
+            $table->enum('role', ['EXAMINER', 'ADMIN', 'SUPER_ADMIN', 'examiner', 'admin']);
+            $table->unsignedBigInteger('admin_user_id')->nullable()->index();
             $table->boolean('is_active')->default(false);
+            $table->timestamp('last_active_at')->nullable()->index();
             $table->timestamp('created_at');
+
+            $table->foreign('admin_user_id')->references('id')->on('users')->nullOnDelete();
         });
     }
 

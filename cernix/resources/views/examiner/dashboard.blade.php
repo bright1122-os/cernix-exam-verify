@@ -256,8 +256,73 @@
         font-size: 12px;
         color: rgba(255,255,255,.6);
         letter-spacing: .04em;
+        transition: color .18s ease, transform .18s ease, opacity .18s ease;
     }
     .scan-prompt b { color: rgba(255,255,255,.92); font-weight: 600; }
+    .scan-prompt.is-busy { color: rgba(255,255,255,.78); transform: translateY(-2px); }
+    .scan-prompt.is-paused { color: rgba(255,210,120,.86); }
+    .scan-prompt.is-error { color: rgba(255,169,169,.92); }
+
+    .camera-status-bar {
+        position: absolute;
+        top: 18px;
+        left: 18px;
+        right: 18px;
+        z-index: 12;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 10px;
+    }
+    .camera-chip {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        min-height: 34px;
+        padding: 0 12px;
+        border-radius: 999px;
+        background: rgba(11, 16, 28, .58);
+        border: 1px solid rgba(255,255,255,.12);
+        color: rgba(255,255,255,.88);
+        font-size: 11px;
+        font-weight: 600;
+        letter-spacing: .04em;
+        backdrop-filter: blur(8px);
+    }
+    .camera-chip .state-dot {
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        background: rgba(255,255,255,.38);
+        box-shadow: 0 0 0 4px rgba(255,255,255,.06);
+        transition: background .18s ease, box-shadow .18s ease;
+    }
+    .camera-chip.ready .state-dot { background: var(--emerald); box-shadow: 0 0 0 4px rgba(5,150,105,.18); }
+    .camera-chip.verifying .state-dot { background: var(--blue); box-shadow: 0 0 0 4px rgba(45,108,255,.18); }
+    .camera-chip.paused .state-dot { background: var(--amber); box-shadow: 0 0 0 4px rgba(180,83,9,.18); }
+    .camera-chip.error .state-dot { background: var(--red); box-shadow: 0 0 0 4px rgba(220,38,38,.18); }
+    .camera-chip.sound-toggle {
+        cursor: pointer;
+        user-select: none;
+        transition: border-color .18s ease, background .18s ease, transform .18s ease;
+    }
+    .camera-chip.sound-toggle:hover { border-color: rgba(255,255,255,.24); transform: translateY(-1px); }
+    .camera-chip.sound-toggle svg { width: 13px; height: 13px; opacity: .82; }
+    .camera-chip.sound-toggle.muted { color: rgba(255,255,255,.62); }
+    .camera-chip.sound-toggle.muted svg { opacity: .52; }
+    @media (max-width: 767px) {
+        .camera-status-bar {
+            top: 12px;
+            left: 12px;
+            right: 12px;
+            gap: 8px;
+        }
+        .camera-chip {
+            min-height: 30px;
+            padding: 0 10px;
+            font-size: 10px;
+        }
+    }
 
     /* Verifying overlay */
     .verifying-overlay {
@@ -1167,6 +1232,12 @@
         overflow-y: auto;
         flex: 1;
     }
+    .ex-mini-chart {
+        height: 130px;
+        padding: 12px 14px;
+        border-bottom: 1px solid var(--line);
+        background: var(--bg-2);
+    }
     .ex-history-empty {
         padding: 14px 16px;
         font-size: 11px;
@@ -1226,10 +1297,10 @@
 
     {{-- Stats bar --}}
     <div class="ex-stats">
-        <div class="stat-cell"><b id="total-scans">0</b><span>Scans</span></div>
-        <div class="stat-cell approved"><b id="approved-count">0</b><span>Approved</span></div>
-        <div class="stat-cell rejected"><b id="rejected-count">0</b><span>Rejected</span></div>
-        <div class="stat-cell duplicate"><b id="duplicate-count">0</b><span>Duplicates</span></div>
+        <div class="stat-cell"><b id="total-scans">{{ $examinerStats['total'] ?? 0 }}</b><span>Scans</span></div>
+        <div class="stat-cell approved"><b id="approved-count">{{ $examinerStats['approved'] ?? 0 }}</b><span>Approved</span></div>
+        <div class="stat-cell rejected"><b id="rejected-count">{{ $examinerStats['rejected'] ?? 0 }}</b><span>Rejected</span></div>
+        <div class="stat-cell duplicate"><b id="duplicate-count">{{ $examinerStats['duplicate'] ?? 0 }}</b><span>Duplicates</span></div>
     </div>
 
     {{-- Main workspace --}}
@@ -1242,6 +1313,28 @@
                 <div class="fake-hall" id="fake-hall"></div>
             </div>
             <canvas id="scan-canvas" style="display:none;position:absolute;"></canvas>
+
+            <div class="camera-status-bar">
+                <div class="camera-chip" id="camera-state-chip">
+                    <span class="state-dot"></span>
+                    <span id="camera-state-label">Starting camera</span>
+                </div>
+                <div
+                    class="camera-chip sound-toggle"
+                    id="camera-audio-toggle"
+                    role="button"
+                    tabindex="0"
+                    aria-label="Toggle scanner audio feedback"
+                    onclick="toggleAudioFeedback()"
+                    onkeydown="if(event.key === 'Enter' || event.key === ' '){ event.preventDefault(); toggleAudioFeedback(); }"
+                >
+                    <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true">
+                        <path d="M11 5L6 9H2v6h4l5 4z"></path>
+                        <path d="M15.5 8.5a5 5 0 010 7"></path>
+                    </svg>
+                    <span id="audio-state-label">Sound on</span>
+                </div>
+            </div>
 
             <div class="reticle">
                 <div class="dim-overlay"></div>
@@ -1657,8 +1750,22 @@
                         <button onclick="setFilter('duplicate')">Dup</button>
                     </div>
                 </div>
+                <div class="ex-mini-chart">
+                    <canvas id="examinerTrendChart"></canvas>
+                </div>
                 <div class="ex-history-list" id="history-list">
+                    @forelse($scanHistory as $scan)
+                    <div class="ex-history-row">
+                        <div class="ex-history-dot {{ strtolower($scan->decision) }}"></div>
+                        <div class="ex-history-info">
+                            <div class="hn">{{ $scan->matric_no ?? 'Student' }}</div>
+                            <div class="hm">{{ $scan->semester ?? '—' }} {{ $scan->academic_year ?? '' }}</div>
+                        </div>
+                        <div class="ex-history-time">{{ \Carbon\Carbon::parse($scan->timestamp)->format('H:i') }}</div>
+                    </div>
+                    @empty
                     <div class="ex-history-empty">No scans yet</div>
+                    @endforelse
                 </div>
             </div>
         </div>
@@ -1670,13 +1777,151 @@
 
 @push('scripts')
 <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 <script>
-let stats = { total: 0, approved: 0, rejected: 0, duplicate: 0 };
+let stats = @json([
+    'total' => (int) ($examinerStats['total'] ?? 0),
+    'approved' => (int) ($examinerStats['approved'] ?? 0),
+    'rejected' => (int) ($examinerStats['rejected'] ?? 0),
+    'duplicate' => (int) ($examinerStats['duplicate'] ?? 0),
+]);
 let scanning = false, busy = false, scanStartTime = 0;
-let scanHistory = [], currentFilter = 'all';
+let scanHistory = @json($scanHistory->map(fn($scan) => [
+    'type' => strtolower($scan->decision),
+    'name' => $scan->matric_no ?? 'Student',
+    'sub' => trim(($scan->semester ?? '') . ' ' . ($scan->academic_year ?? '')) ?: 'Session',
+    'time' => \Carbon\Carbon::parse($scan->timestamp)->format('H:i'),
+])->values());
+let currentFilter = 'all';
+const examinerTrendData = @json(collect($examinerStats['trend'] ?? [])->map(fn($row) => ['day' => $row->day ?? '', 'total' => (int) ($row->total ?? 0)])->values());
 const csrf = document.querySelector('meta[name="csrf-token"]').content;
+const SCAN_INTERVAL_MS = 150;
+const SCAN_MAX_WIDTH = 960;
+const SCAN_MAX_HEIGHT = 720;
+function initExaminerTrendChart() {
+    const el = document.getElementById('examinerTrendChart');
+    if (!el || typeof Chart === 'undefined') return;
+    new Chart(el, {
+        type: 'line',
+        data: {
+            labels: examinerTrendData.map(r => r.day),
+            datasets: [{ label: 'Scans', data: examinerTrendData.map(r => r.total), borderColor: '#2d6cff', backgroundColor: 'rgba(45,108,255,.12)', fill: true, tension: .35 }]
+        },
+        options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true, ticks: { precision: 0 } } } }
+    });
+}
+const SOUND_PROFILES = {
+    approved: [
+        { frequency: 740, duration: 0.07, gain: 0.028, type: 'sine' },
+        { frequency: 988, duration: 0.12, gain: 0.034, type: 'sine' },
+    ],
+    rejected: [
+        { frequency: 360, duration: 0.1, gain: 0.03, type: 'triangle' },
+        { frequency: 248, duration: 0.16, gain: 0.034, type: 'triangle' },
+    ],
+    duplicate: [
+        { frequency: 520, duration: 0.09, gain: 0.026, type: 'triangle' },
+        { frequency: 438, duration: 0.11, gain: 0.026, type: 'triangle' },
+    ],
+};
+let lastDecodeAt = 0;
+let scanLoopHandle = null;
+let scanContext = null;
+let audioContext = null;
+let audioMuted = false;
 
 // ── Identity photo helpers ───────────────────────────────────────────────
+
+function getAudioContext() {
+    const AudioCtx = window.AudioContext || window.webkitAudioContext;
+    if (!AudioCtx) return null;
+    if (!audioContext) audioContext = new AudioCtx();
+    if (audioContext.state === 'suspended') {
+        audioContext.resume().catch(() => {});
+    }
+    return audioContext;
+}
+
+function updateAudioFeedbackUi() {
+    const toggle = document.getElementById('camera-audio-toggle');
+    const label = document.getElementById('audio-state-label');
+    const AudioCtx = window.AudioContext || window.webkitAudioContext;
+    if (!toggle || !label) return;
+    const unavailable = !AudioCtx;
+    toggle.classList.toggle('muted', unavailable || audioMuted);
+    label.textContent = unavailable ? 'Sound unavailable' : (audioMuted ? 'Sound off' : 'Sound on');
+}
+
+function toggleAudioFeedback() {
+    const AudioCtx = window.AudioContext || window.webkitAudioContext;
+    if (!AudioCtx) {
+        updateAudioFeedbackUi();
+        return;
+    }
+
+    audioMuted = !audioMuted;
+
+    if (!audioMuted) {
+        getAudioContext();
+    }
+
+    updateAudioFeedbackUi();
+}
+
+function playOutcomeSound(type) {
+    if (audioMuted) return;
+
+    const ctx = getAudioContext();
+    const profile = SOUND_PROFILES[type];
+
+    if (!ctx || !profile) return;
+
+    let offset = 0;
+    const startAt = ctx.currentTime + 0.01;
+
+    profile.forEach((tone) => {
+        const oscillator = ctx.createOscillator();
+        const gainNode = ctx.createGain();
+        const toneStart = startAt + offset;
+        const toneEnd = toneStart + tone.duration;
+
+        oscillator.type = tone.type;
+        oscillator.frequency.setValueAtTime(tone.frequency, toneStart);
+
+        gainNode.gain.setValueAtTime(0.0001, toneStart);
+        gainNode.gain.exponentialRampToValueAtTime(tone.gain, toneStart + 0.012);
+        gainNode.gain.exponentialRampToValueAtTime(0.0001, toneEnd);
+
+        oscillator.connect(gainNode);
+        gainNode.connect(ctx.destination);
+        oscillator.start(toneStart);
+        oscillator.stop(toneEnd + 0.02);
+
+        offset += tone.duration + 0.03;
+    });
+}
+
+function setScanPrompt(message, tone) {
+    const prompt = document.getElementById('scan-prompt');
+    if (!prompt) return;
+    prompt.innerHTML = message;
+    prompt.classList.toggle('is-busy', tone === 'busy');
+    prompt.classList.toggle('is-paused', tone === 'paused');
+    prompt.classList.toggle('is-error', tone === 'error');
+}
+
+function setCameraState(mode, label) {
+    const chip = document.getElementById('camera-state-chip');
+    const text = document.getElementById('camera-state-label');
+    if (!chip || !text) return;
+    chip.classList.remove('ready', 'verifying', 'paused', 'error');
+    if (mode) chip.classList.add(mode);
+    text.textContent = label;
+}
+
+function queueNextFrame() {
+    scanLoopHandle = requestAnimationFrame(scanFrame);
+}
 
 // Resolved thumbnail URL cache: url → true | false | 'pending'
 const photoCache = new Map();
@@ -1902,6 +2147,8 @@ function showVerifying(label) {
     const lbl = document.getElementById('verifying-label');
     if (lbl) lbl.textContent = label || 'Scanning…';
     document.getElementById('verifying-overlay').classList.add('show');
+    setScanPrompt(label || 'Scanning…', 'busy');
+    setCameraState('verifying', label === 'Validating…' ? 'Validating token' : 'Reading QR code');
     setPanelState('scanning');
 }
 
@@ -1914,6 +2161,7 @@ function showTakeover(type) {
         document.getElementById('takeover-' + t).classList.remove('show');
     });
     if (type) document.getElementById('takeover-' + type).classList.add('show');
+    if (type) setCameraState('paused', type === 'approved' ? 'Verified and waiting' : 'Reviewing result');
     if (type) setPanelState('result'); else setPanelState('idle');
 }
 
@@ -1933,6 +2181,15 @@ function updateDesktopResult(type, data) {
         document.getElementById('res-name').textContent    = data.name;
         document.getElementById('res-matric').textContent  = data.matric || '—';
         document.getElementById('res-dept').textContent    = data.dept || '—';
+        document.getElementById('res-token').textContent   = data.token || '—';
+        document.getElementById('res-status-val').textContent = labels[type] || type;
+    } else {
+        document.getElementById('res-av-photo').style.display = 'none';
+        document.getElementById('res-av-initials').style.display = '';
+        document.getElementById('res-av-initials').textContent = type === 'rejected' ? '!' : '—';
+        document.getElementById('res-name').textContent    = type === 'rejected' ? 'Verification blocked' : 'Student';
+        document.getElementById('res-matric').textContent  = type === 'rejected' ? 'No student identity released' : '—';
+        document.getElementById('res-dept').textContent    = '—';
         document.getElementById('res-token').textContent   = data.token || '—';
         document.getElementById('res-status-val').textContent = labels[type] || type;
     }
@@ -1958,9 +2215,11 @@ function resetScan() {
     showTakeover(null);
     busy = false;
     scanning = true;
+    lastDecodeAt = 0;
     // Suppress same-QR re-trigger for 2 s (QR may still be in frame)
     scanCooldownEnd = Date.now() + 2000;
-    document.getElementById('scan-prompt').textContent = 'Point at QR code';
+    setScanPrompt('Point at <b>QR code</b>', '');
+    setCameraState('ready', 'Ready to scan');
     // Reset duplicate review button state for next scan
     const reviewBtn  = document.getElementById('dup-review-btn');
     const dismissBtn = document.getElementById('dup-dismiss-btn');
@@ -2000,6 +2259,7 @@ function handleResult(result, now, encPayload, encHmac) {
     const examinerRef = result.examiner || 'Examiner';
 
     if (result.status === 'APPROVED') {
+        playOutcomeSound('approved');
         stats.approved++;
         const s          = result.student || {};
         const name       = s.full_name || 'Unknown';
@@ -2039,6 +2299,7 @@ function handleResult(result, now, encPayload, encHmac) {
         });
 
     } else if (result.status === 'DUPLICATE') {
+        playOutcomeSound('duplicate');
         stats.duplicate++;
         const s        = result.student || {};
         const name     = s.full_name || 'Unknown';
@@ -2080,6 +2341,7 @@ function handleResult(result, now, encPayload, encHmac) {
         });
 
     } else {
+        playOutcomeSound('rejected');
         stats.rejected++;
         const reason     = result.reason || '';
         const reasonLabel = REASON_LABELS[reason] || 'Bad token';
@@ -2130,7 +2392,7 @@ async function handleQRCode(rawData) {
 
     const now = new Date().toLocaleTimeString();
     scanStartTime = Date.now();
-    document.getElementById('scan-prompt').textContent = 'QR detected…';
+    setScanPrompt('QR detected…', 'busy');
     showVerifying('Scanning…');
 
     // Brief pause so "Scanning…" is visible before "Validating…" — feels deliberate, not instant
@@ -2157,6 +2419,8 @@ async function handleQRCode(rawData) {
 
     } catch (err) {
         hideVerifying();
+        setCameraState('error', 'Connection issue');
+        setScanPrompt('Connection lost — retrying <b>scanner</b>', 'error');
         updateLastScan('rejected', 'Network error', 'Could not reach server', now);
         addToHistory('error', 'Network error', 'Could not reach server', now);
         setPanelState('idle');
@@ -2168,7 +2432,12 @@ async function handleQRCode(rawData) {
 async function startCamera() {
     const video    = document.getElementById('camera-video');
     const fakeHall = document.getElementById('fake-hall');
-    if (!navigator.mediaDevices?.getUserMedia) return;
+    updateAudioFeedbackUi();
+    if (!navigator.mediaDevices?.getUserMedia) {
+        setCameraState('error', 'Camera unsupported');
+        setScanPrompt('This browser cannot open the <b>camera</b>', 'error');
+        return;
+    }
     try {
         const stream = await navigator.mediaDevices.getUserMedia({
             video: { facingMode: { ideal: 'environment' }, width: { ideal: 1280 }, height: { ideal: 720 } }
@@ -2178,24 +2447,48 @@ async function startCamera() {
         video.style.display = '';
         fakeHall.style.display = 'none';
         scanning = true;
-        requestAnimationFrame(scanFrame);
-    } catch (e) {}
+        setCameraState('ready', 'Camera live');
+        setScanPrompt('Point at <b>QR code</b>', '');
+        queueNextFrame();
+    } catch (e) {
+        setCameraState('error', 'Camera unavailable');
+        setScanPrompt('Allow camera access to start <b>scanner</b>', 'error');
+    }
 }
 
-function scanFrame() {
-    if (!scanning) { requestAnimationFrame(scanFrame); return; }
+function scanFrame(frameTime = 0) {
+    if (document.hidden) {
+        setCameraState('paused', 'Scanner paused');
+        setScanPrompt('Return to this tab to resume <b>scanner</b>', 'paused');
+        queueNextFrame();
+        return;
+    }
+
+    if (!scanning || busy) { queueNextFrame(); return; }
+
     const video  = document.getElementById('camera-video');
     const canvas = document.getElementById('scan-canvas');
+    if (frameTime - lastDecodeAt < SCAN_INTERVAL_MS) { queueNextFrame(); return; }
+
     if (video.readyState === video.HAVE_ENOUGH_DATA && typeof jsQR !== 'undefined') {
-        canvas.width  = video.videoWidth;
-        canvas.height = video.videoHeight;
-        const ctx = canvas.getContext('2d');
-        ctx.drawImage(video, 0, 0);
-        const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+        lastDecodeAt = frameTime;
+        setCameraState('ready', 'Camera live');
+
+        const widthScale = Math.min(1, SCAN_MAX_WIDTH / video.videoWidth);
+        const heightScale = Math.min(1, SCAN_MAX_HEIGHT / video.videoHeight);
+        const scale = Math.min(widthScale, heightScale);
+
+        canvas.width  = Math.max(320, Math.round(video.videoWidth * scale));
+        canvas.height = Math.max(240, Math.round(video.videoHeight * scale));
+
+        scanContext = scanContext || canvas.getContext('2d', { willReadFrequently: true });
+        scanContext.drawImage(video, 0, 0, canvas.width, canvas.height);
+        const imageData = scanContext.getImageData(0, 0, canvas.width, canvas.height);
         const code = jsQR(imageData.data, imageData.width, imageData.height, { inversionAttempts: 'attemptBoth' });
         if (code?.data) { handleQRCode(code.data); }
     }
-    requestAnimationFrame(scanFrame);
+
+    queueNextFrame();
 }
 
 function simulateScan(decision) {
@@ -2204,7 +2497,7 @@ function simulateScan(decision) {
     scanning = false;
     const now = new Date().toLocaleTimeString();
     scanStartTime = Date.now();
-    document.getElementById('scan-prompt').textContent = 'QR detected…';
+    setScanPrompt('QR detected…', 'busy');
     showVerifying('Scanning…');
     setTimeout(() => { showVerifying('Validating…'); }, 300);
     const mockEncPayload = 'AbC3dEfGhIjKlMnOpQrStUvWxYzAbC3dEfGhIjKlMnOpQrStUvWxYzAbC3dEfGhIjKlMn+Op1QrS2tUv3wXy4Z==';
@@ -2227,6 +2520,16 @@ function simulateScan(decision) {
     }, 800);
 }
 
+document.addEventListener('visibilitychange', () => {
+    if (document.hidden) return;
+    if (!busy && document.getElementById('camera-video')?.srcObject) {
+        setCameraState('ready', 'Camera live');
+        setScanPrompt('Point at <b>QR code</b>', '');
+    }
+});
+
+initExaminerTrendChart();
+renderHistory();
 startCamera();
 </script>
 @endpush

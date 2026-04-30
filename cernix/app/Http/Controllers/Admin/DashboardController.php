@@ -6,9 +6,11 @@ use App\Http\Controllers\Controller;
 use App\Services\AuditService;
 use App\Services\CryptoService;
 use App\Services\QrTokenService;
+use App\Support\Roles;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 
@@ -27,16 +29,58 @@ class DashboardController extends Controller
         return response()->json(['status' => 'error', 'message' => 'Forbidden'], 403);
     }
 
-    private function isAdmin(): bool
+    private function user()
     {
-        return Auth::guard('api')->user()?->role === 'admin';
+        return Auth::guard('api')->user();
+    }
+
+    private function isAdminLike(): bool
+    {
+        return Roles::isAdminLike($this->user()?->role);
+    }
+
+    private function isSuperAdmin(): bool
+    {
+        return Roles::normalize($this->user()?->role) === Roles::SUPER_ADMIN;
+    }
+
+    private function scopedExaminerIds(): ?array
+    {
+        if ($this->isSuperAdmin()) {
+            return null;
+        }
+
+        return DB::table('examiners')
+            ->where('admin_user_id', $this->user()->id)
+            ->pluck('examiner_id')
+            ->map(fn ($id) => (int) $id)
+            ->all();
+    }
+
+    private function applyExaminerScope($query)
+    {
+        $ids = $this->scopedExaminerIds();
+
+        return $ids === null ? $query : $query->whereIn('verification_logs.examiner_id', $ids);
+    }
+
+    private function authorizeExaminer(int $examinerId): bool
+    {
+        if ($this->isSuperAdmin()) {
+            return true;
+        }
+
+        return DB::table('examiners')
+            ->where('examiner_id', $examinerId)
+            ->where('admin_user_id', $this->user()->id)
+            ->exists();
     }
 
     // ── Sessions ───────────────────────────────────────────────────────────────
 
     public function sessions(): JsonResponse
     {
-        if (! $this->isAdmin()) return $this->forbidden();
+        if (! $this->isAdminLike()) return $this->forbidden();
 
         return response()->json([
             'status' => 'success',
@@ -46,7 +90,7 @@ class DashboardController extends Controller
 
     public function createSession(Request $request): JsonResponse
     {
-        if (! $this->isAdmin()) return $this->forbidden();
+        if (! $this->isAdminLike()) return $this->forbidden();
 
         $data = $request->validate([
             'semester'      => 'required|string|max:100',
@@ -74,7 +118,7 @@ class DashboardController extends Controller
 
     public function activateSession(Request $request, int $id): JsonResponse
     {
-        if (! $this->isAdmin()) return $this->forbidden();
+        if (! $this->isAdminLike()) return $this->forbidden();
 
         if (! DB::table('exam_sessions')->where('session_id', $id)->exists()) {
             return response()->json(['status' => 'error', 'message' => 'Session not found'], 404);
@@ -101,42 +145,93 @@ class DashboardController extends Controller
 
     public function examiners(): JsonResponse
     {
-        if (! $this->isAdmin()) return $this->forbidden();
+        if (! $this->isAdminLike()) return $this->forbidden();
+
+        $query = DB::table('examiners')
+            ->leftJoin('verification_logs', 'examiners.examiner_id', '=', 'verification_logs.examiner_id')
+            ->select(
+                'examiners.examiner_id',
+                'examiners.full_name',
+                'examiners.username',
+                'examiners.role',
+                'examiners.admin_user_id',
+                'examiners.is_active',
+                'examiners.last_active_at',
+                'examiners.created_at',
+                DB::raw('COUNT(verification_logs.log_id) as scans_performed'),
+                DB::raw("SUM(CASE WHEN verification_logs.decision = 'APPROVED' THEN 1 ELSE 0 END) as approved_scans")
+            )
+            ->groupBy(
+                'examiners.examiner_id',
+                'examiners.full_name',
+                'examiners.username',
+                'examiners.role',
+                'examiners.admin_user_id',
+                'examiners.is_active',
+                'examiners.last_active_at',
+                'examiners.created_at'
+            )
+            ->orderByDesc('examiners.examiner_id');
+
+        if (! $this->isSuperAdmin()) {
+            $query->where('examiners.admin_user_id', $this->user()->id);
+        }
 
         return response()->json([
             'status' => 'success',
-            'data'   => DB::table('examiners')
-                ->select('examiner_id', 'full_name', 'username', 'role', 'is_active', 'created_at')
-                ->orderByDesc('examiner_id')
-                ->get(),
+            'data'   => $query->paginate((int) request('per_page', 25)),
         ]);
     }
 
     public function createExaminer(Request $request): JsonResponse
     {
-        if (! $this->isAdmin()) return $this->forbidden();
+        if (! $this->isAdminLike()) return $this->forbidden();
 
         $data = $request->validate([
-            'full_name' => 'required|string|max:100',
-            'username'  => 'required|string|max:100|unique:examiners,username',
-            'password'  => 'required|string|min:8',
-            'role'      => 'in:examiner,admin',
+            'full_name'     => 'required|string|max:100',
+            'username'      => 'required|string|max:100|unique:examiners,username',
+            'password'      => 'required|string|min:8',
+            'role'          => 'nullable|in:EXAMINER,ADMIN,examiner,admin',
+            'admin_user_id' => 'nullable|integer|exists:users,id',
         ]);
+
+        $role = Roles::normalize($data['role'] ?? Roles::EXAMINER);
+
+        if ($role === Roles::ADMIN && ! $this->isSuperAdmin()) {
+            return $this->forbidden();
+        }
+
+        $adminUserId = $this->isSuperAdmin()
+            ? ($data['admin_user_id'] ?? null)
+            : $this->user()->id;
 
         $id = DB::table('examiners')->insertGetId([
             'full_name'     => $data['full_name'],
             'username'      => $data['username'],
             'password_hash' => Hash::make($data['password']),
-            'role'          => $data['role'] ?? 'examiner',
+            'role'          => $role,
+            'admin_user_id' => $adminUserId,
             'is_active'     => false,
+            'last_active_at'=> null,
             'created_at'    => now(),
         ]);
+
+        $this->auditService->logAction(
+            (string) $this->user()->id,
+            strtolower($this->user()->normalizedRole()),
+            'examiner.created',
+            ['username' => $data['username']],
+            'examiner',
+            (string) $id,
+            null,
+            ['role' => $role, 'admin_user_id' => $adminUserId, 'is_active' => false]
+        );
 
         return response()->json([
             'status'  => 'success',
             'message' => 'Examiner created',
             'data'    => DB::table('examiners')
-                ->select('examiner_id', 'full_name', 'username', 'role', 'is_active', 'created_at')
+                ->select('examiner_id', 'full_name', 'username', 'role', 'admin_user_id', 'is_active', 'created_at')
                 ->where('examiner_id', $id)
                 ->first(),
         ], 201);
@@ -144,7 +239,7 @@ class DashboardController extends Controller
 
     public function toggleExaminer(Request $request, int $id): JsonResponse
     {
-        if (! $this->isAdmin()) return $this->forbidden();
+        if (! $this->isAdminLike()) return $this->forbidden();
 
         $examiner = DB::table('examiners')->where('examiner_id', $id)->first();
 
@@ -152,8 +247,23 @@ class DashboardController extends Controller
             return response()->json(['status' => 'error', 'message' => 'Examiner not found'], 404);
         }
 
+        if (! $this->authorizeExaminer($id)) {
+            return $this->forbidden();
+        }
+
         $newState = ! $examiner->is_active;
         DB::table('examiners')->where('examiner_id', $id)->update(['is_active' => $newState]);
+
+        $this->auditService->logAction(
+            (string) $this->user()->id,
+            strtolower($this->user()->normalizedRole()),
+            $newState ? 'examiner.activated' : 'examiner.suspended',
+            [],
+            'examiner',
+            (string) $id,
+            ['is_active' => (bool) $examiner->is_active],
+            ['is_active' => $newState]
+        );
 
         return response()->json([
             'status'  => 'success',
@@ -166,7 +276,7 @@ class DashboardController extends Controller
 
     public function revokeToken(Request $request, string $id): JsonResponse
     {
-        if (! $this->isAdmin()) return $this->forbidden();
+        if (! $this->isAdminLike()) return $this->forbidden();
 
         try {
             $this->qrTokenService->revoke($id);
@@ -189,39 +299,187 @@ class DashboardController extends Controller
 
     public function logs(Request $request): JsonResponse
     {
-        if (! $this->isAdmin()) return $this->forbidden();
+        if (! $this->isAdminLike()) return $this->forbidden();
 
-        $query = DB::table('verification_logs')->orderByDesc('timestamp');
+        $query = DB::table('verification_logs')
+            ->join('qr_tokens', 'verification_logs.token_id', '=', 'qr_tokens.token_id')
+            ->join('exam_sessions', 'qr_tokens.session_id', '=', 'exam_sessions.session_id')
+            ->leftJoin('examiners', 'verification_logs.examiner_id', '=', 'examiners.examiner_id')
+            ->select(
+                'verification_logs.*',
+                'qr_tokens.student_id as matric_no',
+                'qr_tokens.session_id',
+                'exam_sessions.semester',
+                'exam_sessions.academic_year',
+                'examiners.full_name as examiner_name'
+            )
+            ->orderByDesc('verification_logs.timestamp');
+
+        $this->applyExaminerScope($query);
 
         if ($request->filled('examiner_id')) {
-            $query->where('examiner_id', (int) $request->input('examiner_id'));
+            $examinerId = (int) $request->input('examiner_id');
+            if (! $this->authorizeExaminer($examinerId)) return $this->forbidden();
+            $query->where('verification_logs.examiner_id', $examinerId);
         }
 
         if ($request->filled('decision')) {
             $decision = strtoupper($request->input('decision'));
             if (in_array($decision, ['APPROVED', 'REJECTED', 'DUPLICATE'], true)) {
-                $query->where('decision', $decision);
+                $query->where('verification_logs.decision', $decision);
             }
+        }
+
+        if ($request->filled('session_id')) {
+            $query->where('qr_tokens.session_id', (int) $request->input('session_id'));
+        }
+
+        if ($request->filled('date_from')) {
+            $query->whereDate('verification_logs.timestamp', '>=', $request->input('date_from'));
+        }
+
+        if ($request->filled('date_to')) {
+            $query->whereDate('verification_logs.timestamp', '<=', $request->input('date_to'));
         }
 
         return response()->json([
             'status' => 'success',
-            'data'   => $query->limit(100)->get(),
+            'data'   => $query->paginate((int) $request->input('per_page', 50)),
         ]);
     }
 
-    public function stats(): JsonResponse
+    public function stats(Request $request): JsonResponse
     {
-        if (! $this->isAdmin()) return $this->forbidden();
+        if (! $this->isAdminLike()) return $this->forbidden();
+
+        $cacheKey = sprintf(
+            'admin_stats:%s:%s:%s:%s',
+            $this->user()->id,
+            $request->input('session_id', 'all'),
+            $request->input('date_from', 'all'),
+            $request->input('date_to', 'all')
+        );
+
+        $data = Cache::remember($cacheKey, 30, function () use ($request) {
+            $query = DB::table('verification_logs')
+                ->join('qr_tokens', 'verification_logs.token_id', '=', 'qr_tokens.token_id');
+
+            $this->applyExaminerScope($query);
+
+            if ($request->filled('session_id')) {
+                $query->where('qr_tokens.session_id', (int) $request->input('session_id'));
+            }
+            if ($request->filled('date_from')) {
+                $query->whereDate('verification_logs.timestamp', '>=', $request->input('date_from'));
+            }
+            if ($request->filled('date_to')) {
+                $query->whereDate('verification_logs.timestamp', '<=', $request->input('date_to'));
+            }
+
+            $counts = (clone $query)
+                ->select('verification_logs.decision', DB::raw('COUNT(*) as aggregate'))
+                ->groupBy('verification_logs.decision')
+                ->pluck('aggregate', 'decision');
+
+            $daily = (clone $query)
+                ->select(DB::raw('DATE(verification_logs.timestamp) as day'), DB::raw('COUNT(*) as total'))
+                ->groupBy('day')
+                ->orderBy('day')
+                ->limit(30)
+                ->get();
+
+            $total = (int) $counts->sum();
+            $approved = (int) ($counts['APPROVED'] ?? 0);
+            $rejected = (int) ($counts['REJECTED'] ?? 0);
+            $duplicate = (int) ($counts['DUPLICATE'] ?? 0);
+
+            return [
+                'total' => $total,
+                'approved' => $approved,
+                'rejected' => $rejected,
+                'duplicate' => $duplicate,
+                'success_rate' => $total > 0 ? round(($approved / $total) * 100, 2) : 0,
+                'rejection_rate' => $total > 0 ? round(($rejected / $total) * 100, 2) : 0,
+                'active_examiners' => DB::table('examiners')
+                    ->when(! $this->isSuperAdmin(), fn ($q) => $q->where('admin_user_id', $this->user()->id))
+                    ->where('is_active', true)
+                    ->count(),
+                'daily' => $daily,
+            ];
+        });
 
         return response()->json([
             'status' => 'success',
-            'data'   => [
-                'total'     => DB::table('verification_logs')->count(),
-                'approved'  => DB::table('verification_logs')->where('decision', 'APPROVED')->count(),
-                'rejected'  => DB::table('verification_logs')->where('decision', 'REJECTED')->count(),
-                'duplicate' => DB::table('verification_logs')->where('decision', 'DUPLICATE')->count(),
-            ],
+            'data'   => $data,
+        ]);
+    }
+
+    public function studentTrace(Request $request): JsonResponse
+    {
+        if (! $this->isAdminLike()) return $this->forbidden();
+
+        $data = $request->validate([
+            'matric_no' => 'required|string|max:50',
+        ]);
+
+        $query = DB::table('verification_logs')
+            ->join('qr_tokens', 'verification_logs.token_id', '=', 'qr_tokens.token_id')
+            ->join('exam_sessions', 'qr_tokens.session_id', '=', 'exam_sessions.session_id')
+            ->leftJoin('examiners', 'verification_logs.examiner_id', '=', 'examiners.examiner_id')
+            ->where('qr_tokens.student_id', $data['matric_no'])
+            ->select(
+                'verification_logs.log_id as trace_id',
+                'verification_logs.decision',
+                'verification_logs.timestamp',
+                'verification_logs.device_fp',
+                'verification_logs.ip_address',
+                'examiners.full_name as examiner',
+                'examiners.examiner_id',
+                'exam_sessions.semester',
+                'exam_sessions.academic_year',
+                'qr_tokens.session_id'
+            )
+            ->orderByDesc('verification_logs.timestamp');
+
+        $this->applyExaminerScope($query);
+
+        return response()->json([
+            'status' => 'success',
+            'data' => $query->paginate((int) $request->input('per_page', 25)),
+        ]);
+    }
+
+    public function auditTrail(Request $request): JsonResponse
+    {
+        if (! $this->isAdminLike()) return $this->forbidden();
+
+        $query = DB::table('audit_log')->orderByDesc('timestamp');
+
+        if (! $this->isSuperAdmin()) {
+            $allowedIds = array_map('strval', $this->scopedExaminerIds());
+            $allowedIds[] = (string) $this->user()->id;
+            $query->whereIn('actor_id', $allowedIds);
+        }
+
+        if ($request->filled('user')) {
+            $query->where('actor_id', $request->input('user'));
+        }
+        if ($request->filled('action')) {
+            $query->where('action', $request->input('action'));
+        }
+        if ($request->filled('session_id')) {
+            $query->where('session_id', (int) $request->input('session_id'));
+        }
+        if ($request->filled('date_from')) {
+            $query->whereDate('timestamp', '>=', $request->input('date_from'));
+        }
+        if ($request->filled('date_to')) {
+            $query->whereDate('timestamp', '<=', $request->input('date_to'));
+        }
+
+        return response()->json([
+            'status' => 'success',
+            'data' => $query->paginate((int) $request->input('per_page', 50)),
         ]);
     }
 }

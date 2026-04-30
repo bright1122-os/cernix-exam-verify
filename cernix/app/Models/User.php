@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Support\Roles;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
@@ -41,7 +42,22 @@ class User extends Authenticatable implements JWTSubject
     public function getJWTCustomClaims(): array
     {
         return [
-            'role' => $this->role,
+            'role' => Roles::normalize($this->role),
         ];
+    }
+
+    public function normalizedRole(): string
+    {
+        return Roles::normalize($this->role);
+    }
+
+    public function isSuperAdmin(): bool
+    {
+        return $this->normalizedRole() === Roles::SUPER_ADMIN;
+    }
+
+    public function isAdminLike(): bool
+    {
+        return Roles::isAdminLike($this->role);
     }
 }

@@ -27,6 +27,48 @@ class SeederTest extends TestCase
     {
         $count = DB::table('mock_sis')->count();
 
-        $this->assertGreaterThanOrEqual(5, $count);
+        $this->assertGreaterThanOrEqual(1500, $count);
+    }
+
+    public function test_mock_sis_preserves_known_demo_students(): void
+    {
+        foreach ([
+            'CSC/2021/001',
+            'SEN/2021/002',
+            'IFT/2021/003',
+            'CYS/2021/004',
+            'DTS/2021/005',
+        ] as $matricNo) {
+            $this->assertDatabaseHas('mock_sis', ['matric_no' => $matricNo]);
+        }
+    }
+
+    public function test_mock_sis_generated_records_cover_supported_departments(): void
+    {
+        $departments = DB::table('mock_sis')
+            ->select('department')
+            ->distinct()
+            ->pluck('department')
+            ->all();
+
+        $this->assertEqualsCanonicalizing([
+            'Computer Science',
+            'Software Engineering',
+            'Information Technology',
+            'Cyber Security',
+            'Data Science',
+        ], $departments);
+    }
+
+    public function test_mock_sis_generated_records_keep_expected_matric_format(): void
+    {
+        $sample = DB::table('mock_sis')
+            ->inRandomOrder()
+            ->limit(25)
+            ->pluck('matric_no');
+
+        foreach ($sample as $matricNo) {
+            $this->assertMatchesRegularExpression('/^[A-Z]{3}\/20\d{2}\/\d{3}$/', $matricNo);
+        }
     }
 }

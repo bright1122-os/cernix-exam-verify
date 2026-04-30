@@ -30,6 +30,9 @@ return Application::configure(basePath: dirname(__DIR__))
         // Without this header, ngrok's free-tier CDN injects a "Visit Site" click-
         // through page that breaks first-load on browsers and all mobile access.
         $middleware->append(\App\Http\Middleware\NgrokHeaders::class);
+        $middleware->alias([
+            'role' => \App\Http\Middleware\EnsureRole::class,
+        ]);
     })
     ->withExceptions(function (Exceptions $exceptions) {
 

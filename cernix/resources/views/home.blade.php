@@ -113,6 +113,25 @@
     .system-status .info { flex: 1; }
     .system-status .info b { font-size: 12px; font-weight: 600; color: var(--emerald); display: block; }
     .system-status .info span { font-size: 11px; color: var(--ink-3); }
+    .status-mini {
+        display: none;
+        flex-wrap: wrap;
+        gap: 8px;
+        margin-top: 10px;
+    }
+    .status-mini.show { display: flex; }
+    .status-mini span {
+        display: inline-flex;
+        align-items: center;
+        min-height: 26px;
+        padding: 0 10px;
+        border-radius: 999px;
+        background: rgba(255,255,255,.56);
+        border: 1px solid rgba(15,32,80,.08);
+        font-size: 10px;
+        color: var(--ink-3);
+        letter-spacing: .04em;
+    }
     .footer-meta { padding: 0 20px 36px; font-size: 11px; color: var(--ink-4); text-align: center; letter-spacing: .04em; animation: fadeUp .4s .5s ease both; }
 </style>
 
@@ -222,6 +241,7 @@
         <div class="info">
             <b id="status-label">Checking system…</b>
             <span id="status-sub"></span>
+            <div class="status-mini" id="status-mini"></div>
         </div>
         <span class="chip emerald" id="status-chip" style="display:none">LIVE</span>
     </div>
@@ -235,6 +255,7 @@
 fetch('/health').then(r => r.json()).then(data => {
     const ok = data.status === 'ok' && data.session_active;
     const el = document.getElementById('system-status');
+    const meta = document.getElementById('status-mini');
     document.getElementById('status-label').textContent = ok
         ? 'System operational'
         : 'System up — no active session';
@@ -242,14 +263,26 @@ fetch('/health').then(r => r.json()).then(data => {
     document.getElementById('status-sub').textContent   = ok
         ? 'Active exam session running'
         : 'No exam session is currently active';
+    meta.innerHTML = '';
     if (ok) {
         document.getElementById('status-chip').style.display = '';
         el.style.background = 'rgba(16,185,129,.06)';
         el.style.borderColor = 'rgba(16,185,129,.2)';
+        [
+            data.active_session_label || 'Session active',
+            (data.active_examiner_count || 0) + ' active examiner' + ((data.active_examiner_count || 0) === 1 ? '' : 's'),
+            (data.mock_student_count || 0) + ' student records ready'
+        ].forEach((item) => {
+            const span = document.createElement('span');
+            span.textContent = item;
+            meta.appendChild(span);
+        });
+        meta.classList.add('show');
     } else {
         document.getElementById('status-chip').style.display = 'none';
         el.style.background = 'rgba(180,83,9,.06)';
         el.style.borderColor = 'rgba(180,83,9,.2)';
+        meta.classList.remove('show');
     }
     el.style.opacity = '1';
 }).catch(() => {

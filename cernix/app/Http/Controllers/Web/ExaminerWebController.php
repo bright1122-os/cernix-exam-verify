@@ -98,7 +98,35 @@ class ExaminerWebController extends Controller
             'role'      => $request->session()->get('examiner_role'),
         ];
 
-        return view('examiner.dashboard', compact('examiner'));
+        $base = DB::table('verification_logs')->where('examiner_id', $examiner['id']);
+        $counts = (clone $base)
+            ->select('decision', DB::raw('COUNT(*) as aggregate'))
+            ->groupBy('decision')
+            ->pluck('aggregate', 'decision');
+
+        $examinerStats = [
+            'total' => (int) $counts->sum(),
+            'approved' => (int) ($counts['APPROVED'] ?? 0),
+            'rejected' => (int) ($counts['REJECTED'] ?? 0),
+            'duplicate' => (int) ($counts['DUPLICATE'] ?? 0),
+            'trend' => (clone $base)
+                ->select(DB::raw('DATE(timestamp) as day'), DB::raw('COUNT(*) as total'))
+                ->groupBy('day')
+                ->orderBy('day')
+                ->limit(14)
+                ->get(),
+        ];
+
+        $scanHistory = DB::table('verification_logs')
+            ->join('qr_tokens', 'verification_logs.token_id', '=', 'qr_tokens.token_id')
+            ->join('exam_sessions', 'qr_tokens.session_id', '=', 'exam_sessions.session_id')
+            ->where('verification_logs.examiner_id', $examiner['id'])
+            ->select('verification_logs.*', 'qr_tokens.student_id as matric_no', 'exam_sessions.semester', 'exam_sessions.academic_year')
+            ->orderByDesc('verification_logs.timestamp')
+            ->limit(25)
+            ->get();
+
+        return view('examiner.dashboard', compact('examiner', 'examinerStats', 'scanHistory'));
     }
 
     public function verify(Request $request): JsonResponse
@@ -126,14 +154,23 @@ class ExaminerWebController extends Controller
             // Surface examiner identity for the verification card
             $result['examiner'] = $request->session()->get('examiner_name', 'Examiner');
 
-            if ($result['status'] === 'APPROVED') {
-                app(AuditService::class)->logAction(
-                    (string) $examinerId,
-                    'examiner',
-                    'scan.approved',
-                    ['token_id' => $result['token_id']]
-                );
-            }
+            DB::table('examiners')->where('examiner_id', $examinerId)->update(['last_active_at' => now()]);
+
+            app(AuditService::class)->logAction(
+                (string) $examinerId,
+                'examiner',
+                'scan.' . strtolower($result['status']),
+                [
+                    'token_id' => $result['token_id'] ?? null,
+                    'reason' => $result['reason'] ?? null,
+                ],
+                'qr_token',
+                $result['token_id'] ?? null,
+                null,
+                ['decision' => $result['status']],
+                isset($result['trace_id']) ? (string) $result['trace_id'] : null,
+                isset($data['qr_data']['session_id']) ? (int) $data['qr_data']['session_id'] : null
+            );
 
             return response()->json($result);
 

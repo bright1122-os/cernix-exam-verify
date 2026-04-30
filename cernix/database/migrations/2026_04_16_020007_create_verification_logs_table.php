@@ -17,6 +17,10 @@ return new class extends Migration
             $table->string('device_fp');
             $table->string('ip_address');
 
+            $table->index(['examiner_id', 'timestamp']);
+            $table->index(['decision', 'timestamp']);
+            $table->index(['token_id', 'timestamp']);
+
             $table->foreign('token_id')
                   ->references('token_id')
                   ->on('qr_tokens');

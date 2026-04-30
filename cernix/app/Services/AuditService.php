@@ -24,14 +24,31 @@ class AuditService
         string $actorId,
         string $actorType,
         string $action,
-        array  $metadata = []
+        array  $metadata = [],
+        ?string $targetType = null,
+        ?string $targetId = null,
+        ?array $beforeValues = null,
+        ?array $afterValues = null,
+        ?string $traceId = null,
+        ?int $sessionId = null
     ): void {
+        $request = request();
+        $userAgent = $request?->userAgent() ?? 'unknown';
+
         DB::table('audit_log')->insert([
-            'actor_id'   => $actorId,
-            'actor_type' => $actorType,
-            'action'     => $action,
-            'metadata'   => $this->encodeMetadata($metadata),
-            'timestamp'  => $this->now(),
+            'actor_id'      => $actorId,
+            'actor_type'    => $actorType,
+            'action'        => $action,
+            'target_type'   => $targetType,
+            'target_id'     => $targetId,
+            'before_values' => $beforeValues === null ? null : $this->encodeMetadata($beforeValues),
+            'after_values'  => $afterValues === null ? null : $this->encodeMetadata($afterValues),
+            'metadata'      => $this->encodeMetadata($metadata),
+            'ip_address'    => $request?->ip(),
+            'device_fp'     => substr(hash('sha256', $userAgent), 0, 32),
+            'trace_id'      => $traceId,
+            'session_id'    => $sessionId,
+            'timestamp'     => $this->now(),
         ]);
     }
 

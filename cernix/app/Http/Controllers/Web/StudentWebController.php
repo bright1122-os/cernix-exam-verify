@@ -37,6 +37,8 @@ class StudentWebController extends Controller
         }
 
         try {
+            $cryptoService = new CryptoService();
+
             $regService = new RegistrationService(
                 new MockSISService(),
                 new class((float) $session->fee_amount) extends RemitaService {
@@ -45,7 +47,7 @@ class StudentWebController extends Controller
                         return ['status' => 'Payment Successful', 'amount' => (string) $this->fee];
                     }
                 },
-                new CryptoService()
+                $cryptoService
             );
 
             $result = $regService->registerStudent([
@@ -80,7 +82,7 @@ class StudentWebController extends Controller
                 ->where('token_id', $result['data']['token_id'])
                 ->first();
 
-            $qrService = new QrTokenService(new CryptoService());
+            $qrService = new QrTokenService($cryptoService);
             $qrSvg = $qrService->buildQrCode([
                 'token_id'          => $result['data']['token_id'],
                 'encrypted_payload' => $tokenRow->encrypted_payload,
@@ -88,13 +90,14 @@ class StudentWebController extends Controller
                 'session_id'        => (int) $session->session_id,
             ]);
 
-            // Fetch department name
-            $deptRow = DB::table('students')
+            $studentRow = DB::table('students')
                 ->join('departments', 'students.department_id', '=', 'departments.dept_id')
                 ->where('students.matric_no', $data['matric_no'])
                 ->where('students.session_id', (int) $session->session_id)
-                ->select('departments.dept_name')
+                ->select('departments.dept_name', 'students.photo_path')
                 ->first();
+
+            $photoPath = $studentRow->photo_path ?? $photoPath;
 
             app(AuditService::class)->logAction(
                 $data['matric_no'],
@@ -108,7 +111,7 @@ class StudentWebController extends Controller
                 'message' => 'Registration successful',
                 'data'    => array_merge($result['data'], [
                     'qr_svg'     => $qrSvg,
-                    'department' => $deptRow->dept_name ?? '',
+                    'department' => $studentRow->dept_name ?? '',
                     'session_id' => (int) $session->session_id,
                     'photo_path' => $photoPath,
                     'photo_url'  => '/' . $photoPath,

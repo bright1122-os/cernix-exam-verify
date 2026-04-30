@@ -120,14 +120,29 @@ class AdminApiTest extends TestCase
 
     public function test_admin_can_list_examiners(): void
     {
+        DB::table('examiners')->where('username', 'examiner1')->update(['admin_user_id' => $this->adminUser->id]);
+
         $response = $this->withToken($this->adminToken)->getJson('/api/admin/examiners');
 
         $response->assertStatus(200)
                  ->assertJsonPath('status', 'success')
-                 ->assertJsonStructure(['data']);
+                 ->assertJsonStructure(['data' => ['data']]);
 
-        // ExaminersSeeder adds 2 examiners
-        $this->assertCount(2, $response->json('data'));
+        $this->assertCount(1, $response->json('data.data'));
+        $this->assertSame('examiner1', $response->json('data.data.0.username'));
+    }
+
+    public function test_super_admin_can_list_all_examiners(): void
+    {
+        $super = User::factory()->create(['role' => 'SUPER_ADMIN']);
+        $token = JWTAuth::fromUser($super);
+
+        $response = $this->withToken($token)->getJson('/api/admin/examiners');
+
+        $response->assertStatus(200)
+            ->assertJsonPath('status', 'success');
+
+        $this->assertGreaterThanOrEqual(2, $response->json('data.total'));
     }
 
     public function test_admin_can_create_examiner(): void
@@ -159,6 +174,7 @@ class AdminApiTest extends TestCase
     {
         $examiner = DB::table('examiners')->where('username', 'examiner1')->first();
         $original = (bool) $examiner->is_active;
+        DB::table('examiners')->where('examiner_id', $examiner->examiner_id)->update(['admin_user_id' => $this->adminUser->id]);
 
         $response = $this->withToken($this->adminToken)
             ->patchJson("/api/admin/examiners/{$examiner->examiner_id}/toggle");

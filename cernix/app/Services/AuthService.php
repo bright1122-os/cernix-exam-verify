@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Models\User;
+use App\Support\Roles;
 use Illuminate\Support\Facades\Auth;
 
 class AuthService
@@ -21,7 +22,15 @@ class AuthService
         /** @var User $user */
         $user = Auth::guard('api')->user();
 
-        if ($user->role !== $role) {
+        $actual = Roles::normalize($user->role);
+        $expected = Roles::normalize($role);
+
+        if ($expected === Roles::ADMIN && ! Roles::isAdminLike($actual)) {
+            Auth::guard('api')->logout();
+            return false;
+        }
+
+        if ($expected !== Roles::ADMIN && $actual !== $expected) {
             Auth::guard('api')->logout();
             return false;
         }

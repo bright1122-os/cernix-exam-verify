@@ -9,6 +9,10 @@ class HealthController extends Controller
 {
     public function check(): JsonResponse
     {
+        $activeSession = null;
+        $activeExaminerCount = 0;
+        $mockStudentCount = 0;
+
         try {
             DB::connection()->getPdo();
             $database = 'connected';
@@ -18,16 +22,29 @@ class HealthController extends Controller
 
         $sessionActive = false;
         try {
-            $sessionActive = DB::table('exam_sessions')->where('is_active', true)->exists();
+            $activeSession = DB::table('exam_sessions')
+                ->where('is_active', true)
+                ->select('session_id', 'semester', 'academic_year')
+                ->first();
+
+            $sessionActive = (bool) $activeSession;
+            $activeExaminerCount = DB::table('examiners')->where('is_active', true)->count();
+            $mockStudentCount = DB::table('mock_sis')->count();
         } catch (\Throwable) {
-            // table may not exist in a fresh install
+            // tables may not exist in a fresh install
         }
 
         return response()->json([
-            'status'         => $database === 'connected' ? 'ok' : 'degraded',
-            'database'       => $database,
-            'session_active' => $sessionActive,
-            'timestamp'      => now()->toIso8601String(),
+            'status'                => $database === 'connected' ? 'ok' : 'degraded',
+            'database'              => $database,
+            'session_active'        => $sessionActive,
+            'active_session_id'     => $activeSession?->session_id,
+            'active_session_label'  => $activeSession
+                ? trim(($activeSession->semester ?? '') . ' ' . ($activeSession->academic_year ?? ''))
+                : null,
+            'active_examiner_count' => $activeExaminerCount,
+            'mock_student_count'    => $mockStudentCount,
+            'timestamp'             => now()->toIso8601String(),
         ]);
     }
 }

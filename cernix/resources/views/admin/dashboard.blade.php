@@ -114,6 +114,17 @@
 .stat-card:nth-child(2) { animation: fadeUp .35s .1s  ease both; }
 .stat-card:nth-child(3) { animation: fadeUp .35s .15s ease both; }
 .stat-card:nth-child(4) { animation: fadeUp .35s .2s  ease both; }
+.chart-grid {
+    display: grid; grid-template-columns: minmax(260px, 380px) 1fr; gap: 14px; margin-bottom: 24px;
+}
+.chart-box {
+    background: var(--bg-2); border: 1px solid var(--line); border-radius: 14px; padding: 16px; min-height: 260px;
+}
+.chart-box h3 { margin: 0 0 12px; font-size: 13px; font-weight: 700; }
+.chart-box canvas { max-height: 220px; }
+.trace-form { display:flex; gap:8px; flex-wrap:wrap; padding:12px 20px; border-bottom:1px solid var(--line); }
+.trace-form input { padding:8px 10px; border:1px solid var(--line-2); border-radius:8px; font-size:12px; }
+.trace-form button { padding:8px 12px; border:0; border-radius:8px; background:var(--navy); color:#fff; font-size:12px; font-weight:700; cursor:pointer; }
 
 /* ── Tabs ─────────────────────────────────────────────────────────────────── */
 .admin-tabs {
@@ -273,6 +284,7 @@
 /* ── Responsive ───────────────────────────────────────────────────────────── */
 @media (max-width: 1024px) {
     .stat-grid { grid-template-columns: repeat(2, 1fr); }
+    .chart-grid { grid-template-columns: 1fr; }
     .session-meta { grid-template-columns: repeat(2, 1fr); }
     .admin-content { padding: 24px; }
     .admin-header { padding: 16px 24px; }
@@ -347,7 +359,7 @@
             </a>
             <a href="#" class="nav-item" onclick="switchTab(4);closeSidebar();return false;">
                 <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
-                <span>Students (SIS)</span>
+                <span>Student Trace</span>
             </a>
         </div>
 
@@ -461,6 +473,17 @@
                 </div>
             </div>
 
+            <div class="chart-grid">
+                <div class="chart-box">
+                    <h3>Approved / Rejected / Duplicate</h3>
+                    <canvas id="decisionChart"></canvas>
+                </div>
+                <div class="chart-box">
+                    <h3>Daily Scan Performance</h3>
+                    <canvas id="dailyChart"></canvas>
+                </div>
+            </div>
+
             <!-- Tabs -->
             <div class="admin-tabs" id="tab-bar">
                 <button class="active" onclick="switchTab(0)">
@@ -484,7 +507,7 @@
                 </button>
                 <button onclick="switchTab(4)">
                     <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" style="display:inline;vertical-align:-2px;margin-right:5px"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
-                    Students (SIS)
+                    Student Trace
                 </button>
                 <button onclick="switchTab(5)">
                     <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" style="display:inline;vertical-align:-2px;margin-right:5px"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg>
@@ -658,23 +681,22 @@
                         <h3>Examiners</h3>
                         <span class="count">{{ $stats['examiners'] }} active</span>
                     </div>
-                    @php
-                        $examinerList = \Illuminate\Support\Facades\DB::table('examiners')->orderBy('examiner_id')->limit(50)->get();
-                    @endphp
-                    @forelse($examinerList as $ex)
+                    @forelse($examinerStats as $ex)
                     @php
                         $exName = $ex->full_name ?? $ex->username ?? 'Examiner';
                         $exInitials = collect(explode(' ', $exName))->map(fn($w) => strtoupper($w[0] ?? ''))->take(2)->implode('');
                         $exActive = $ex->is_active ?? false;
                         $exRole = $ex->role ?? 'examiner';
+                        $scanCount = (int) ($ex->scans_performed ?? 0);
+                        $approvalRate = $scanCount > 0 ? round(((int) $ex->approved_scans / $scanCount) * 100, 1) : 0;
                     @endphp
                     <div class="examiner-row">
                         <div class="ex-av">{{ $exInitials ?: 'EX' }}</div>
                         <div class="ex-bd">
                             <b>{{ $exName }}</b>
-                            <span>@{{ $ex->username ?? '—' }}</span>
+                            <span>@{{ $ex->username ?? '—' }} &middot; {{ $scanCount }} scans &middot; {{ $approvalRate }}% approval &middot; Last active {{ $ex->last_active_at ?? '—' }}</span>
                         </div>
-                        <span class="chip {{ $exRole === 'admin' ? 'navy' : '' }}" style="{{ $exRole !== 'admin' ? 'background:rgba(45,108,255,.12);color:var(--blue)' : '' }}">{{ strtoupper($exRole) }}</span>
+                        <span class="chip {{ strtoupper($exRole) === 'ADMIN' ? 'navy' : '' }}" style="{{ strtoupper($exRole) !== 'ADMIN' ? 'background:rgba(45,108,255,.12);color:var(--blue)' : '' }}">{{ strtoupper($exRole) }}</span>
                         <span class="chip {{ $exActive ? 'emerald' : 'red' }}">{{ $exActive ? 'ACTIVE' : 'INACTIVE' }}</span>
                     </div>
                     @empty
@@ -683,48 +705,39 @@
                         No examiners registered yet.
                     </div>
                     @endforelse
+                    @if(method_exists($examinerStats, 'links'))
+                    <div style="padding:12px 20px;border-top:1px solid var(--line);font-size:12px;">{{ $examinerStats->links() }}</div>
+                    @endif
                 </div>
             </div>
 
-            <!-- Tab: Students (SIS) -->
+            <!-- Tab: Student Trace -->
             <div class="tab-panel" id="tab-4" style="display:none;">
-                @php
-                    $sisList = \Illuminate\Support\Facades\DB::table('mock_sis')->orderBy('matric_no')->get();
-                @endphp
                 <div class="panel">
                     <div class="panel-head">
-                        <h3>Student Information System (SIS)</h3>
-                        <span class="count">{{ $sisList->count() }} records</span>
+                        <h3>Student Trace System</h3>
+                        <span class="count">{{ $studentTrace->count() }} scan events</span>
                     </div>
-                    @forelse($sisList as $sis)
+                    <form class="trace-form" method="GET" action="/admin/dashboard">
+                        <input type="text" name="matric_no" value="{{ request('matric_no') }}" placeholder="Matric number">
+                        <button type="submit">Search</button>
+                    </form>
+                    @forelse($studentTrace as $trace)
                     @php
-                        $sisName     = $sis->full_name   ?? '—';
-                        $sisDept     = $sis->department  ?? '—';
-                        $sisInitials = collect(explode(' ', $sisName))->map(fn($w) => strtoupper($w[0] ?? ''))->take(2)->implode('');
-                        $sisPhoto    = $sis->photo_path  ?? null;
-                        $hasPhoto    = $sisPhoto && file_exists(public_path($sisPhoto));
+                        $decision = strtolower($trace->decision ?? 'rejected');
                     @endphp
                     <div class="examiner-row">
-                        <div class="ex-av" style="border-radius:6px;overflow:hidden;background:var(--line);">
-                            @if($hasPhoto)
-                                <img src="/photo-thumb/{{ basename($sisPhoto) }}" alt="{{ $sisInitials }}"
-                                     style="width:100%;height:100%;object-fit:cover;object-position:center top;display:block;">
-                            @else
-                                {{ $sisInitials ?: 'S' }}
-                            @endif
-                        </div>
+                        <div class="ex-av" style="border-radius:8px;">{{ strtoupper(substr($trace->decision ?? 'S', 0, 1)) }}</div>
                         <div class="ex-bd">
-                            <b>{{ $sisName }}</b>
-                            <span style="font-family:inherit;">{{ $sis->matric_no ?? '—' }} &middot; {{ $sisDept }}</span>
+                            <b>{{ request('matric_no') ?: 'Student' }} &middot; {{ $trace->semester ?? '—' }} {{ $trace->academic_year ?? '' }}</b>
+                            <span style="font-family:inherit;">{{ $trace->timestamp ?? '—' }} &middot; Examiner: {{ $trace->examiner_name ?? '—' }} &middot; Trace #{{ $trace->log_id ?? '—' }}</span>
                         </div>
-                        <span class="chip" style="background:rgba(45,108,255,.1);color:var(--blue);font-size:10px;">
-                            {{ strtoupper(Str::limit($sisDept, 14)) }}
-                        </span>
+                        <span class="chip {{ $decision === 'approved' ? 'emerald' : ($decision === 'duplicate' ? 'amber' : 'red') }}">{{ strtoupper($trace->decision ?? '—') }}</span>
                     </div>
                     @empty
                     <div class="empty-state">
                         <svg width="32" height="32" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24" style="margin:0 auto 10px;display:block;opacity:.3"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>
-                        No SIS records found.
+                        Search a matric number to view the verification timeline.
                     </div>
                     @endforelse
                 </div>
@@ -799,7 +812,42 @@
 @endsection
 
 @push('scripts')
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 <script>
+const decisionData = @json([
+    (int) ($stats['approved'] ?? 0),
+    (int) ($stats['rejected'] ?? 0),
+    (int) ($stats['duplicate'] ?? 0),
+]);
+const dailyData = @json(collect($stats['daily'] ?? [])->map(fn($row) => ['day' => $row->day ?? '', 'total' => (int) ($row->total ?? 0)])->values());
+
+function initAdminCharts() {
+    if (typeof Chart === 'undefined') return;
+    const decisionEl = document.getElementById('decisionChart');
+    const dailyEl = document.getElementById('dailyChart');
+    if (decisionEl) {
+        new Chart(decisionEl, {
+            type: 'doughnut',
+            data: {
+                labels: ['Approved', 'Rejected', 'Duplicate'],
+                datasets: [{ data: decisionData, backgroundColor: ['#059669', '#dc2626', '#b45309'], borderWidth: 0 }]
+            },
+            options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom' } } }
+        });
+    }
+    if (dailyEl) {
+        new Chart(dailyEl, {
+            type: 'line',
+            data: {
+                labels: dailyData.map(r => r.day),
+                datasets: [{ label: 'Scans', data: dailyData.map(r => r.total), borderColor: '#2d6cff', backgroundColor: 'rgba(45,108,255,.12)', tension: .35, fill: true }]
+            },
+            options: { responsive: true, maintainAspectRatio: false, scales: { y: { beginAtZero: true, ticks: { precision: 0 } } } }
+        });
+    }
+}
+document.addEventListener('DOMContentLoaded', initAdminCharts);
+
 function switchTab(idx) {
     document.querySelectorAll('.tab-panel').forEach((p, i) => {
         if (i === idx) {
