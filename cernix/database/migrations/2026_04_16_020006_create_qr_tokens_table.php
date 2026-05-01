@@ -20,11 +20,13 @@ return new class extends Migration
 
             $table->foreign('student_id')
                   ->references('matric_no')
-                  ->on('students');
+                  ->on('students')
+                  ->cascadeOnDelete();
 
             $table->foreign('session_id')
                   ->references('session_id')
-                  ->on('exam_sessions');
+                  ->on('exam_sessions')
+                  ->cascadeOnDelete();
         });
     }
 

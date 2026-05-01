@@ -22,11 +22,13 @@ class CernixReset extends Command
             return 0;
         }
 
-        DB::table('verification_logs')->delete();
-        DB::table('audit_log')->delete();
-        DB::table('payment_records')->delete();
-        DB::table('qr_tokens')->delete();
-        DB::table('students')->delete();
+        DB::transaction(function () {
+            DB::table('verification_logs')->delete();
+            DB::table('audit_log')->delete();
+            DB::table('payment_records')->delete();
+            DB::table('qr_tokens')->delete();
+            DB::table('students')->delete();
+        });
 
         // Restore mock SIS photo paths to seeder defaults
         $defaults = [

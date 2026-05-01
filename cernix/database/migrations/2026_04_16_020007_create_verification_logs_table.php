@@ -23,11 +23,13 @@ return new class extends Migration
 
             $table->foreign('token_id')
                   ->references('token_id')
-                  ->on('qr_tokens');
+                  ->on('qr_tokens')
+                  ->cascadeOnDelete();
 
             $table->foreign('examiner_id')
                   ->references('examiner_id')
-                  ->on('examiners');
+                  ->on('examiners')
+                  ->cascadeOnDelete();
         });
     }
 

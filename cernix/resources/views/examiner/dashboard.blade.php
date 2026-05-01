@@ -1778,22 +1778,46 @@
 @push('scripts')
 <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+@php
+    $scanHistoryPayload = $scanHistory->map(function ($scan) {
+        $sessionLabel = trim(($scan->semester ?? '') . ' ' . ($scan->academic_year ?? ''));
+
+        try {
+            $scanTime = $scan->timestamp
+                ? \Carbon\Carbon::parse($scan->timestamp)->format('H:i')
+                : '—';
+        } catch (\Throwable $e) {
+            $scanTime = '—';
+        }
+
+        return [
+            'type' => strtolower((string) ($scan->decision ?? '')),
+            'name' => $scan->matric_no ?? 'Student',
+            'sub' => $sessionLabel !== '' ? $sessionLabel : 'Session',
+            'time' => $scanTime,
+        ];
+    })->values();
+
+    $examinerTrendPayload = collect($examinerStats['trend'] ?? [])->map(function ($row) {
+        return [
+            'day' => $row->day ?? '',
+            'total' => (int) ($row->total ?? 0),
+        ];
+    })->values();
+
+    $examinerStatsPayload = [
+        'total' => (int) ($examinerStats['total'] ?? 0),
+        'approved' => (int) ($examinerStats['approved'] ?? 0),
+        'rejected' => (int) ($examinerStats['rejected'] ?? 0),
+        'duplicate' => (int) ($examinerStats['duplicate'] ?? 0),
+    ];
+@endphp
 <script>
-let stats = @json([
-    'total' => (int) ($examinerStats['total'] ?? 0),
-    'approved' => (int) ($examinerStats['approved'] ?? 0),
-    'rejected' => (int) ($examinerStats['rejected'] ?? 0),
-    'duplicate' => (int) ($examinerStats['duplicate'] ?? 0),
-]);
+let stats = @json($examinerStatsPayload);
 let scanning = false, busy = false, scanStartTime = 0;
-let scanHistory = @json($scanHistory->map(fn($scan) => [
-    'type' => strtolower($scan->decision),
-    'name' => $scan->matric_no ?? 'Student',
-    'sub' => trim(($scan->semester ?? '') . ' ' . ($scan->academic_year ?? '')) ?: 'Session',
-    'time' => \Carbon\Carbon::parse($scan->timestamp)->format('H:i'),
-])->values());
+let scanHistory = @json($scanHistoryPayload);
 let currentFilter = 'all';
-const examinerTrendData = @json(collect($examinerStats['trend'] ?? [])->map(fn($row) => ['day' => $row->day ?? '', 'total' => (int) ($row->total ?? 0)])->values());
+const examinerTrendData = @json($examinerTrendPayload);
 const csrf = document.querySelector('meta[name="csrf-token"]').content;
 const SCAN_INTERVAL_MS = 150;
 const SCAN_MAX_WIDTH = 960;
@@ -1829,6 +1853,11 @@ let scanLoopHandle = null;
 let scanContext = null;
 let audioContext = null;
 let audioMuted = false;
+let lastCameraMode = '';
+let lastCameraLabel = '';
+let cameraRetryCount = 0;
+let cameraRestartTimer = null;
+const CAMERA_MAX_RETRIES = 3;
 
 // ── Identity photo helpers ───────────────────────────────────────────────
 
@@ -1914,6 +1943,9 @@ function setCameraState(mode, label) {
     const chip = document.getElementById('camera-state-chip');
     const text = document.getElementById('camera-state-label');
     if (!chip || !text) return;
+    if (lastCameraMode === mode && lastCameraLabel === label) return;
+    lastCameraMode = mode;
+    lastCameraLabel = label;
     chip.classList.remove('ready', 'verifying', 'paused', 'error');
     if (mode) chip.classList.add(mode);
     text.textContent = label;
@@ -2429,66 +2461,131 @@ async function handleQRCode(rawData) {
     }
 }
 
+function stopCameraStream(video) {
+    const stream = video?.srcObject;
+    if (stream && typeof stream.getTracks === 'function') {
+        stream.getTracks().forEach(track => track.stop());
+    }
+    if (video) video.srcObject = null;
+}
+
+function scheduleCameraRetry() {
+    if (cameraRetryCount >= CAMERA_MAX_RETRIES) {
+        setCameraState('error', 'Camera unavailable');
+        setScanPrompt('Camera unavailable — refresh or check permissions', 'error');
+        return;
+    }
+
+    cameraRetryCount++;
+    window.clearTimeout(cameraRestartTimer);
+    cameraRestartTimer = window.setTimeout(() => {
+        startCamera();
+    }, 1200 * cameraRetryCount);
+}
+
 async function startCamera() {
     const video    = document.getElementById('camera-video');
     const fakeHall = document.getElementById('fake-hall');
     updateAudioFeedbackUi();
+    window.clearTimeout(cameraRestartTimer);
+
     if (!navigator.mediaDevices?.getUserMedia) {
         setCameraState('error', 'Camera unsupported');
         setScanPrompt('This browser cannot open the <b>camera</b>', 'error');
         return;
     }
+
+    if (typeof jsQR === 'undefined') {
+        setCameraState('error', 'Scanner library missing');
+        setScanPrompt('Scanner library is still loading — retrying', 'error');
+        scheduleCameraRetry();
+        return;
+    }
+
     try {
+        stopCameraStream(video);
+        setCameraState('verifying', 'Opening camera');
+        setScanPrompt('Opening <b>camera</b>…', 'busy');
+
         const stream = await navigator.mediaDevices.getUserMedia({
             video: { facingMode: { ideal: 'environment' }, width: { ideal: 1280 }, height: { ideal: 720 } }
         });
         video.srcObject = stream;
-        await video.play();
+        await new Promise((resolve, reject) => {
+            const timeout = window.setTimeout(() => reject(new Error('camera_start_timeout')), 5000);
+            const ready = () => {
+                window.clearTimeout(timeout);
+                video.removeEventListener('loadedmetadata', ready);
+                video.removeEventListener('playing', ready);
+                resolve();
+            };
+            video.addEventListener('loadedmetadata', ready, { once: true });
+            video.addEventListener('playing', ready, { once: true });
+            video.play().then(ready).catch(reject);
+        });
         video.style.display = '';
         fakeHall.style.display = 'none';
         scanning = true;
+        cameraRetryCount = 0;
         setCameraState('ready', 'Camera live');
         setScanPrompt('Point at <b>QR code</b>', '');
+        if (scanLoopHandle) cancelAnimationFrame(scanLoopHandle);
         queueNextFrame();
     } catch (e) {
+        stopCameraStream(video);
         setCameraState('error', 'Camera unavailable');
         setScanPrompt('Allow camera access to start <b>scanner</b>', 'error');
+        scheduleCameraRetry();
     }
 }
 
 function scanFrame(frameTime = 0) {
-    if (document.hidden) {
-        setCameraState('paused', 'Scanner paused');
-        setScanPrompt('Return to this tab to resume <b>scanner</b>', 'paused');
+    try {
+        if (document.hidden) {
+            setCameraState('paused', 'Scanner paused');
+            setScanPrompt('Return to this tab to resume <b>scanner</b>', 'paused');
+            return;
+        }
+
+        if (!scanning || busy) return;
+
+        const video  = document.getElementById('camera-video');
+        const canvas = document.getElementById('scan-canvas');
+        if (!video || !canvas) return;
+        if (frameTime - lastDecodeAt < SCAN_INTERVAL_MS) return;
+
+        if (typeof jsQR === 'undefined') {
+            setCameraState('error', 'Scanner loading');
+            return;
+        }
+
+        if (video.readyState === video.HAVE_ENOUGH_DATA && video.videoWidth > 0 && video.videoHeight > 0) {
+            lastDecodeAt = frameTime;
+            setCameraState('ready', 'Camera live');
+
+            const widthScale = Math.min(1, SCAN_MAX_WIDTH / video.videoWidth);
+            const heightScale = Math.min(1, SCAN_MAX_HEIGHT / video.videoHeight);
+            const scale = Math.min(widthScale, heightScale);
+
+            const nextWidth = Math.max(320, Math.round(video.videoWidth * scale));
+            const nextHeight = Math.max(240, Math.round(video.videoHeight * scale));
+            if (canvas.width !== nextWidth) canvas.width = nextWidth;
+            if (canvas.height !== nextHeight) canvas.height = nextHeight;
+
+            scanContext = scanContext || canvas.getContext('2d', { willReadFrequently: true });
+            if (!scanContext) return;
+
+            scanContext.drawImage(video, 0, 0, canvas.width, canvas.height);
+            const imageData = scanContext.getImageData(0, 0, canvas.width, canvas.height);
+            const code = jsQR(imageData.data, imageData.width, imageData.height, { inversionAttempts: 'attemptBoth' });
+            if (code?.data) handleQRCode(code.data);
+        }
+    } catch (err) {
+        setCameraState('error', 'Scanner recovering');
+        setScanPrompt('Scanner recovering — keep QR in frame', 'error');
+    } finally {
         queueNextFrame();
-        return;
     }
-
-    if (!scanning || busy) { queueNextFrame(); return; }
-
-    const video  = document.getElementById('camera-video');
-    const canvas = document.getElementById('scan-canvas');
-    if (frameTime - lastDecodeAt < SCAN_INTERVAL_MS) { queueNextFrame(); return; }
-
-    if (video.readyState === video.HAVE_ENOUGH_DATA && typeof jsQR !== 'undefined') {
-        lastDecodeAt = frameTime;
-        setCameraState('ready', 'Camera live');
-
-        const widthScale = Math.min(1, SCAN_MAX_WIDTH / video.videoWidth);
-        const heightScale = Math.min(1, SCAN_MAX_HEIGHT / video.videoHeight);
-        const scale = Math.min(widthScale, heightScale);
-
-        canvas.width  = Math.max(320, Math.round(video.videoWidth * scale));
-        canvas.height = Math.max(240, Math.round(video.videoHeight * scale));
-
-        scanContext = scanContext || canvas.getContext('2d', { willReadFrequently: true });
-        scanContext.drawImage(video, 0, 0, canvas.width, canvas.height);
-        const imageData = scanContext.getImageData(0, 0, canvas.width, canvas.height);
-        const code = jsQR(imageData.data, imageData.width, imageData.height, { inversionAttempts: 'attemptBoth' });
-        if (code?.data) { handleQRCode(code.data); }
-    }
-
-    queueNextFrame();
 }
 
 function simulateScan(decision) {

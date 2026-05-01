@@ -813,13 +813,23 @@
 
 @push('scripts')
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+@php
+    $adminDecisionPayload = [
+        (int) ($stats['approved'] ?? 0),
+        (int) ($stats['rejected'] ?? 0),
+        (int) ($stats['duplicate'] ?? 0),
+    ];
+
+    $adminDailyPayload = collect($stats['daily'] ?? [])->map(function ($row) {
+        return [
+            'day' => $row->day ?? '',
+            'total' => (int) ($row->total ?? 0),
+        ];
+    })->values();
+@endphp
 <script>
-const decisionData = @json([
-    (int) ($stats['approved'] ?? 0),
-    (int) ($stats['rejected'] ?? 0),
-    (int) ($stats['duplicate'] ?? 0),
-]);
-const dailyData = @json(collect($stats['daily'] ?? [])->map(fn($row) => ['day' => $row->day ?? '', 'total' => (int) ($row->total ?? 0)])->values());
+const decisionData = @json($adminDecisionPayload);
+const dailyData = @json($adminDailyPayload);
 
 function initAdminCharts() {
     if (typeof Chart === 'undefined') return;

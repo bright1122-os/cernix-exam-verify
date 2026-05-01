@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Services\AuditService;
 use App\Services\CryptoService;
 use App\Services\VerificationService;
+use App\Support\Roles;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -17,7 +18,24 @@ class ExaminerWebController extends Controller
     public function login(Request $request)
     {
         if ($request->session()->has('examiner_id')) {
-            return redirect('/examiner/dashboard');
+            $actor = DB::table('examiners')
+                ->where('examiner_id', (int) $request->session()->get('examiner_id'))
+                ->where('is_active', true)
+                ->first();
+
+            if (! $actor) {
+                $request->session()->flush();
+                return redirect('/examiner/login');
+            }
+
+            $role = Roles::normalize($actor->role);
+            $request->session()->put('examiner_role', $role);
+            $request->session()->put('examiner_name', $actor->full_name);
+            $request->session()->put('examiner_username', $actor->username);
+
+            return Roles::isAdminLike($role)
+                ? redirect('/admin/dashboard')
+                : redirect('/examiner/dashboard');
         }
 
         return view('examiner.login');
@@ -45,7 +63,7 @@ class ExaminerWebController extends Controller
         $request->session()->put('examiner_id', (int) $examiner->examiner_id);
         $request->session()->put('examiner_username', $examiner->username);
         $request->session()->put('examiner_name', $examiner->full_name);
-        $request->session()->put('examiner_role', $examiner->role);
+        $request->session()->put('examiner_role', Roles::normalize($examiner->role));
 
         app(AuditService::class)->logAction(
             (string) $examiner->examiner_id,
@@ -91,11 +109,39 @@ class ExaminerWebController extends Controller
             return redirect('/examiner/login');
         }
 
+        $actor = DB::table('examiners')
+            ->where('examiner_id', (int) $request->session()->get('examiner_id'))
+            ->where('is_active', true)
+            ->first();
+
+        if (! $actor) {
+            $request->session()->flush();
+            return redirect('/examiner/login');
+        }
+
+        $role = Roles::normalize($actor->role);
+
+        if (Roles::isAdminLike($role)) {
+            $request->session()->put('examiner_role', $role);
+            $request->session()->put('examiner_name', $actor->full_name);
+            $request->session()->put('examiner_username', $actor->username);
+
+            return redirect('/admin/dashboard');
+        }
+
+        if ($role !== Roles::EXAMINER) {
+            abort(403);
+        }
+
+        $request->session()->put('examiner_role', $role);
+        $request->session()->put('examiner_name', $actor->full_name);
+        $request->session()->put('examiner_username', $actor->username);
+
         $examiner = [
-            'id'        => $request->session()->get('examiner_id'),
-            'full_name' => $request->session()->get('examiner_name'),
-            'username'  => $request->session()->get('examiner_username'),
-            'role'      => $request->session()->get('examiner_role'),
+            'id'        => (int) $actor->examiner_id,
+            'full_name' => $actor->full_name,
+            'username'  => $actor->username,
+            'role'      => $role,
         ];
 
         $base = DB::table('verification_logs')->where('examiner_id', $examiner['id']);

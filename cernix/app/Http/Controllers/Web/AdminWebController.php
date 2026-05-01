@@ -12,15 +12,29 @@ class AdminWebController extends Controller
 {
     public function index(Request $request)
     {
-        $role = Roles::normalize($request->session()->get('examiner_role'));
-
         if (! $request->session()->has('examiner_id')) {
             return redirect('/examiner/login');
         }
 
+        $adminActor = DB::table('examiners')
+            ->where('examiner_id', (int) $request->session()->get('examiner_id'))
+            ->where('is_active', true)
+            ->first();
+
+        if (! $adminActor) {
+            $request->session()->flush();
+            return redirect('/examiner/login');
+        }
+
+        $role = Roles::normalize($adminActor->role);
+
         if (! Roles::isAdminLike($role)) {
             abort(403);
         }
+
+        $request->session()->put('examiner_role', $role);
+        $request->session()->put('examiner_name', $adminActor->full_name);
+        $request->session()->put('examiner_username', $adminActor->username);
 
         $query = DB::table('verification_logs')
             ->join('examiners', 'verification_logs.examiner_id', '=', 'examiners.examiner_id', 'left')
