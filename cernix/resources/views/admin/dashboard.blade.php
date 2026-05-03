@@ -25,8 +25,6 @@
     };
     $approvedDeg = $totalScans ? round(($approvedScans / $totalScans) * 360, 1) : 0;
     $rejectedDeg = $totalScans ? round(($rejectedScans / $totalScans) * 360, 1) : 0;
-    $photoUrl = fn ($path) => $path ? url('/photo-thumb/' . basename($path)) : null;
-    $initials = fn ($name, $fallback = '?') => strtoupper(substr(trim((string) ($name ?: $fallback)), 0, 1));
 @endphp
 
 @section('content')
@@ -157,16 +155,8 @@
                     @foreach ($recentVerificationLogs as $log)
                         <tr>
                             <td data-label="Student">
-                                <div class="person-cell">
-                                    <span class="student-avatar">
-                                        @if($photoUrl($log->photo_path ?? null))
-                                            <img src="{{ $photoUrl($log->photo_path) }}" alt="">
-                                        @else
-                                            {{ $initials($log->student_name ?? null, $log->student_id ?? '?') }}
-                                        @endif
-                                    </span>
-                                    <span class="person-main"><strong class="mono">{{ $log->student_id ?? 'Student unavailable' }}</strong><span>{{ $log->student_name ?? 'Student unavailable' }}</span></span>
-                                </div>
+                                <strong class="mono">{{ $log->student_id ?? 'Student unavailable' }}</strong>
+                                <div class="muted">{{ $log->student_name ?? 'Student unavailable' }}</div>
                             </td>
                             <td data-label="Session" class="truncate" title="{{ trim(($log->session_name ?: $log->semester) . ' ' . $log->academic_year) }}">{{ trim(($log->session_name ?: $log->semester) . ' ' . $log->academic_year) }}</td>
                             <td data-label="Examiner">{{ $log->examiner_name ?? 'Unknown' }}</td>
@@ -337,6 +327,7 @@
             <div class="card-body quick-actions">
                 <a class="btn" href="{{ route('admin.examiners.index') }}#create-examiner">Add Examiner</a>
                 <a class="btn" href="{{ route('admin.sessions.index') }}">Create Session</a>
+                <a class="btn" href="{{ route('admin.timetables.index') }}">Manage Timetable</a>
                 <a class="btn" href="{{ route('admin.students.index') }}">View All Students</a>
                 <a class="btn" href="{{ route('admin.scan-logs.export') }}">Export Scan Logs</a>
             </div>

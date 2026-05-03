@@ -100,6 +100,7 @@ class ExaminerWebController extends Controller
 
             // Surface examiner identity for the verification card
             $result['examiner'] = $request->session()->get('examiner_name', 'Examiner');
+            $result['today_exam'] = $this->todayExamContext($result, $data['qr_data']);
 
             DB::table('examiners')->where('examiner_id', $examinerId)->update(['last_active_at' => now()]);
 
@@ -129,5 +130,49 @@ class ExaminerWebController extends Controller
                 'timestamp' => now()->toIso8601String(),
             ]);
         }
+    }
+
+    private function todayExamContext(array $result, array $qrData): ?array
+    {
+        $student = $result['student'] ?? null;
+        if (! is_array($student) || empty($student['matric_no'])) {
+            return null;
+        }
+
+        $studentRow = DB::table('students')
+            ->where('matric_no', (string) $student['matric_no'])
+            ->first(['department_id', 'level']);
+
+        if (! $studentRow || empty($studentRow->department_id) || empty($studentRow->level)) {
+            return null;
+        }
+
+        $entry = DB::table('timetables')
+            ->where('exam_session_id', (int) ($qrData['session_id'] ?? 0))
+            ->where('department_id', (int) $studentRow->department_id)
+            ->where('level', (string) $studentRow->level)
+            ->whereDate('exam_date', today())
+            ->whereIn('status', ['scheduled', 'active', 'completed'])
+            ->orderBy('start_time')
+            ->first();
+
+        if (! $entry) {
+            return ['status' => 'none', 'label' => 'No exam scheduled today'];
+        }
+
+        $label = 'Today';
+        if ($entry->end_time && now()->gt(\Carbon\Carbon::parse($entry->exam_date . ' ' . $entry->end_time))) {
+            $label = 'Missed / Ended';
+        }
+
+        return [
+            'status' => strtolower(str_replace([' ', '/'], ['_', ''], $label)),
+            'label' => $label,
+            'course_code' => $entry->course_code,
+            'course_title' => $entry->course_title,
+            'start_time' => substr((string) $entry->start_time, 0, 5),
+            'end_time' => $entry->end_time ? substr((string) $entry->end_time, 0, 5) : null,
+            'venue' => $entry->venue,
+        ];
     }
 }

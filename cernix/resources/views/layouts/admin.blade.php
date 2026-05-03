@@ -224,6 +224,17 @@
         }
         .portal-panel b { display: block; color: var(--ink); font-size: 15px; }
         .portal-panel span { display: block; margin-top: 3px; color: var(--ink-3); font-size: 13px; line-height: 1.45; }
+        .person-cell { display: flex; align-items: center; gap: 11px; min-width: 0; }
+        .student-avatar {
+            width: 40px; height: 44px; border-radius: 10px; overflow: hidden; flex: 0 0 auto;
+            background: var(--bg); border: 1px solid var(--line); display: grid; place-items: center;
+            color: var(--ink-3); font-size: 12px; font-weight: 800; letter-spacing: .04em;
+        }
+        .student-avatar img { width: 100%; height: 100%; object-fit: cover; display: block; }
+        .student-avatar.large { width: 72px; height: 88px; border-radius: 12px; }
+        .person-main { min-width: 0; }
+        .person-main strong, .person-main span { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .person-main span { margin-top: 2px; color: var(--ink-3); font-size: 12px; }
         .overlay { display: none; position: fixed; inset: 0; background: rgba(16,24,40,.45); z-index: 25; }
         @media (max-width: 1023px) {
             .admin-app { display: block; }
@@ -272,6 +283,7 @@
         ['label' => 'Exam Sessions', 'route' => 'admin.sessions.index', 'icon' => 'M8 2v4m8-4v4M3 10h18M5 4h14a2 2 0 012 2v13a2 2 0 01-2 2H5a2 2 0 01-2-2V6a2 2 0 012-2z'],
         ['label' => 'Examiners', 'route' => 'admin.examiners.index', 'icon' => 'M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2M9 11a4 4 0 100-8 4 4 0 000 8M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75'],
         ['label' => 'Students', 'route' => 'admin.students.index', 'icon' => 'M4 19.5A2.5 2.5 0 016.5 17H20M4 4.5A2.5 2.5 0 016.5 2H20v20H6.5A2.5 2.5 0 014 19.5v-15z'],
+        ['label' => 'Timetable', 'route' => 'admin.timetables.index', 'icon' => 'M8 7V3m8 4V3M4 11h16M5 5h14a1 1 0 011 1v14a1 1 0 01-1 1H5a1 1 0 01-1-1V6a1 1 0 011-1z'],
         ['label' => 'Scan Logs', 'route' => 'admin.scan-logs.index', 'icon' => 'M9 12l2 2 4-4M21 12a9 9 0 11-18 0 9 9 0 0118 0z'],
         ['label' => 'Activity', 'route' => 'admin.activity.index', 'icon' => 'M3 3v18h18M7 15l4-4 3 3 5-7'],
         ['label' => 'Settings', 'route' => 'admin.settings.index', 'icon' => 'M12 15.5A3.5 3.5 0 1012 8a3.5 3.5 0 000 7.5zM19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 01-2.83 2.83l-.06-.06A1.65 1.65 0 0015 19.4a1.65 1.65 0 00-1 .6 1.65 1.65 0 01-2 0 1.65 1.65 0 00-1-.6 1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.6 15a1.65 1.65 0 00-.6-1 1.65 1.65 0 010-2 1.65 1.65 0 00.6-1 1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.6a1.65 1.65 0 001-.6 1.65 1.65 0 012 0 1.65 1.65 0 001 .6 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9c0 .36.12.7.33 1a1.65 1.65 0 010 2 1.65 1.65 0 00-.33 1z'],
@@ -346,14 +358,3 @@ document.querySelectorAll('[data-confirm-inline]').forEach((wrap) => {
 @stack('scripts')
 </body>
 </html>
-        .person-cell { display: flex; align-items: center; gap: 11px; min-width: 0; }
-        .student-avatar {
-            width: 40px; height: 44px; border-radius: 10px; overflow: hidden; flex: 0 0 auto;
-            background: var(--bg); border: 1px solid var(--line); display: grid; place-items: center;
-            color: var(--ink-3); font-size: 12px; font-weight: 800; letter-spacing: .04em;
-        }
-        .student-avatar img { width: 100%; height: 100%; object-fit: cover; display: block; }
-        .student-avatar.large { width: 72px; height: 88px; border-radius: 12px; }
-        .person-main { min-width: 0; }
-        .person-main strong, .person-main span { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-        .person-main span { margin-top: 2px; color: var(--ink-3); font-size: 12px; }

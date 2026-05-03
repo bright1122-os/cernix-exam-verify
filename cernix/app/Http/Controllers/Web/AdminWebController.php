@@ -174,6 +174,111 @@ class AdminWebController extends Controller
         ]);
     }
 
+    public function timetables(Request $request)
+    {
+        $adminActor = $this->adminActor($request);
+
+        return view('admin.timetables.index', [
+            'adminActor' => $adminActor,
+            'entries' => $this->timetablesQuery($request)->paginate(20)->withQueryString(),
+            'sessions' => DB::table('exam_sessions')->orderByDesc('created_at')->get(),
+            'departments' => DB::table('departments')->orderBy('dept_name')->get(),
+            'pageTitle' => 'Timetable',
+            'breadcrumbs' => ['Admin', 'Timetable'],
+        ]);
+    }
+
+    public function storeTimetable(Request $request)
+    {
+        $adminActor = $this->adminActor($request);
+        $data = $this->validateTimetable($request);
+        $duplicate = DB::table('timetables')
+            ->where('exam_session_id', $data['exam_session_id'])
+            ->where('department_id', $data['department_id'])
+            ->where('level', $data['level'])
+            ->where('course_code', strtoupper($data['course_code']))
+            ->where('exam_date', $data['exam_date'])
+            ->where('start_time', $data['start_time'])
+            ->exists();
+
+        if ($duplicate) {
+            return back()->withInput()->withErrors(['course_code' => 'This timetable entry already exists for the selected session, department, level, date, and time.']);
+        }
+
+        DB::table('timetables')->insert([
+            ...$this->timetablePayload($data),
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        $this->recordActivity($adminActor, 'session_opened', "Timetable entry {$data['course_code']} created.");
+        $this->logAudit($adminActor, 'timetable.created', ['course_code' => $data['course_code']]);
+
+        return back()->with('status', 'Timetable entry created.');
+    }
+
+    public function editTimetable(Request $request, int $timetable)
+    {
+        $adminActor = $this->adminActor($request);
+        $entry = $this->timetablesQuery(new Request())->where('timetables.id', $timetable)->first();
+        abort_unless($entry, 404);
+
+        return view('admin.timetables.edit', [
+            'adminActor' => $adminActor,
+            'entry' => $entry,
+            'sessions' => DB::table('exam_sessions')->orderByDesc('created_at')->get(),
+            'departments' => DB::table('departments')->orderBy('dept_name')->get(),
+            'pageTitle' => 'Edit Timetable',
+            'breadcrumbs' => ['Admin', 'Timetable', $entry->course_code],
+        ]);
+    }
+
+    public function updateTimetable(Request $request, int $timetable)
+    {
+        $adminActor = $this->adminActor($request);
+        $entry = DB::table('timetables')->where('id', $timetable)->first();
+        abort_unless($entry, 404);
+
+        $data = $this->validateTimetable($request);
+        $duplicate = DB::table('timetables')
+            ->where('id', '!=', $timetable)
+            ->where('exam_session_id', $data['exam_session_id'])
+            ->where('department_id', $data['department_id'])
+            ->where('level', $data['level'])
+            ->where('course_code', strtoupper($data['course_code']))
+            ->where('exam_date', $data['exam_date'])
+            ->where('start_time', $data['start_time'])
+            ->exists();
+
+        if ($duplicate) {
+            return back()->withInput()->withErrors(['course_code' => 'This timetable entry already exists for the selected session, department, level, date, and time.']);
+        }
+
+        DB::table('timetables')->where('id', $timetable)->update([
+            ...$this->timetablePayload($data),
+            'updated_at' => now(),
+        ]);
+
+        $this->recordActivity($adminActor, 'session_opened', "Timetable entry {$data['course_code']} updated.");
+        $this->logAudit($adminActor, 'timetable.updated', ['course_code' => $data['course_code']], 'timetable', (string) $timetable);
+
+        return redirect()->route('admin.timetables.index')->with('status', 'Timetable entry updated.');
+    }
+
+    public function deleteTimetable(Request $request, int $timetable)
+    {
+        $adminActor = $this->adminActor($request);
+        $entry = DB::table('timetables')->where('id', $timetable)->first();
+        abort_unless($entry, 404);
+
+        DB::table('timetables')->where('id', $timetable)->delete();
+
+        $this->recordActivity($adminActor, 'session_closed', "Timetable entry {$entry->course_code} deleted.");
+        $this->logAudit($adminActor, 'timetable.deleted', ['course_code' => $entry->course_code], 'timetable', (string) $timetable);
+
+        return back()->with('status', 'Timetable entry deleted.');
+    }
+
     public function exportScanLogs(Request $request): StreamedResponse
     {
         $this->adminActor($request);
@@ -573,6 +678,69 @@ class AdminWebController extends Controller
         }
 
         return $query->orderByDesc('verification_logs.timestamp');
+    }
+
+    private function timetablesQuery(Request $request)
+    {
+        $query = DB::table('timetables')
+            ->join('exam_sessions', 'timetables.exam_session_id', '=', 'exam_sessions.session_id')
+            ->join('departments', 'timetables.department_id', '=', 'departments.dept_id')
+            ->select(
+                'timetables.*',
+                'exam_sessions.name as session_name',
+                'exam_sessions.semester',
+                'exam_sessions.academic_year',
+                'departments.dept_name'
+            );
+
+        if ($request->filled('session_id')) {
+            $query->where('timetables.exam_session_id', (int) $request->input('session_id'));
+        }
+        if ($request->filled('department_id')) {
+            $query->where('timetables.department_id', (int) $request->input('department_id'));
+        }
+        if ($request->filled('level')) {
+            $query->where('timetables.level', $request->input('level'));
+        }
+        if ($request->filled('date')) {
+            $query->whereDate('timetables.exam_date', $request->input('date'));
+        }
+
+        return $query->orderBy('timetables.exam_date')->orderBy('timetables.start_time');
+    }
+
+    private function validateTimetable(Request $request): array
+    {
+        return $request->validate([
+            'exam_session_id' => 'required|integer|exists:exam_sessions,session_id',
+            'department_id' => 'required|integer|exists:departments,dept_id',
+            'level' => 'required|string|max:30',
+            'course_code' => 'required|string|max:30',
+            'course_title' => 'nullable|string|max:255',
+            'exam_date' => 'required|date',
+            'start_time' => 'required|date_format:H:i',
+            'end_time' => 'nullable|date_format:H:i|after:start_time',
+            'venue' => 'required|string|max:255',
+            'capacity' => 'nullable|integer|min:1',
+            'status' => 'required|in:scheduled,active,completed,cancelled',
+        ]);
+    }
+
+    private function timetablePayload(array $data): array
+    {
+        return [
+            'exam_session_id' => (int) $data['exam_session_id'],
+            'department_id' => (int) $data['department_id'],
+            'level' => trim($data['level']),
+            'course_code' => strtoupper(trim($data['course_code'])),
+            'course_title' => $data['course_title'] ? trim($data['course_title']) : null,
+            'exam_date' => $data['exam_date'],
+            'start_time' => $data['start_time'],
+            'end_time' => $data['end_time'] ?? null,
+            'venue' => trim($data['venue']),
+            'capacity' => $data['capacity'] ?? null,
+            'status' => $data['status'],
+        ];
     }
 
     private function activeExaminers()

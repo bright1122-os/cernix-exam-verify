@@ -56,6 +56,11 @@ Route::prefix('admin')->name('admin.')->group(function () {
         Route::get('/students', [AdminWebController::class, 'students'])->name('students.index');
         Route::get('/students/{student}', [AdminWebController::class, 'showStudent'])->where('student', '.*')->name('students.show');
         Route::delete('/students/{student}', [AdminWebController::class, 'deleteStudent'])->where('student', '.*')->name('students.delete');
+        Route::get('/timetables', [AdminWebController::class, 'timetables'])->name('timetables.index');
+        Route::post('/timetables', [AdminWebController::class, 'storeTimetable'])->name('timetables.store');
+        Route::get('/timetables/{timetable}/edit', [AdminWebController::class, 'editTimetable'])->name('timetables.edit');
+        Route::put('/timetables/{timetable}', [AdminWebController::class, 'updateTimetable'])->name('timetables.update');
+        Route::delete('/timetables/{timetable}', [AdminWebController::class, 'deleteTimetable'])->name('timetables.delete');
         Route::get('/scan-logs', [AdminWebController::class, 'scanLogs'])->name('scan-logs.index');
         Route::get('/scan-logs/export', [AdminWebController::class, 'exportScanLogs'])->name('scan-logs.export');
         Route::get('/activity', [AdminWebController::class, 'activity'])->name('activity.index');

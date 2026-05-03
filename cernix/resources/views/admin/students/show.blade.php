@@ -37,6 +37,7 @@
         <div class="form-grid three">
         <div><div class="eyebrow">Student ID</div><strong class="mono">{{ $student->matric_no }}</strong></div>
         <div><div class="eyebrow">Department</div><strong>{{ $student->dept_name ?? 'Not set' }}</strong></div>
+        <div><div class="eyebrow">Level</div><strong>{{ $student->level ?? 'Not set' }}</strong></div>
         <div><div class="eyebrow">Session</div><strong>{{ trim(($student->session_name ?: $student->semester) . ' ' . $student->academic_year) }}</strong></div>
         <div><div class="eyebrow">QR Status</div><span class="badge {{ $token ? 'green' : 'yellow' }}">{{ $token ? ucfirst(strtolower($token->status)) : 'Pending' }}</span></div>
         <div><div class="eyebrow">Registered</div><strong>{{ Carbon::parse($student->created_at)->format('d M Y, H:i') }}</strong></div>

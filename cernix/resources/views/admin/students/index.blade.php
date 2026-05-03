@@ -6,8 +6,6 @@
 
 @php
     use Carbon\Carbon;
-    $photoUrl = fn ($path) => $path ? url('/photo-thumb/' . basename($path)) : null;
-    $initials = fn ($name, $fallback = '?') => strtoupper(substr(trim((string) ($name ?: $fallback)), 0, 1));
 @endphp
 
 @section('content')
@@ -29,6 +27,7 @@
                     <tr>
                         <th>Student</th>
                         <th>Department</th>
+                        <th>Level</th>
                         <th>QR Status</th>
                         <th>Registered</th>
                         <th>Actions</th>
@@ -39,18 +38,11 @@
                         @php $hasToken = (bool) $student->token_status; @endphp
                         <tr>
                             <td data-label="Student">
-                                <div class="person-cell">
-                                    <span class="student-avatar">
-                                        @if($photoUrl($student->photo_path ?? null))
-                                            <img src="{{ $photoUrl($student->photo_path) }}" alt="">
-                                        @else
-                                            {{ $initials($student->full_name ?? null, $student->matric_no ?? '?') }}
-                                        @endif
-                                    </span>
-                                    <span class="person-main"><strong class="mono">{{ $student->matric_no }}</strong><span>{{ $student->full_name }}</span></span>
-                                </div>
+                                <strong class="mono">{{ $student->matric_no }}</strong>
+                                <div class="muted">{{ $student->full_name }}</div>
                             </td>
                             <td data-label="Department">{{ $student->dept_name ?? 'Not set' }}</td>
+                            <td data-label="Level">{{ $student->level ?? 'Not set' }}</td>
                             <td data-label="QR Status"><span class="badge {{ $hasToken ? 'green' : 'yellow' }}">{{ $hasToken ? 'Generated' : 'Pending' }}</span></td>
                             <td data-label="Registered">{{ Carbon::parse($student->created_at)->format('d M Y, H:i') }}</td>
                             <td data-label="Actions">

@@ -106,10 +106,15 @@ class RegistrationService
             );
         }
 
+        $level = DB::table('mock_sis')
+            ->where('matric_no', $data['matric_no'])
+            ->value('level') ?: '300';
+
         DB::table('students')->insert([
             'matric_no'     => $data['matric_no'],
             'full_name'     => $sisStudent['full_name'],   // SIS only — never user input
             'department_id' => $dept->dept_id,
+            'level'         => $level,
             'session_id'    => $data['session_id'],
             'photo_path'    => $sisStudent['photo_path'],  // SIS only — never user input
             'created_at'    => now(),
