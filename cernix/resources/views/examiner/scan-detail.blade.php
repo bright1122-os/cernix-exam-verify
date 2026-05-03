@@ -11,7 +11,7 @@
 
 @section('content')
 <style>
-    .scan-page { min-height: 100vh; padding: 24px; background: var(--bg); color: var(--ink); }
+    .scan-page { min-height: 100vh; padding: 24px; background: var(--bg); color: var(--ink); overflow-x: hidden; }
     .scan-wrap { max-width: 980px; margin: 0 auto; display: grid; gap: 18px; }
     .scan-card { background: #fff; border: 1px solid var(--line); border-radius: 18px; box-shadow: var(--shadow); overflow: hidden; }
     .scan-head { padding: 20px 22px; border-bottom: 1px solid var(--line); display: flex; justify-content: space-between; gap: 12px; align-items: flex-start; }
@@ -32,14 +32,31 @@
     .meta { display: grid; gap: 10px; margin-top: 16px; }
     .row { display: flex; justify-content: space-between; gap: 12px; padding-top: 10px; border-top: 1px solid var(--line); font-size: 14px; }
     .row:first-child { border-top: 0; padding-top: 0; }
-    .row span { color: var(--ink-3); text-align: right; }
+    .row span { color: var(--ink-3); text-align: right; overflow-wrap: anywhere; }
+    .table-scroll { width: 100%; overflow-x: auto; -webkit-overflow-scrolling: touch; }
     table { width: 100%; border-collapse: collapse; }
     th, td { padding: 11px 12px; border-top: 1px solid var(--line); text-align: left; font-size: 13px; }
     th { color: var(--ink-3); text-transform: uppercase; letter-spacing: .05em; font-size: 11px; }
     .actions { display: flex; gap: 10px; flex-wrap: wrap; }
     .btn { display: inline-flex; align-items: center; justify-content: center; min-height: 40px; padding: 0 14px; border-radius: 12px; border: 1px solid var(--line); background: #fff; color: var(--ink); text-decoration: none; font-weight: 800; font-size: 13px; }
     .empty { color: var(--ink-3); font-size: 13px; padding: 18px 0; }
-    @media (max-width: 760px) { .scan-page { padding: 16px; } .grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } .scan-head { flex-direction: column; } }
+    @media (max-width: 760px) {
+        .scan-page { padding: 16px; }
+        .grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+        .scan-head { flex-direction: column; padding: 18px; }
+        .scan-body { padding: 18px; }
+        .identity { align-items: flex-start; }
+        .identity h2 { overflow-wrap: anywhere; }
+        .row { display: grid; grid-template-columns: 1fr; gap: 4px; }
+        .row span { text-align: left; }
+        table { min-width: 560px; }
+        .actions, .btn { width: 100%; }
+    }
+    @media (max-width: 380px) {
+        .scan-page { padding: 12px; }
+        .grid { grid-template-columns: 1fr; }
+        .photo { width: 72px; height: 88px; }
+    }
 </style>
 
 <main class="scan-page">
@@ -104,19 +121,21 @@
         <section class="scan-card">
             <div class="scan-head"><h2>Previous Scan History</h2></div>
             @if($studentHistory->count())
-                <table>
-                    <thead><tr><th>Decision</th><th>Examiner</th><th>Timestamp</th><th>Device</th></tr></thead>
-                    <tbody>
-                        @foreach($studentHistory as $history)
-                            <tr>
-                                <td><span class="badge {{ $badge($history->decision) }}">{{ ucfirst(strtolower($history->decision)) }}</span></td>
-                                <td>{{ $history->examiner_name ?? 'Unknown' }}</td>
-                                <td>{{ Carbon::parse($history->timestamp)->format('d M Y, H:i') }}</td>
-                                <td class="mono">{{ $history->device_fp }}</td>
-                            </tr>
-                        @endforeach
-                    </tbody>
-                </table>
+                <div class="table-scroll">
+                    <table>
+                        <thead><tr><th>Decision</th><th>Examiner</th><th>Timestamp</th><th>Device</th></tr></thead>
+                        <tbody>
+                            @foreach($studentHistory as $history)
+                                <tr>
+                                    <td><span class="badge {{ $badge($history->decision) }}">{{ ucfirst(strtolower($history->decision)) }}</span></td>
+                                    <td>{{ $history->examiner_name ?? 'Unknown' }}</td>
+                                    <td>{{ Carbon::parse($history->timestamp)->format('d M Y, H:i') }}</td>
+                                    <td class="mono">{{ $history->device_fp }}</td>
+                                </tr>
+                            @endforeach
+                        </tbody>
+                    </table>
+                </div>
             @else
                 <div class="scan-body"><div class="empty">No previous scan history found.</div></div>
             @endif

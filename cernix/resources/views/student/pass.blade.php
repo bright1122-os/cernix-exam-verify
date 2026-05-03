@@ -7,7 +7,7 @@
     <style>
         :root { --bg:#f4f4ef; --card:#fff; --line:#e6e4dc; --ink:#0a0f1f; --muted:#6b7085; }
         * { box-sizing: border-box; }
-        body { margin: 0; font-family: Inter, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; color: var(--ink); background: var(--bg); }
+        body { margin: 0; font-family: Inter, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; color: var(--ink); background: var(--bg); overflow-x: hidden; }
         .page { max-width: 900px; margin: 0 auto; padding: 28px; }
         .pass { background: var(--card); border: 1px solid var(--line); border-radius: 20px; overflow: hidden; }
         .head { display: flex; align-items: center; gap: 16px; padding: 22px; border-bottom: 1px solid var(--line); }
@@ -27,7 +27,8 @@
         .qr { border: 1px solid var(--line); border-radius: 16px; padding: 14px; text-align: center; }
         .qr svg { width: 100%; height: auto; display: block; }
         .section { padding: 0 22px 22px; }
-        table { width: 100%; border-collapse: collapse; }
+        .table-scroll { width: 100%; overflow-x: auto; -webkit-overflow-scrolling: touch; }
+        table { width: 100%; min-width: 560px; border-collapse: collapse; }
         th, td { border-top: 1px solid var(--line); padding: 10px; text-align: left; font-size: 13px; }
         th { color: var(--muted); text-transform: uppercase; letter-spacing: .05em; font-size: 11px; }
         .print-actions { display: flex; justify-content: flex-end; gap: 10px; margin-bottom: 14px; }
@@ -37,10 +38,20 @@
             .page { padding: 0; }
             .print-actions { display: none; }
             .pass { border-radius: 0; }
+            .table-scroll { overflow: visible; }
+            table { min-width: 0; }
         }
         @media (max-width: 720px) {
+            .page { padding: 14px; }
+            .head { align-items: flex-start; padding: 18px; }
+            .head h1 { font-size: 18px; }
             .body { grid-template-columns: 1fr; }
+            .body, .section { padding: 18px; }
+            .identity { align-items: flex-start; }
+            h2 { font-size: 20px; overflow-wrap: anywhere; }
             .meta { grid-template-columns: 1fr; }
+            .print-actions { position: sticky; top: 10px; z-index: 5; }
+            .btn { width: 100%; }
         }
     </style>
 </head>
@@ -97,21 +108,23 @@
         <section class="section">
             <h3>Exam Timetable</h3>
             @if($timetable->count())
-                <table>
-                    <thead>
-                        <tr><th>Course</th><th>Date</th><th>Time</th><th>Venue</th></tr>
-                    </thead>
-                    <tbody>
-                        @foreach($timetable as $entry)
-                            <tr>
-                                <td><b>{{ $entry->course_code }}</b><br>{{ $entry->course_title }}</td>
-                                <td>{{ Carbon::parse($entry->exam_date)->format('d M Y') }}</td>
-                                <td>{{ substr($entry->start_time, 0, 5) }}{{ $entry->end_time ? ' - ' . substr($entry->end_time, 0, 5) : '' }}</td>
-                                <td>{{ $entry->venue }}</td>
-                            </tr>
-                        @endforeach
-                    </tbody>
-                </table>
+                <div class="table-scroll">
+                    <table>
+                        <thead>
+                            <tr><th>Course</th><th>Date</th><th>Time</th><th>Venue</th></tr>
+                        </thead>
+                        <tbody>
+                            @foreach($timetable as $entry)
+                                <tr>
+                                    <td><b>{{ $entry->course_code }}</b><br>{{ $entry->course_title }}</td>
+                                    <td>{{ Carbon::parse($entry->exam_date)->format('d M Y') }}</td>
+                                    <td>{{ substr($entry->start_time, 0, 5) }}{{ $entry->end_time ? ' - ' . substr($entry->end_time, 0, 5) : '' }}</td>
+                                    <td>{{ $entry->venue }}</td>
+                                </tr>
+                            @endforeach
+                        </tbody>
+                    </table>
+                </div>
             @else
                 <p class="muted">No timetable entries have been published for this pass.</p>
             @endif

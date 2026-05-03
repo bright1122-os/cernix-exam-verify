@@ -113,7 +113,7 @@
     /* ── Stats bar ───────────────────────────────────────────────── */
     .ex-stats {
         display: grid;
-        grid-template-columns: repeat(4, 1fr);
+        grid-template-columns: repeat(5, minmax(0, 1fr));
         gap: 0;
         background: var(--bg-2);
         border-bottom: 1px solid var(--line);
@@ -124,6 +124,7 @@
         text-align: center;
         border-right: 1px solid var(--line);
         position: relative;
+        min-width: 0;
     }
     .stat-cell:last-child { border-right: none; }
     .stat-cell b {
@@ -173,7 +174,7 @@
     @media (max-width: 767px) {
         .ex-camera-panel {
             flex: none;
-            height: 60vmax;
+            height: min(62vh, 460px);
             min-height: 300px;
             max-height: 70vh;
         }
@@ -1314,7 +1315,40 @@
     .history-card-body { padding: 18px; display: grid; gap: 12px; }
     .history-meta { border-top: 1px solid var(--line); padding-top: 10px; display: flex; justify-content: space-between; gap: 12px; font-size: 12px; color: var(--ink-3); }
     @media (max-width: 767px) {
-        .ex-context-strip { grid-template-columns: 1fr; }
+        .ex-topbar { padding: 10px 12px; gap: 10px; }
+        .ex-brand { min-width: 0; }
+        .ex-brand b, .ex-brand-sub { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 52vw; }
+        .ex-stats { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+        .stat-cell { border-right: 0; border-top: 1px solid var(--line); padding: 10px 8px; }
+        .stat-cell:nth-child(-n+2) { border-top: 0; }
+        .stat-cell:last-child { grid-column: 1 / -1; }
+        .ex-context-strip { grid-template-columns: 1fr; padding: 10px 12px; }
+        .ex-today-list { scroll-snap-type: x proximity; }
+        .ex-today-pill { min-width: min(82vw, 280px); scroll-snap-align: start; }
+        .scan-actions { flex-wrap: wrap; }
+        .scan-actions button { min-height: 42px; flex: 1 1 44%; }
+        .history-modal { align-items: end; padding: 0; }
+        .history-card { width: 100%; max-height: 88vh; border-radius: 20px 20px 0 0; overflow-y: auto; }
+        .to-inst-bar, .to-hero { align-items: flex-start; }
+        .to-inst-bar { gap: 10px; }
+        .to-inst-name { max-width: 58vw; }
+        .to-hero { padding: 22px 16px 16px; gap: 13px; }
+        .to-icon { width: 54px; height: 54px; border-radius: 16px; }
+        .to-verdict h2 { font-size: 24px; }
+        .to-student-card, .meta-row, .to-countdown { margin-left: 14px; margin-right: 14px; }
+        .meta-row { grid-template-columns: 1fr; }
+        .meta-cell .v { overflow-wrap: anywhere; }
+        .to-bottom { position: sticky; bottom: 0; background: rgba(255,255,255,.72); backdrop-filter: blur(10px); }
+    }
+    @media (max-width: 380px) {
+        .ex-brand img { height: 28px !important; }
+        .ex-avatar, .ex-logout { width: 32px; height: 32px; }
+        .stat-cell b { font-size: 18px; }
+        .stat-cell span { font-size: 8px; }
+        .ex-camera-panel { min-height: 270px; }
+        .reticle { width: 190px; height: 190px; }
+        .to-inst-left img { height: 24px; }
+        .to-doc-type, .to-inst-time { display: none; }
     }
 </style>
 

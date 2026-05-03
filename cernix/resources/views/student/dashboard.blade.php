@@ -29,8 +29,8 @@
 
 @section('content')
 <style>
-    .student-shell { min-height: 100vh; padding: 24px; background: var(--bg); }
-    .student-page { width: 100%; max-width: 980px; margin: 0 auto; display: grid; gap: 18px; }
+    .student-shell { min-height: 100vh; padding: 24px; background: var(--bg); overflow-x: hidden; }
+    .student-page { width: 100%; max-width: 1080px; margin: 0 auto; display: grid; gap: 18px; }
     .student-card { background: #fff; border: 1px solid var(--line); border-radius: 18px; box-shadow: var(--shadow); overflow: hidden; }
     .student-head { padding: 22px; display: flex; justify-content: space-between; gap: 18px; align-items: flex-start; border-bottom: 1px solid var(--line); }
     .student-identity { display: flex; gap: 16px; align-items: center; min-width: 0; }
@@ -46,7 +46,7 @@
     .meta-row { display: flex; justify-content: space-between; gap: 12px; padding: 11px 0; border-top: 1px solid var(--line); font-size: 14px; }
     .meta-row:first-child { border-top: 0; padding-top: 0; }
     .meta-row b { color: var(--ink); }
-    .meta-row span { color: var(--ink-3); text-align: right; }
+    .meta-row span { color: var(--ink-3); text-align: right; overflow-wrap: anywhere; }
     .badge { display: inline-flex; align-items: center; border-radius: 999px; padding: 6px 10px; font-size: 12px; font-weight: 800; }
     .badge.green { background: rgba(4,120,87,.11); color: var(--emerald); }
     .badge.yellow { background: #fef3c7; color: #92400e; }
@@ -70,9 +70,21 @@
     .instruction-list { margin: 0; padding-left: 18px; color: var(--ink-2); font-size: 14px; display: grid; gap: 9px; }
     @media (max-width: 760px) {
         .student-shell { padding: 18px; }
-        .student-head { flex-direction: column; }
+        .student-head { flex-direction: column; padding: 18px; }
+        .student-body { padding: 18px; }
         .student-grid { grid-template-columns: 1fr; }
         .time-row { grid-template-columns: 1fr; }
+        .student-head h1 { font-size: 21px; overflow-wrap: anywhere; }
+        .student-photo { width: 62px; height: 78px; }
+        .meta-row { display: grid; grid-template-columns: 1fr; gap: 4px; }
+        .meta-row span { text-align: left; }
+        .student-actions, .portal-btn { width: 100%; }
+    }
+    @media (max-width: 380px) {
+        .student-shell { padding: 12px; }
+        .student-card { border-radius: 16px; }
+        .student-identity { align-items: flex-start; gap: 12px; }
+        .qr-box { padding: 8px; }
     }
 </style>
 <main class="student-shell">

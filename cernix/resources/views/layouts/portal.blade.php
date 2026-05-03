@@ -40,7 +40,7 @@
         }
         *, *::before, *::after { box-sizing: border-box; }
         html { scroll-behavior: smooth; }
-        html, body { margin: 0; padding: 0; }
+        html, body { margin: 0; padding: 0; max-width: 100%; overflow-x: hidden; }
         body {
             font-family: 'Inter', system-ui, sans-serif;
             background: var(--bg);
@@ -174,6 +174,21 @@
         .log-row .body .sub { font-size: 11px; color: var(--ink-3); font-family: 'JetBrains Mono', monospace; margin-top: 2px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 260px; }
         .log-row .right { display: flex; flex-direction: column; align-items: flex-end; gap: 4px; }
         .log-row .right .t { font-size: 11px; color: var(--ink-3); font-family: 'JetBrains Mono', monospace; white-space: nowrap; }
+        @media (max-width: 640px) {
+            .topbar { padding: 18px 14px 12px; }
+            .topbar h1 { min-width: 0; overflow-wrap: anywhere; }
+            .btn { width: 100%; min-height: 46px; }
+            .log-row {
+                grid-template-columns: 28px minmax(0, 1fr);
+                align-items: start;
+                padding: 12px 14px;
+            }
+            .log-row .right {
+                grid-column: 2;
+                align-items: flex-start;
+            }
+            .log-row .body .sub { max-width: 100%; }
+        }
     </style>
     @stack('head')
 </head>
