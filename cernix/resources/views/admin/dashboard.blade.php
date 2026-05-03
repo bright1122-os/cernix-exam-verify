@@ -98,6 +98,29 @@
     </article>
 </section>
 
+<section class="stats-grid">
+    <article class="card stat-card">
+        <div class="stat-label">QR Tokens</div>
+        <div class="stat-value">{{ number_format($totalTokens) }}</div>
+        <div class="stat-help">Issued access passes</div>
+    </article>
+    <article class="card stat-card success">
+        <div class="stat-label">Verified Payments</div>
+        <div class="stat-value">{{ number_format($verifiedPayments) }}</div>
+        <div class="stat-help">Remita records captured</div>
+    </article>
+    <article class="card stat-card warning">
+        <div class="stat-label">Pending Payments</div>
+        <div class="stat-value">{{ number_format($pendingPayments) }}</div>
+        <div class="stat-help">Registered without payment record</div>
+    </article>
+    <article class="card stat-card info">
+        <div class="stat-label">Today's Exams</div>
+        <div class="stat-value">{{ number_format($todaysExams->count()) }}</div>
+        <div class="stat-help">Published timetable entries</div>
+    </article>
+</section>
+
 <section class="two-column">
     <article class="card">
         <div class="card-head">
@@ -134,6 +157,37 @@
 <section class="card">
     <div class="card-head">
         <div>
+            <h2>Today's Timetable</h2>
+            <p class="section-copy">Exam entries scheduled for today across active departments and levels.</p>
+        </div>
+        <a class="btn" href="{{ route('admin.timetables.index', ['date' => today()->toDateString()]) }}">Open timetable</a>
+    </div>
+    @if($todaysExams->count())
+        <div class="table-wrap">
+            <table class="responsive-table">
+                <thead><tr><th>Course</th><th>Department</th><th>Level</th><th>Time</th><th>Venue</th><th>Status</th></tr></thead>
+                <tbody>
+                    @foreach($todaysExams as $exam)
+                        <tr>
+                            <td data-label="Course"><strong>{{ $exam->course_code }}</strong><div class="muted">{{ $exam->course_title }}</div></td>
+                            <td data-label="Department">{{ $exam->dept_name }}</td>
+                            <td data-label="Level">{{ $exam->level }}</td>
+                            <td data-label="Time">{{ substr($exam->start_time, 0, 5) }}{{ $exam->end_time ? ' - ' . substr($exam->end_time, 0, 5) : '' }}</td>
+                            <td data-label="Venue">{{ $exam->venue }}</td>
+                            <td data-label="Status"><span class="badge {{ $exam->status === 'cancelled' ? 'red' : ($exam->status === 'completed' ? 'gray' : 'green') }}">{{ ucfirst($exam->status) }}</span></td>
+                        </tr>
+                    @endforeach
+                </tbody>
+            </table>
+        </div>
+    @else
+        <div class="empty">No exams are scheduled for today.</div>
+    @endif
+</section>
+
+<section class="card">
+    <div class="card-head">
+        <div>
             <h2>Recent Verification Logs</h2>
             <p class="section-copy">Latest scan decisions recorded by examiners.</p>
         </div>
@@ -161,7 +215,7 @@
                             <td data-label="Session" class="truncate" title="{{ trim(($log->session_name ?: $log->semester) . ' ' . $log->academic_year) }}">{{ trim(($log->session_name ?: $log->semester) . ' ' . $log->academic_year) }}</td>
                             <td data-label="Examiner">{{ $log->examiner_name ?? 'Unknown' }}</td>
                             <td data-label="Result"><span class="badge {{ $decisionClass($log->decision) }}">{{ $decisionLabel($log->decision) }}</span></td>
-                            <td data-label="Time">{{ Carbon::parse($log->timestamp)->format('d M Y, H:i') }}</td>
+                            <td data-label="Time">{{ Carbon::parse($log->timestamp)->format('d M Y, H:i') }}<div><a class="text-link" href="{{ route('admin.scan-logs.show', $log->log_id) }}">View</a></div></td>
                         </tr>
                     @endforeach
                 </tbody>
@@ -329,6 +383,7 @@
                 <a class="btn" href="{{ route('admin.sessions.index') }}">Create Session</a>
                 <a class="btn" href="{{ route('admin.timetables.index') }}">Manage Timetable</a>
                 <a class="btn" href="{{ route('admin.students.index') }}">View All Students</a>
+                <a class="btn" href="{{ route('admin.payments.index') }}">View Payments</a>
                 <a class="btn" href="{{ route('admin.scan-logs.export') }}">Export Scan Logs</a>
             </div>
         </article>

@@ -25,6 +25,7 @@
     </div>
     <div class="card-body">
         <form method="GET" class="form-grid three">
+            <div class="field"><label for="search">Search</label><input id="search" name="search" value="{{ request('search') }}" placeholder="Student, examiner, token"></div>
             <div class="field"><label for="date_from">Date From</label><input id="date_from" type="date" name="date_from" value="{{ request('date_from') }}"></div>
             <div class="field"><label for="date_to">Date To</label><input id="date_to" type="date" name="date_to" value="{{ request('date_to') }}"></div>
             <div class="field">
@@ -67,6 +68,7 @@
                         <th>Examiner</th>
                         <th>Result</th>
                         <th>Timestamp</th>
+                        <th>Actions</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -80,6 +82,7 @@
                             <td data-label="Examiner">{{ $log->examiner_name ?? 'Unknown' }}</td>
                             <td data-label="Result"><span class="badge {{ $scanBadge($log->decision) }}">{{ $scanLabel($log->decision) }}</span></td>
                             <td data-label="Timestamp">{{ Carbon::parse($log->timestamp)->format('d M Y, H:i') }}</td>
+                            <td data-label="Actions"><a class="text-link" href="{{ route('admin.scan-logs.show', $log->log_id) }}">View</a></td>
                         </tr>
                     @endforeach
                 </tbody>

@@ -22,6 +22,7 @@ Route::prefix('student')->name('student.')->group(function () {
     Route::post('/register', [StudentWebController::class, 'register']);
     Route::middleware('student')->group(function () {
         Route::get('/dashboard', [StudentDashboardController::class, 'index'])->name('dashboard');
+        Route::get('/exam-pass/print', [StudentDashboardController::class, 'printPass'])->name('pass.print');
     });
 });
 
@@ -61,8 +62,10 @@ Route::prefix('admin')->name('admin.')->group(function () {
         Route::get('/timetables/{timetable}/edit', [AdminWebController::class, 'editTimetable'])->name('timetables.edit');
         Route::put('/timetables/{timetable}', [AdminWebController::class, 'updateTimetable'])->name('timetables.update');
         Route::delete('/timetables/{timetable}', [AdminWebController::class, 'deleteTimetable'])->name('timetables.delete');
+        Route::get('/payments', [AdminWebController::class, 'payments'])->name('payments.index');
         Route::get('/scan-logs', [AdminWebController::class, 'scanLogs'])->name('scan-logs.index');
         Route::get('/scan-logs/export', [AdminWebController::class, 'exportScanLogs'])->name('scan-logs.export');
+        Route::get('/scan-logs/{log}', [AdminWebController::class, 'showScanLog'])->whereNumber('log')->name('scan-logs.show');
         Route::get('/activity', [AdminWebController::class, 'activity'])->name('activity.index');
         Route::get('/settings', [AdminWebController::class, 'settings'])->name('settings.index');
         Route::post('/settings', [AdminWebController::class, 'updateSettings'])->name('settings.update');

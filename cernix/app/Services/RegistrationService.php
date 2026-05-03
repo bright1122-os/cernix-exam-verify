@@ -53,7 +53,7 @@ class RegistrationService
         //   "RRR has already been used for a payment record."
         //   "Payment verification failed: ..."
         //   "Payment amount mismatch: ..."
-        $this->remitaService->verifyPayment($data['rrr_number'], (float) $data['expected_amount']);
+        $paymentResponse = $this->remitaService->verifyPayment($data['rrr_number'], (float) $data['expected_amount']);
 
         // ── Step 4: Create student record ────────────────────────────────────
         $isTestBypass = str_starts_with(strtoupper($data['rrr_number']), 'TEST-');
@@ -118,6 +118,15 @@ class RegistrationService
             'session_id'    => $data['session_id'],
             'photo_path'    => $sisStudent['photo_path'],  // SIS only — never user input
             'created_at'    => now(),
+        ]);
+
+        DB::table('payment_records')->insert([
+            'student_id'        => $data['matric_no'],
+            'rrr_number'        => $data['rrr_number'],
+            'amount_declared'   => (float) $data['expected_amount'],
+            'amount_confirmed'  => (float) ($paymentResponse['amount'] ?? $data['expected_amount']),
+            'remita_response'   => json_encode($paymentResponse, JSON_UNESCAPED_SLASHES),
+            'verified_at'       => now(),
         ]);
 
         // ── Step 5: Prepare QR payload ───────────────────────────────────────

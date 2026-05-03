@@ -14,6 +14,16 @@ class StudentDashboardController extends Controller
 {
     public function index(): View
     {
+        return view('student.dashboard', $this->dashboardPayload());
+    }
+
+    public function printPass(): View
+    {
+        return view('student.pass', $this->dashboardPayload());
+    }
+
+    private function dashboardPayload(): array
+    {
         $student = Auth::guard('student')->user();
         $token = DB::table('qr_tokens')
             ->where('student_id', $student->matric_no)
@@ -56,7 +66,7 @@ class StudentDashboardController extends Controller
             ]);
         }
 
-        return view('student.dashboard', compact('student', 'token', 'session', 'department', 'timetable', 'nextExam', 'qrSvg'));
+        return compact('student', 'token', 'session', 'department', 'timetable', 'nextExam', 'qrSvg');
     }
 
     private function portalExamStatus(object $entry): string

@@ -13,6 +13,7 @@ class DatabaseSeeder extends Seeder
             ExamSessionsSeeder::class,
             MockSISSeeder::class,
             ExaminersSeeder::class,
+            TimetablesSeeder::class,
         ]);
     }
 }

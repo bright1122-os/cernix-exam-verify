@@ -52,6 +52,21 @@
             <div class="stat-value">{{ number_format($totalScans) }}</div>
             <div class="stat-help">Recorded attempts</div>
         </article>
+        <article class="card stat-card success">
+            <div class="stat-label">Approved</div>
+            <div class="stat-value">{{ number_format((int) ($decisionCounts['APPROVED'] ?? 0)) }}</div>
+            <div class="stat-help">Valid passes</div>
+        </article>
+        <article class="card stat-card danger">
+            <div class="stat-label">Rejected</div>
+            <div class="stat-value">{{ number_format((int) ($decisionCounts['REJECTED'] ?? 0)) }}</div>
+            <div class="stat-help">Failed attempts</div>
+        </article>
+        <article class="card stat-card warning">
+            <div class="stat-label">Duplicate</div>
+            <div class="stat-value">{{ number_format((int) ($decisionCounts['DUPLICATE'] ?? 0)) }}</div>
+            <div class="stat-help">Already used</div>
+        </article>
     </section>
 </div>
 
@@ -90,5 +105,50 @@
     @else
         <div class="empty">No sessions assigned yet</div>
     @endif
+</section>
+
+<section class="two-column">
+    <article class="card">
+        <div class="card-head"><h2>Recent Scan Activity</h2></div>
+        @if($recentScans->count())
+            <div class="table-wrap">
+                <table class="responsive-table">
+                    <thead><tr><th>Student</th><th>Decision</th><th>Time</th><th>Action</th></tr></thead>
+                    <tbody>
+                        @foreach($recentScans as $scan)
+                            <tr>
+                                <td data-label="Student"><strong class="mono">{{ $scan->student_id ?? 'Unavailable' }}</strong><div class="muted">{{ $scan->student_name ?? 'Student unavailable' }}</div></td>
+                                <td data-label="Decision"><span class="badge {{ $scan->decision === 'APPROVED' ? 'green' : ($scan->decision === 'DUPLICATE' ? 'amber' : 'red') }}">{{ ucfirst(strtolower($scan->decision)) }}</span></td>
+                                <td data-label="Time">{{ Carbon::parse($scan->timestamp)->format('d M Y, H:i') }}</td>
+                                <td data-label="Action"><a class="text-link" href="{{ route('admin.scan-logs.show', $scan->log_id) }}">View</a></td>
+                            </tr>
+                        @endforeach
+                    </tbody>
+                </table>
+            </div>
+        @else
+            <div class="empty">No scans recorded by this examiner.</div>
+        @endif
+    </article>
+    <article class="card">
+        <div class="card-head"><h2>Activity Trail</h2></div>
+        <div class="card-body">
+            @if($activity->count())
+                <div class="activity-list">
+                    @foreach($activity as $event)
+                        <div class="activity-item">
+                            <span class="dot {{ str_replace('.', '_', $event->event_type) }}"></span>
+                            <div>
+                                <div>{{ $event->description }}</div>
+                                <div class="muted">{{ $event->created_at->diffForHumans() }}</div>
+                            </div>
+                        </div>
+                    @endforeach
+                </div>
+            @else
+                <div class="empty">No activity events found.</div>
+            @endif
+        </div>
+    </article>
 </section>
 @endsection

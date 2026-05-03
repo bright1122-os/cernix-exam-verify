@@ -40,9 +40,50 @@
         <div><div class="eyebrow">Level</div><strong>{{ $student->level ?? 'Not set' }}</strong></div>
         <div><div class="eyebrow">Session</div><strong>{{ trim(($student->session_name ?: $student->semester) . ' ' . $student->academic_year) }}</strong></div>
         <div><div class="eyebrow">QR Status</div><span class="badge {{ $token ? 'green' : 'yellow' }}">{{ $token ? ucfirst(strtolower($token->status)) : 'Pending' }}</span></div>
+        <div><div class="eyebrow">Payment</div><span class="badge {{ $payment ? 'green' : 'yellow' }}">{{ $payment ? 'Verified' : 'Pending' }}</span></div>
         <div><div class="eyebrow">Registered</div><strong>{{ Carbon::parse($student->created_at)->format('d M Y, H:i') }}</strong></div>
+        <div><div class="eyebrow">Approved</div><strong>{{ number_format((int) ($scanCounts['APPROVED'] ?? 0)) }}</strong></div>
+        <div><div class="eyebrow">Rejected</div><strong>{{ number_format((int) ($scanCounts['REJECTED'] ?? 0)) }}</strong></div>
+        <div><div class="eyebrow">Duplicate</div><strong>{{ number_format((int) ($scanCounts['DUPLICATE'] ?? 0)) }}</strong></div>
         </div>
     </div>
+</section>
+
+<section class="two-column">
+    <article class="card">
+        <div class="card-head"><h2>Payment Record</h2></div>
+        <div class="card-body">
+            @if($payment)
+                <dl class="meta-list">
+                    <div><dt>RRR</dt><dd class="mono">{{ $payment->rrr_number }}</dd></div>
+                    <div><dt>Amount</dt><dd>₦{{ number_format((float) $payment->amount_confirmed, 2) }}</dd></div>
+                    <div><dt>Verified</dt><dd>{{ $payment->verified_at ? Carbon::parse($payment->verified_at)->format('d M Y, H:i') : 'Unavailable' }}</dd></div>
+                </dl>
+            @else
+                <div class="empty">No payment record is linked to this student.</div>
+            @endif
+        </div>
+    </article>
+    <article class="card">
+        <div class="card-head"><h2>Matched Timetable</h2></div>
+        <div class="card-body">
+            @if($timetable->count())
+                <div class="activity-list">
+                    @foreach($timetable as $entry)
+                        <div class="activity-item">
+                            <span class="dot session_opened"></span>
+                            <div>
+                                <div><strong>{{ $entry->course_code }}</strong> {{ $entry->course_title }}</div>
+                                <div class="muted">{{ Carbon::parse($entry->exam_date)->format('d M Y') }} · {{ substr($entry->start_time, 0, 5) }}{{ $entry->end_time ? ' - '.substr($entry->end_time, 0, 5) : '' }} · {{ $entry->venue }}</div>
+                            </div>
+                        </div>
+                    @endforeach
+                </div>
+            @else
+                <div class="empty">No timetable entries match this student.</div>
+            @endif
+        </div>
+    </article>
 </section>
 
 <section class="card">

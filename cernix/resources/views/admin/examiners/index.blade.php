@@ -86,6 +86,8 @@
                         <th>Name</th>
                         <th>Username</th>
                         <th>Sessions</th>
+                        <th>Scans</th>
+                        <th>Last Scan</th>
                         <th>Registered</th>
                         <th>Status</th>
                         <th>Actions</th>
@@ -97,6 +99,8 @@
                             <td data-label="Name"><strong>{{ $examiner->full_name }}</strong></td>
                             <td data-label="Username" class="mono">{{ $examiner->username }}</td>
                             <td data-label="Sessions">{{ number_format($examiner->sessions_count) }}</td>
+                            <td data-label="Scans">{{ number_format($examiner->scan_count) }}</td>
+                            <td data-label="Last Scan">{{ $examiner->last_scan_at ? Carbon::parse($examiner->last_scan_at)->diffForHumans() : 'No scans' }}</td>
                             <td data-label="Registered">{{ Carbon::parse($examiner->created_at)->format('d M Y, H:i') }}</td>
                             <td data-label="Status"><span class="badge {{ $examiner->is_active ? 'green' : 'gray' }}">{{ $examiner->is_active ? 'Active' : 'Inactive' }}</span></td>
                             <td data-label="Actions">

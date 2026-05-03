@@ -17,6 +17,11 @@ class DepartmentsSeeder extends Seeder
             ['dept_name' => 'Data Science',           'faculty' => 'Faculty of Computing'],
         ];
 
-        DB::table('departments')->insert($departments);
+        foreach ($departments as $department) {
+            DB::table('departments')->updateOrInsert(
+                ['dept_name' => $department['dept_name']],
+                $department
+            );
+        }
     }
 }

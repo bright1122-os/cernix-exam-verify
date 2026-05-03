@@ -64,6 +64,10 @@
     .time-row small { color: var(--ink-3); }
     .logout-form { margin: 0; }
     .logout-form button, .refresh-link { color: var(--navy); font-weight: 800; font-size: 13px; background: transparent; border: 0; text-decoration: none; }
+    .student-actions { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 4px; }
+    .portal-btn { display: inline-flex; align-items: center; justify-content: center; min-height: 42px; padding: 0 15px; border-radius: 12px; border: 1px solid var(--line); background: #fff; color: var(--ink); text-decoration: none; font-weight: 800; font-size: 13px; }
+    .portal-btn.primary { background: var(--ink); border-color: var(--ink); color: #fff; }
+    .instruction-list { margin: 0; padding-left: 18px; color: var(--ink-2); font-size: 14px; display: grid; gap: 9px; }
     @media (max-width: 760px) {
         .student-shell { padding: 18px; }
         .student-head { flex-direction: column; }
@@ -108,7 +112,11 @@
                     <div class="meta-row"><b>Access Status</b><span><span class="badge {{ $tokenStatus === 'USED' ? 'green' : ($tokenStatus === 'REVOKED' ? 'red' : 'yellow') }}">{{ $qrStatusLabel }}</span></span></div>
                     <div class="meta-row"><b>QR Token</b><span class="mono">{{ $tokenStatus }}</span></div>
                     <div class="meta-row"><b>Registered</b><span>{{ $student->created_at ? Carbon::parse($student->created_at)->format('d M Y, H:i') : 'Unavailable' }}</span></div>
-                    <div class="meta-row"><b>Refresh</b><span><a class="refresh-link" href="{{ route('student.dashboard') }}">Reload page</a></span></div>
+                    <div class="meta-row"><b>Actions</b><span></span></div>
+                    <div class="student-actions">
+                        <a class="portal-btn primary" href="{{ route('student.pass.print') }}" target="_blank" rel="noopener">Print Exam Pass</a>
+                        <a class="portal-btn" href="{{ route('student.dashboard') }}">Refresh Status</a>
+                    </div>
                 </div>
             </div>
         </section>
@@ -148,6 +156,18 @@
                 @else
                     <div class="empty">No timetable entries found.</div>
                 @endif
+            </div>
+        </section>
+
+        <section class="student-card">
+            <div class="student-body">
+                <h2 class="section-title">Exam Instructions</h2>
+                <ul class="instruction-list">
+                    <li>Arrive at the venue at least 30 minutes before the scheduled start time.</li>
+                    <li>Carry your institutional ID and present this QR pass at the verification point.</li>
+                    <li>Do not share screenshots or copies of your QR pass with anyone.</li>
+                    <li>Report wrong timetable, department, or level information to your department or exam office immediately.</li>
+                </ul>
             </div>
         </section>
     </div>

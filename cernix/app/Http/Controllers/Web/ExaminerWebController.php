@@ -46,6 +46,8 @@ class ExaminerWebController extends Controller
             'approved' => (int) ($counts['APPROVED'] ?? 0),
             'rejected' => (int) ($counts['REJECTED'] ?? 0),
             'duplicate' => (int) ($counts['DUPLICATE'] ?? 0),
+            'today' => (clone $base)->whereDate('timestamp', today())->count(),
+            'last_scan_at' => (clone $base)->max('timestamp'),
             'trend' => (clone $base)
                 ->select(DB::raw('DATE(timestamp) as day'), DB::raw('COUNT(*) as total'))
                 ->groupBy('day')
@@ -65,6 +67,7 @@ class ExaminerWebController extends Controller
                 'qr_tokens.student_id as matric_no',
                 'students.full_name as student_name',
                 'students.photo_path',
+                'students.level',
                 'departments.dept_name',
                 'exam_sessions.semester',
                 'exam_sessions.academic_year'
@@ -73,7 +76,17 @@ class ExaminerWebController extends Controller
             ->limit(25)
             ->get();
 
-        return view('examiner.dashboard', compact('examiner', 'examinerStats', 'scanHistory'));
+        $activeSession = DB::table('exam_sessions')->where('is_active', true)->orderByDesc('created_at')->first();
+        $todaysExams = DB::table('timetables')
+            ->join('departments', 'timetables.department_id', '=', 'departments.dept_id')
+            ->leftJoin('exam_sessions', 'timetables.exam_session_id', '=', 'exam_sessions.session_id')
+            ->whereDate('timetables.exam_date', today())
+            ->select('timetables.*', 'departments.dept_name', 'exam_sessions.name as session_name', 'exam_sessions.semester')
+            ->orderBy('timetables.start_time')
+            ->limit(12)
+            ->get();
+
+        return view('examiner.dashboard', compact('examiner', 'examinerStats', 'scanHistory', 'activeSession', 'todaysExams'));
     }
 
     public function verify(Request $request): JsonResponse
@@ -100,6 +113,7 @@ class ExaminerWebController extends Controller
 
             // Surface examiner identity for the verification card
             $result['examiner'] = $request->session()->get('examiner_name', 'Examiner');
+            $result = $this->enrichStudentContext($result);
             $result['today_exam'] = $this->todayExamContext($result, $data['qr_data']);
 
             DB::table('examiners')->where('examiner_id', $examinerId)->update(['last_active_at' => now()]);
@@ -174,5 +188,41 @@ class ExaminerWebController extends Controller
             'end_time' => $entry->end_time ? substr((string) $entry->end_time, 0, 5) : null,
             'venue' => $entry->venue,
         ];
+    }
+
+    private function enrichStudentContext(array $result): array
+    {
+        $student = $result['student'] ?? null;
+        if (! is_array($student) || empty($student['matric_no'])) {
+            return $result;
+        }
+
+        $studentRow = DB::table('students')
+            ->leftJoin('departments', 'students.department_id', '=', 'departments.dept_id')
+            ->where('students.matric_no', (string) $student['matric_no'])
+            ->select('students.level', 'students.photo_path', 'students.department_id', 'departments.dept_name')
+            ->first();
+
+        if ($studentRow) {
+            $result['student']['level'] = $studentRow->level;
+            $result['student']['department'] = $studentRow->dept_name ?: ($result['student']['department'] ?? null);
+            $result['student']['photo_path'] = $studentRow->photo_path ?: ($result['student']['photo_path'] ?? null);
+        }
+
+        $summary = DB::table('verification_logs')
+            ->join('qr_tokens', 'verification_logs.token_id', '=', 'qr_tokens.token_id')
+            ->where('qr_tokens.student_id', (string) $student['matric_no'])
+            ->select('verification_logs.decision', DB::raw('COUNT(*) as aggregate'))
+            ->groupBy('verification_logs.decision')
+            ->pluck('aggregate', 'decision');
+
+        $result['scan_summary'] = [
+            'total' => (int) $summary->sum(),
+            'approved' => (int) ($summary['APPROVED'] ?? 0),
+            'rejected' => (int) ($summary['REJECTED'] ?? 0),
+            'duplicate' => (int) ($summary['DUPLICATE'] ?? 0),
+        ];
+
+        return $result;
     }
 }

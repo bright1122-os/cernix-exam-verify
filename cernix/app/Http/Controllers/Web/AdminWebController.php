@@ -105,6 +105,20 @@ class AdminWebController extends Controller
 
                 return $session;
             });
+        $decisionCounts = DB::table('verification_logs')
+            ->where('examiner_id', $examiner)
+            ->select('decision', DB::raw('COUNT(*) as aggregate'))
+            ->groupBy('decision')
+            ->pluck('aggregate', 'decision');
+        $recentScans = $this->scanLogsQuery(new Request())
+            ->where('verification_logs.examiner_id', $examiner)
+            ->limit(10)
+            ->get();
+        $activity = ActivityLog::query()
+            ->where('user_id', $examiner)
+            ->latest('created_at')
+            ->limit(10)
+            ->get();
 
         return view('admin.examiners.show', [
             'adminActor' => $adminActor,
@@ -113,6 +127,9 @@ class AdminWebController extends Controller
             'totalSessions' => $sessions->count(),
             'totalStudents' => $sessions->sum('student_count'),
             'totalScans' => $sessions->sum('scan_count'),
+            'decisionCounts' => $decisionCounts,
+            'recentScans' => $recentScans,
+            'activity' => $activity,
             'pageTitle' => $examinerRow->full_name,
             'breadcrumbs' => ['Admin', 'Examiners', $examinerRow->full_name],
         ]);
@@ -125,6 +142,8 @@ class AdminWebController extends Controller
         return view('admin.students.index', [
             'adminActor' => $adminActor,
             'students' => $this->studentsQuery($request)->paginate(20, ['*'], 'students_page')->withQueryString(),
+            'departments' => DB::table('departments')->orderBy('dept_name')->get(),
+            'sessions' => DB::table('exam_sessions')->orderByDesc('created_at')->get(),
             'pageTitle' => 'Students',
             'breadcrumbs' => ['Admin', 'Students'],
         ]);
@@ -150,11 +169,30 @@ class AdminWebController extends Controller
             ->paginate(20, ['*'], 'scan_page');
 
         $token = DB::table('qr_tokens')->where('student_id', $student)->orderByDesc('issued_at')->first();
+        $payment = DB::table('payment_records')->where('student_id', $student)->orderByDesc('verified_at')->first();
+        $scanCounts = DB::table('verification_logs')
+            ->join('qr_tokens', 'verification_logs.token_id', '=', 'qr_tokens.token_id')
+            ->where('qr_tokens.student_id', $student)
+            ->select('verification_logs.decision', DB::raw('COUNT(*) as aggregate'))
+            ->groupBy('verification_logs.decision')
+            ->pluck('aggregate', 'decision');
+        $timetable = DB::table('timetables')
+            ->join('departments', 'timetables.department_id', '=', 'departments.dept_id')
+            ->where('timetables.exam_session_id', (int) $studentRow->session_id)
+            ->where('timetables.department_id', (int) $studentRow->department_id)
+            ->where('timetables.level', (string) $studentRow->level)
+            ->select('timetables.*', 'departments.dept_name')
+            ->orderBy('exam_date')
+            ->orderBy('start_time')
+            ->get();
 
         return view('admin.students.show', [
             'adminActor' => $adminActor,
             'student' => $studentRow,
             'token' => $token,
+            'payment' => $payment,
+            'scanCounts' => $scanCounts,
+            'timetable' => $timetable,
             'scanHistory' => $scanHistory,
             'pageTitle' => $studentRow->full_name,
             'breadcrumbs' => ['Admin', 'Students', $studentRow->matric_no],
@@ -171,6 +209,45 @@ class AdminWebController extends Controller
             'sessions' => DB::table('exam_sessions')->orderByDesc('created_at')->get(),
             'pageTitle' => 'Scan Logs',
             'breadcrumbs' => ['Admin', 'Scan Logs'],
+        ]);
+    }
+
+    public function showScanLog(Request $request, int $log)
+    {
+        $adminActor = $this->adminActor($request);
+        $scan = $this->scanLogsQuery(new Request())->where('verification_logs.log_id', $log)->first();
+        abort_unless($scan, 404);
+
+        return view('admin.scan-logs.show', [
+            'adminActor' => $adminActor,
+            'log' => $scan,
+            'pageTitle' => 'Scan Detail',
+            'breadcrumbs' => ['Admin', 'Scan Logs', (string) $log],
+        ]);
+    }
+
+    public function payments(Request $request)
+    {
+        $adminActor = $this->adminActor($request);
+        $query = DB::table('payment_records')
+            ->leftJoin('students', 'payment_records.student_id', '=', 'students.matric_no')
+            ->leftJoin('departments', 'students.department_id', '=', 'departments.dept_id')
+            ->select('payment_records.*', 'students.full_name', 'students.level', 'departments.dept_name');
+
+        if ($request->filled('search')) {
+            $search = '%' . $request->input('search') . '%';
+            $query->where(function ($inner) use ($search) {
+                $inner->where('payment_records.student_id', 'like', $search)
+                    ->orWhere('payment_records.rrr_number', 'like', $search)
+                    ->orWhere('students.full_name', 'like', $search);
+            });
+        }
+
+        return view('admin.payments.index', [
+            'adminActor' => $adminActor,
+            'payments' => $query->orderByDesc('payment_records.verified_at')->paginate(25)->withQueryString(),
+            'pageTitle' => 'Payments',
+            'breadcrumbs' => ['Admin', 'Payments'],
         ]);
     }
 
@@ -564,12 +641,16 @@ class AdminWebController extends Controller
             'totalStudents' => DB::table('students')->count(),
             'totalExaminers' => DB::table('examiners')->whereIn('role', [Roles::EXAMINER, 'examiner'])->where('is_active', true)->count(),
             'activeSessions' => DB::table('exam_sessions')->where('is_active', true)->count(),
+            'totalTokens' => DB::table('qr_tokens')->count(),
+            'verifiedPayments' => DB::table('payment_records')->count(),
+            'pendingPayments' => max(0, DB::table('students')->count() - DB::table('payment_records')->distinct('student_id')->count('student_id')),
             'scansToday' => DB::table('verification_logs')->whereDate('timestamp', today())->count(),
             'totalScans' => (int) $scanDecisionCounts->sum(),
             'approvedScans' => (int) ($scanDecisionCounts['APPROVED'] ?? 0),
             'rejectedScans' => (int) ($scanDecisionCounts['REJECTED'] ?? 0),
             'duplicateScans' => (int) ($scanDecisionCounts['DUPLICATE'] ?? 0),
             'activeSession' => $activeSession,
+            'todaysExams' => $this->todaysExams(),
             'sessions' => $this->sessionsQuery($request)->paginate(10, ['*'], 'sessions_page')->withQueryString(),
             'recentExaminers' => $this->examinersQuery()->limit(5)->get(),
             'recentVerificationLogs' => $this->scanLogsQuery(new Request())->limit(8)->get(),
@@ -619,7 +700,12 @@ class AdminWebController extends Controller
     {
         return DB::table('examiners')
             ->leftJoin('exam_sessions', 'examiners.examiner_id', '=', 'exam_sessions.examiner_id')
-            ->select('examiners.*', DB::raw('COUNT(exam_sessions.session_id) as sessions_count'))
+            ->select(
+                'examiners.*',
+                DB::raw('COUNT(exam_sessions.session_id) as sessions_count'),
+                DB::raw('(SELECT COUNT(*) FROM verification_logs WHERE verification_logs.examiner_id = examiners.examiner_id) as scan_count'),
+                DB::raw('(SELECT MAX(timestamp) FROM verification_logs WHERE verification_logs.examiner_id = examiners.examiner_id) as last_scan_at')
+            )
             ->whereIn('examiners.role', [Roles::EXAMINER, 'examiner'])
             ->groupBy('examiners.examiner_id', 'examiners.full_name', 'examiners.username', 'examiners.password_hash', 'examiners.role', 'examiners.admin_user_id', 'examiners.is_active', 'examiners.last_active_at', 'examiners.created_at')
             ->orderBy('examiners.full_name');
@@ -632,7 +718,8 @@ class AdminWebController extends Controller
             ->select(
                 'students.*',
                 'departments.dept_name',
-                DB::raw('(SELECT status FROM qr_tokens WHERE qr_tokens.student_id = students.matric_no ORDER BY issued_at DESC LIMIT 1) as token_status')
+                DB::raw('(SELECT status FROM qr_tokens WHERE qr_tokens.student_id = students.matric_no ORDER BY issued_at DESC LIMIT 1) as token_status'),
+                DB::raw('(SELECT COUNT(*) FROM payment_records WHERE payment_records.student_id = students.matric_no) as payment_count')
             );
 
         if ($request->filled('search')) {
@@ -641,6 +728,29 @@ class AdminWebController extends Controller
                 $inner->where('students.matric_no', 'like', $search)
                     ->orWhere('students.full_name', 'like', $search);
             });
+        }
+        if ($request->filled('department_id')) {
+            $query->where('students.department_id', (int) $request->input('department_id'));
+        }
+        if ($request->filled('level')) {
+            $query->where('students.level', $request->input('level'));
+        }
+        if ($request->filled('session_id')) {
+            $query->where('students.session_id', (int) $request->input('session_id'));
+        }
+        if ($request->filled('qr_status')) {
+            $query->whereRaw('(SELECT status FROM qr_tokens WHERE qr_tokens.student_id = students.matric_no ORDER BY issued_at DESC LIMIT 1) = ?', [$request->input('qr_status')]);
+        }
+        if ($request->filled('payment_status')) {
+            if ($request->input('payment_status') === 'verified') {
+                $query->whereExists(function ($inner) {
+                    $inner->selectRaw('1')->from('payment_records')->whereColumn('payment_records.student_id', 'students.matric_no');
+                });
+            } elseif ($request->input('payment_status') === 'pending') {
+                $query->whereNotExists(function ($inner) {
+                    $inner->selectRaw('1')->from('payment_records')->whereColumn('payment_records.student_id', 'students.matric_no');
+                });
+            }
         }
 
         return $query->orderByDesc('students.created_at');
@@ -657,13 +767,27 @@ class AdminWebController extends Controller
                 'verification_logs.*',
                 'qr_tokens.student_id',
                 'students.full_name as student_name',
+                'students.level',
+                'students.department_id',
                 'students.photo_path',
+                'departments.dept_name',
                 'exam_sessions.name as session_name',
                 'exam_sessions.semester',
                 'exam_sessions.academic_year',
                 'examiners.full_name as examiner_name'
-            );
+            )
+            ->leftJoin('departments', 'students.department_id', '=', 'departments.dept_id');
 
+        if ($request->filled('search')) {
+            $search = '%' . $request->input('search') . '%';
+            $query->where(function ($inner) use ($search) {
+                $inner->where('qr_tokens.student_id', 'like', $search)
+                    ->orWhere('verification_logs.token_id', 'like', $search)
+                    ->orWhere('students.full_name', 'like', $search)
+                    ->orWhere('examiners.full_name', 'like', $search)
+                    ->orWhere('examiners.username', 'like', $search);
+            });
+        }
         if ($request->filled('session_id')) {
             $query->where('qr_tokens.session_id', (int) $request->input('session_id'));
         }
@@ -750,6 +874,18 @@ class AdminWebController extends Controller
             ->where('is_active', true)
             ->orderBy('full_name')
             ->get(['examiner_id', 'full_name', 'username']);
+    }
+
+    private function todaysExams()
+    {
+        return DB::table('timetables')
+            ->join('exam_sessions', 'timetables.exam_session_id', '=', 'exam_sessions.session_id')
+            ->join('departments', 'timetables.department_id', '=', 'departments.dept_id')
+            ->whereDate('timetables.exam_date', today())
+            ->select('timetables.*', 'exam_sessions.name as session_name', 'exam_sessions.semester', 'departments.dept_name')
+            ->orderBy('timetables.start_time')
+            ->limit(8)
+            ->get();
     }
 
     private function settingsPayload(): array

@@ -14,30 +14,35 @@ class MockSISSeeder extends Seeder
                 'matric_no'  => 'CSC/2021/001',
                 'full_name'  => 'Adebayo Oluwaseun Emmanuel',
                 'department' => 'Computer Science',
+                'level'      => '300',
                 'photo_path' => 'photos/student1.jpg',
             ],
             [
                 'matric_no'  => 'SEN/2021/002',
                 'full_name'  => 'Chinwe Ifeoma Okonkwo',
                 'department' => 'Software Engineering',
+                'level'      => '300',
                 'photo_path' => 'photos/student2.jpg',
             ],
             [
                 'matric_no'  => 'IFT/2021/003',
                 'full_name'  => 'Musa Abdullahi Garba',
                 'department' => 'Information Technology',
+                'level'      => '300',
                 'photo_path' => 'photos/student3.jpg',
             ],
             [
                 'matric_no'  => 'CYS/2021/004',
                 'full_name'  => 'Ngozi Chinyere Eze',
                 'department' => 'Cyber Security',
+                'level'      => '300',
                 'photo_path' => 'photos/student4.jpg',
             ],
             [
                 'matric_no'  => 'DTS/2021/005',
                 'full_name'  => 'Emeka Tochukwu Nwosu',
                 'department' => 'Data Science',
+                'level'      => '300',
                 'photo_path' => 'photos/student5.jpg',
             ],
         ];
@@ -71,6 +76,7 @@ class MockSISSeeder extends Seeder
                         'matric_no'  => sprintf('%s/%d/%03d', $prefix, $year, $i),
                         'full_name'  => $firstNames[$index] . ' ' . $middleNames[$i % count($middleNames)] . ' ' . $lastNames[($index + $i) % count($lastNames)],
                         'department' => $department,
+                        'level'      => (string) max(100, min(500, (2026 - $year) * 100)),
                         'photo_path' => 'photos/student' . ((($i + $year) % 5) + 1) . '.jpg',
                     ];
                 }

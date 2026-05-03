@@ -1271,6 +1271,27 @@
     .ex-history-info .hn { font-size: 11px; font-weight: 600; color: var(--ink); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
     .ex-history-info .hm { font-size: 10px; color: var(--ink-4); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
     .ex-history-time { font-size: 10px; color: var(--ink-4); font-family: 'JetBrains Mono', monospace; flex-shrink: 0; }
+    .ex-context-strip {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) minmax(260px, .8fr);
+        gap: 12px;
+        padding: 12px 16px;
+        border-bottom: 1px solid var(--line);
+        background: rgba(255,255,255,.78);
+    }
+    .ex-context-card {
+        border: 1px solid var(--line);
+        border-radius: 14px;
+        padding: 12px 14px;
+        background: #fff;
+        min-width: 0;
+    }
+    .ex-context-card b { display: block; color: var(--ink); font-size: 13px; }
+    .ex-context-card span { display: block; margin-top: 2px; color: var(--ink-4); font-size: 11px; }
+    .ex-today-list { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 2px; }
+    .ex-today-pill { flex: 0 0 auto; min-width: 190px; border: 1px solid var(--line); border-radius: 13px; padding: 9px 10px; background: var(--bg); }
+    .ex-today-pill strong { display: block; font-size: 12px; color: var(--ink); }
+    .ex-today-pill small { display: block; margin-top: 2px; color: var(--ink-4); font-size: 10px; }
     .scan-exam-context {
         margin-top: 12px;
         padding: 12px 14px;
@@ -1282,6 +1303,19 @@
     .scan-exam-context .ctx-label { font-size: 10px; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; color: var(--ink-3); }
     .scan-exam-context .ctx-main { margin-top: 4px; font-size: 13px; font-weight: 800; }
     .scan-exam-context .ctx-sub { margin-top: 3px; font-size: 11px; color: var(--ink-3); }
+    .history-detail-btn { border: 0; background: transparent; color: var(--navy); font-weight: 700; font-size: 10px; cursor: pointer; padding: 0; }
+    .scan-summary { margin-top: 8px; font-size: 11px; color: var(--ink-3); }
+    .history-modal { position: fixed; inset: 0; z-index: 90; display: none; place-items: center; padding: 18px; background: rgba(15,23,42,.42); }
+    .history-modal.show { display: grid; }
+    .history-card { width: min(440px, 100%); background: #fff; border: 1px solid var(--line); border-radius: 18px; box-shadow: var(--shadow); overflow: hidden; }
+    .history-card-head { display: flex; justify-content: space-between; gap: 12px; align-items: center; padding: 16px 18px; border-bottom: 1px solid var(--line); }
+    .history-card-head b { font-size: 15px; }
+    .history-card-head button { border: 0; background: transparent; color: var(--ink-3); font-size: 20px; cursor: pointer; }
+    .history-card-body { padding: 18px; display: grid; gap: 12px; }
+    .history-meta { border-top: 1px solid var(--line); padding-top: 10px; display: flex; justify-content: space-between; gap: 12px; font-size: 12px; color: var(--ink-3); }
+    @media (max-width: 767px) {
+        .ex-context-strip { grid-template-columns: 1fr; }
+    }
 </style>
 
 <div class="ex-page">
@@ -1314,10 +1348,33 @@
 
     {{-- Stats bar --}}
     <div class="ex-stats">
+        <div class="stat-cell"><b id="today-scans">{{ $examinerStats['today'] ?? 0 }}</b><span>Today</span></div>
         <div class="stat-cell"><b id="total-scans">{{ $examinerStats['total'] ?? 0 }}</b><span>Scans</span></div>
         <div class="stat-cell approved"><b id="approved-count">{{ $examinerStats['approved'] ?? 0 }}</b><span>Approved</span></div>
         <div class="stat-cell rejected"><b id="rejected-count">{{ $examinerStats['rejected'] ?? 0 }}</b><span>Rejected</span></div>
         <div class="stat-cell duplicate"><b id="duplicate-count">{{ $examinerStats['duplicate'] ?? 0 }}</b><span>Duplicates</span></div>
+    </div>
+
+    <div class="ex-context-strip">
+        <div class="ex-context-card">
+            <b>{{ $activeSession->name ?? $activeSession->semester ?? 'No active session' }}</b>
+            <span>Current session · Last scan {{ !empty($examinerStats['last_scan_at']) ? \Carbon\Carbon::parse($examinerStats['last_scan_at'])->diffForHumans() : 'not recorded' }}</span>
+        </div>
+        <div class="ex-context-card">
+            <b>Today's Exams</b>
+            @if($todaysExams->count())
+                <div class="ex-today-list">
+                    @foreach($todaysExams as $exam)
+                        <div class="ex-today-pill">
+                            <strong>{{ $exam->course_code }} · {{ $exam->dept_name }}</strong>
+                            <small>{{ $exam->level }} · {{ substr($exam->start_time, 0, 5) }}{{ $exam->end_time ? ' - '.substr($exam->end_time, 0, 5) : '' }} · {{ $exam->venue }}</small>
+                        </div>
+                    @endforeach
+                </div>
+            @else
+                <span>No timetable entries are scheduled today.</span>
+            @endif
+        </div>
     </div>
 
     {{-- Main workspace --}}
@@ -1405,6 +1462,7 @@
                     </div>
                     <div class="to-sc-divider"></div>
                     <div class="to-sc-dept" id="approved-dept-row">—</div>
+                    <div class="scan-summary" id="approved-scan-summary">Scan history unavailable</div>
                 </div>
                 <div class="to-section-label">Verification Details</div>
                 <div class="meta-row" style="margin-top:4px;">
@@ -1597,6 +1655,7 @@
                     </div>
                     <div class="to-sc-divider"></div>
                     <div class="to-sc-dept" id="dup-dept-row">—</div>
+                    <div class="scan-summary" id="dup-scan-summary">Scan history unavailable</div>
                 </div>
                 <div class="to-section-label">Duplicate Details</div>
                 <div class="meta-row" style="margin-top:4px;">
@@ -1673,17 +1732,13 @@
                 <span class="time">—</span>
             </div>
             <div class="scan-actions">
-                <button onclick="simulateScan('APPROVED')">
-                    <svg fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M20 6L9 17l-5-5"/></svg>
-                    Test
+                <button onclick="startCamera()">
+                    <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M23 4v6h-6M1 20v-6h6M3.51 9a9 9 0 0114.13-3.36L23 10M1 14l5.36 4.36A9 9 0 0020.49 15"/></svg>
+                    Retry camera
                 </button>
-                <button onclick="simulateScan('REJECTED')">
-                    <svg fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M6 18L18 6M6 6l12 12"/></svg>
-                    Reject
-                </button>
-                <button onclick="simulateScan('DUPLICATE')">
-                    <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M12 8v4l3 2"/></svg>
-                    Dup
+                <button onclick="cancelAllAutoAdvance();resetScan()">
+                    <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M5 12h14M13 5l7 7-7 7"/></svg>
+                    Next scan
                 </button>
             </div>
         </div>
@@ -1753,6 +1808,7 @@
                         <div class="ctx-main">No exam scheduled today</div>
                         <div class="ctx-sub">Timetable context appears here when available.</div>
                     </div>
+                    <div class="scan-summary" id="res-scan-summary">Scan history appears here after verification.</div>
                 </div>
                 <div class="res-actions">
                     <button class="btn-ghost" onclick="cancelAllAutoAdvance();resetScan()">Next scan</button>
@@ -1766,9 +1822,8 @@
             </div>
 
             <div class="ex-panel-actions">
-                <button onclick="simulateScan('APPROVED')">Test OK</button>
-                <button onclick="simulateScan('REJECTED')">Test Reject</button>
-                <button onclick="simulateScan('DUPLICATE')">Test Dup</button>
+                <button onclick="startCamera()">Retry Camera</button>
+                <button onclick="cancelAllAutoAdvance();resetScan()">Next Scan</button>
             </div>
 
             {{-- Scan history --}}
@@ -1796,7 +1851,10 @@
                             <div class="hn">{{ $historyName }}</div>
                             <div class="hm">{{ $scan->matric_no ?? 'Student unavailable' }} · {{ $scan->semester ?? '—' }} {{ $scan->academic_year ?? '' }}</div>
                         </div>
-                        <div class="ex-history-time">{{ \Carbon\Carbon::parse($scan->timestamp)->format('H:i') }}</div>
+                        <div class="ex-history-time">
+                            {{ \Carbon\Carbon::parse($scan->timestamp)->format('H:i') }}
+                            <button class="history-detail-btn" type="button" onclick="openHistoryDetail({{ $loop->index }})">Details</button>
+                        </div>
                     </div>
                     @empty
                     <div class="ex-history-empty">No scans yet</div>
@@ -1805,6 +1863,16 @@
             </div>
         </div>
 
+    </div>
+</div>
+
+<div class="history-modal" id="history-detail-modal" aria-hidden="true">
+    <div class="history-card" role="dialog" aria-modal="true" aria-labelledby="history-detail-title">
+        <div class="history-card-head">
+            <b id="history-detail-title">Scan Detail</b>
+            <button type="button" onclick="closeHistoryDetail()" aria-label="Close">&times;</button>
+        </div>
+        <div class="history-card-body" id="history-detail-body"></div>
     </div>
 </div>
 
@@ -1830,6 +1898,12 @@
             'name' => $scan->student_name ?: ($scan->matric_no ?? 'Student unavailable'),
             'sub' => trim(($scan->matric_no ?? 'Student unavailable') . ' · ' . ($sessionLabel !== '' ? $sessionLabel : 'Session')),
             'time' => $scanTime,
+            'matric' => $scan->matric_no ?? null,
+            'department' => $scan->dept_name ?? null,
+            'level' => $scan->level ?? null,
+            'decision' => $scan->decision ?? null,
+            'timestamp' => $scan->timestamp ?? null,
+            'token' => $scan->token_id ?? null,
         ];
     })->values();
 
@@ -1842,6 +1916,7 @@
 
     $examinerStatsPayload = [
         'total' => (int) ($examinerStats['total'] ?? 0),
+        'today' => (int) ($examinerStats['today'] ?? 0),
         'approved' => (int) ($examinerStats['approved'] ?? 0),
         'rejected' => (int) ($examinerStats['rejected'] ?? 0),
         'duplicate' => (int) ($examinerStats['duplicate'] ?? 0),
@@ -2159,14 +2234,15 @@ function formatEncData(str) {
 }
 
 function updateStats() {
+    document.getElementById('today-scans').textContent    = stats.today ?? 0;
     document.getElementById('total-scans').textContent    = stats.total;
     document.getElementById('approved-count').textContent = stats.approved;
     document.getElementById('rejected-count').textContent = stats.rejected;
     document.getElementById('duplicate-count').textContent = stats.duplicate;
 }
 
-function addToHistory(type, name, sub, time) {
-    scanHistory.unshift({ type, name, sub, time });
+function addToHistory(type, name, sub, time, extra = {}) {
+    scanHistory.unshift({ type, name, sub, time, ...extra });
     if (scanHistory.length > 50) scanHistory.pop();
     renderHistory();
 }
@@ -2180,7 +2256,9 @@ function escapeHtml(value) {
 function renderHistory() {
     const list = document.getElementById('history-list');
     if (!list) return;
-    const rows = currentFilter === 'all' ? scanHistory : scanHistory.filter(r => r.type === currentFilter);
+    const rows = scanHistory
+        .map((row, index) => ({ ...row, index }))
+        .filter(r => currentFilter === 'all' || r.type === currentFilter);
     if (!rows.length) {
         list.innerHTML = '<div class="ex-history-empty">No scans yet</div>';
         return;
@@ -2192,9 +2270,37 @@ function renderHistory() {
                 <div class="hn">${escapeHtml(r.name)}</div>
                 <div class="hm">${escapeHtml(r.sub)}</div>
             </div>
-            <div class="ex-history-time">${escapeHtml(r.time)}</div>
+            <div class="ex-history-time">${escapeHtml(r.time)} <button class="history-detail-btn" type="button" onclick="openHistoryDetail(${r.index})">Details</button></div>
         </div>
     `).join('');
+}
+
+function openHistoryDetail(index) {
+    const row = scanHistory[index];
+    if (!row) return;
+    const body = document.getElementById('history-detail-body');
+    const modal = document.getElementById('history-detail-modal');
+    if (!body || !modal) return;
+    body.innerHTML = `
+        <div>
+            <strong>${escapeHtml(row.name || 'Student unavailable')}</strong>
+            <div class="muted mono">${escapeHtml(row.matric || 'Matric unavailable')}</div>
+        </div>
+        <div class="history-meta"><span>Decision</span><b>${escapeHtml(row.decision || row.type || 'Unavailable')}</b></div>
+        <div class="history-meta"><span>Department</span><b>${escapeHtml(row.department || 'Unavailable')}</b></div>
+        <div class="history-meta"><span>Level</span><b>${escapeHtml(row.level || 'Unavailable')}</b></div>
+        <div class="history-meta"><span>Token</span><b class="mono">${escapeHtml(row.token || 'Unavailable')}</b></div>
+        <div class="history-meta"><span>Time</span><b>${escapeHtml(row.timestamp || row.time || 'Unavailable')}</b></div>
+    `;
+    modal.classList.add('show');
+    modal.setAttribute('aria-hidden', 'false');
+}
+
+function closeHistoryDetail() {
+    const modal = document.getElementById('history-detail-modal');
+    if (!modal) return;
+    modal.classList.remove('show');
+    modal.setAttribute('aria-hidden', 'true');
 }
 
 function setFilter(f) {
@@ -2259,6 +2365,11 @@ function renderTodayExam(targetId, exam) {
     `;
 }
 
+function scanSummaryText(summary) {
+    if (!summary) return 'Scan history unavailable';
+    return `${summary.total || 0} total · ${summary.approved || 0} approved · ${summary.duplicate || 0} duplicate · ${summary.rejected || 0} rejected`;
+}
+
 function updateDesktopResult(type, data) {
     const badge   = document.getElementById('res-badge');
     const resText = document.getElementById('res-text');
@@ -2278,6 +2389,7 @@ function updateDesktopResult(type, data) {
         document.getElementById('res-token').textContent   = data.token || '—';
         document.getElementById('res-status-val').textContent = labels[type] || type;
         renderTodayExam('res-today-exam', data.todayExam);
+        document.getElementById('res-scan-summary').textContent = scanSummaryText(data.scanSummary);
     } else {
         document.getElementById('res-av-photo').style.display = 'none';
         document.getElementById('res-av-initials').style.display = '';
@@ -2288,6 +2400,7 @@ function updateDesktopResult(type, data) {
         document.getElementById('res-token').textContent   = data.token || '—';
         document.getElementById('res-status-val').textContent = labels[type] || type;
         renderTodayExam('res-today-exam', null);
+        document.getElementById('res-scan-summary').textContent = 'No student identity was available for this result.';
     }
 
     if (type === 'approved') {
@@ -2350,6 +2463,7 @@ function handleResult(result, now, encPayload, encHmac) {
     encPayload = encPayload || '';
     encHmac    = encHmac    || '';
     stats.total++;
+    stats.today = (stats.today || 0) + 1;
     hideVerifying();
     const elapsed    = scanStartTime ? Math.round(Date.now() - scanStartTime) + 'ms' : '—';
     const examinerRef = result.examiner || 'Examiner';
@@ -2361,6 +2475,7 @@ function handleResult(result, now, encPayload, encHmac) {
         const name       = s.full_name || 'Unknown';
         const matric     = s.matric_no || '—';
         const dept       = s.department || '—';
+        const level      = s.level || '—';
         const initials   = name.split(' ').map(w => w[0]).slice(0, 2).join('').toUpperCase();
         const tokenShort = (result.token_id || '').slice(0, 8) + '…';
         const sess       = result.session || {};
@@ -2372,7 +2487,8 @@ function handleResult(result, now, encPayload, encHmac) {
         document.getElementById('approved-name').textContent         = name;
         document.getElementById('approved-matric').textContent       = matric;
         document.getElementById('approved-dept').textContent         = dept;
-        document.getElementById('approved-dept-row').textContent     = dept;
+        document.getElementById('approved-dept-row').textContent     = `${dept} · Level ${level}`;
+        document.getElementById('approved-scan-summary').textContent = scanSummaryText(result.scan_summary);
         document.getElementById('approved-token').textContent        = tokenShort;
         document.getElementById('approved-time').textContent         = now;
         document.getElementById('approved-session').textContent      = sessionStr;
@@ -2385,9 +2501,9 @@ function handleResult(result, now, encPayload, encHmac) {
         if (approvedEncHmacEl) approvedEncHmacEl.textContent = encHmac || '—';
 
         renderTodayExam('approved-today-exam', result.today_exam);
-        updateDesktopResult('approved', { name, matric, dept, initials, token: tokenShort, time: elapsed, photoPath: s.photo_path, todayExam: result.today_exam });
+        updateDesktopResult('approved', { name, matric, dept: `${dept} · Level ${level}`, initials, token: tokenShort, time: elapsed, photoPath: s.photo_path, todayExam: result.today_exam, scanSummary: result.scan_summary });
         updateLastScan('approved', name, matric, now);
-        addToHistory('approved', name, matric, now);
+        addToHistory('approved', name, matric, now, { matric, department: dept, level, decision: 'APPROVED', token: result.token_id });
         showTakeover('approved');
 
         // Timer starts ONLY after identity photo is visible (or fallback is shown)
@@ -2402,6 +2518,7 @@ function handleResult(result, now, encPayload, encHmac) {
         const name     = s.full_name || 'Unknown';
         const matric   = s.matric_no || '—';
         const dept     = s.department || '—';
+        const level    = s.level || '—';
         const initials = name.split(' ').map(w => w[0]).slice(0, 2).join('').toUpperCase();
 
         // Kick off image fetch immediately — before any DOM work
@@ -2416,7 +2533,8 @@ function handleResult(result, now, encPayload, encHmac) {
         document.getElementById('dup-name').textContent          = name;
         document.getElementById('dup-matric').textContent        = matric;
         document.getElementById('dup-dept').textContent          = dept;
-        document.getElementById('dup-dept-row').textContent      = dept;
+        document.getElementById('dup-dept-row').textContent      = `${dept} · Level ${level}`;
+        document.getElementById('dup-scan-summary').textContent  = scanSummaryText(result.scan_summary);
         document.getElementById('dup-used-at').textContent       = usedAtStr;
         document.getElementById('duplicate-time').textContent    = now;
         document.getElementById('dup-examiner-ref').textContent  = 'Scanned by: ' + examinerRef;
@@ -2428,9 +2546,9 @@ function handleResult(result, now, encPayload, encHmac) {
         if (dupEncHmacEl) dupEncHmacEl.textContent = encHmac || '—';
 
         renderTodayExam('dup-today-exam', result.today_exam);
-        updateDesktopResult('duplicate', { name, matric, dept, initials, time: elapsed, photoPath: s.photo_path, todayExam: result.today_exam });
+        updateDesktopResult('duplicate', { name, matric, dept: `${dept} · Level ${level}`, initials, time: elapsed, photoPath: s.photo_path, todayExam: result.today_exam, scanSummary: result.scan_summary });
         updateLastScan('duplicate', name, 'Token already redeemed', now);
-        addToHistory('duplicate', name, 'Already used', now);
+        addToHistory('duplicate', name, 'Already used', now, { matric, department: dept, level, decision: 'DUPLICATE', token: result.token_id });
         showTakeover('duplicate');
 
         // Timer starts ONLY after identity photo is visible (or fallback is shown)
