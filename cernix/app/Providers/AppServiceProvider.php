@@ -9,6 +9,7 @@ use App\Services\RegistrationService;
 use App\Services\RemitaService;
 use App\Services\VerificationService;
 use GuzzleHttp\Client;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\ServiceProvider;
 
 class AppServiceProvider extends ServiceProvider
@@ -27,5 +28,10 @@ class AppServiceProvider extends ServiceProvider
         ));
     }
 
-    public function boot(): void {}
+    public function boot(): void
+    {
+        if (config('database.default') === 'sqlite') {
+            DB::statement('PRAGMA foreign_keys = ON;');
+        }
+    }
 }

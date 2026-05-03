@@ -41,6 +41,21 @@ return [
             'provider' => 'users',
         ],
 
+        'admin' => [
+            'driver' => 'session',
+            'provider' => 'examiners',
+        ],
+
+        'examiner' => [
+            'driver' => 'session',
+            'provider' => 'examiners',
+        ],
+
+        'student' => [
+            'driver' => 'session',
+            'provider' => 'students',
+        ],
+
         'api' => [
             'driver'   => 'jwt',
             'provider' => 'users',
@@ -68,6 +83,16 @@ return [
         'users' => [
             'driver' => 'eloquent',
             'model' => env('AUTH_MODEL', App\Models\User::class),
+        ],
+
+        'examiners' => [
+            'driver' => 'eloquent',
+            'model' => App\Models\Examiner::class,
+        ],
+
+        'students' => [
+            'driver' => 'eloquent',
+            'model' => App\Models\Student::class,
         ],
 
         // 'users' => [

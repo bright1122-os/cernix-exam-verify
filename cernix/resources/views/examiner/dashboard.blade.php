@@ -962,15 +962,18 @@
 
     /* ── Desktop layout ──────────────────────────────────────────── */
     @media (min-width: 768px) {
-        .ex-workspace { flex-direction: row; }
+        .ex-workspace { flex-direction: row; gap: 16px; padding: 16px; background: var(--bg); }
+        .ex-camera-panel { border-radius: 18px; border: 1px solid var(--line); box-shadow: var(--shadow-sm); }
         .ex-mobile-bottom { display: none; }
         .ex-user-info { display: block; }
 
         .ex-result-panel {
-            width: 360px;
+            width: 400px;
             flex-shrink: 0;
             background: var(--bg-2);
-            border-left: 1px solid var(--line);
+            border: 1px solid var(--line);
+            border-radius: 18px;
+            box-shadow: var(--shadow-sm);
             display: flex;
             flex-direction: column;
             overflow-y: auto;
@@ -1264,6 +1267,28 @@
     .ex-history-dot.rejected  { background: var(--red); }
     .ex-history-dot.duplicate { background: var(--amber); }
     .ex-history-dot.error     { background: var(--ink-4); }
+    .ex-history-photo {
+        width: 34px;
+        height: 38px;
+        border-radius: 9px;
+        border: 1px solid var(--line);
+        overflow: hidden;
+        background: var(--bg);
+        display: grid;
+        place-items: center;
+        color: var(--ink-3);
+        font-size: 10px;
+        font-weight: 700;
+        flex-shrink: 0;
+        position: relative;
+    }
+    .ex-history-photo img { width: 100%; height: 100%; object-fit: cover; display: block; }
+    .ex-history-photo .ex-history-dot {
+        position: absolute;
+        right: -1px;
+        bottom: -1px;
+        border: 2px solid var(--bg-2);
+    }
     .ex-history-info { flex: 1; min-width: 0; }
     .ex-history-info .hn { font-size: 11px; font-weight: 600; color: var(--ink); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
     .ex-history-info .hm { font-size: 10px; color: var(--ink-4); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
@@ -1287,11 +1312,14 @@
                 <span>{{ strtolower($examiner['role'] ?? 'examiner') }}</span>
             </div>
             <div class="ex-avatar">{{ strtoupper(substr($examiner['full_name'] ?? 'E', 0, 1)) }}</div>
-            <a href="/examiner/logout" class="ex-logout" title="Logout">
+            <form method="POST" action="{{ route('examiner.logout') }}" style="margin:0">
+                @csrf
+            <button type="submit" class="ex-logout" title="Logout">
                 <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
                     <path d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v2a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h6a2 2 0 012 2v2"/>
                 </svg>
-            </a>
+            </button>
+            </form>
         </div>
     </div>
 
@@ -1755,11 +1783,23 @@
                 </div>
                 <div class="ex-history-list" id="history-list">
                     @forelse($scanHistory as $scan)
+                    @php
+                        $historyPhoto = ! empty($scan->photo_path) ? url('/photo-thumb/' . basename($scan->photo_path)) : null;
+                        $historyName = $scan->student_name ?: ($scan->matric_no ?? 'Student unavailable');
+                        $historyInitial = strtoupper(substr(trim($historyName), 0, 1));
+                    @endphp
                     <div class="ex-history-row">
-                        <div class="ex-history-dot {{ strtolower($scan->decision) }}"></div>
+                        <div class="ex-history-photo">
+                            @if($historyPhoto)
+                                <img src="{{ $historyPhoto }}" alt="">
+                            @else
+                                {{ $historyInitial }}
+                            @endif
+                            <span class="ex-history-dot {{ strtolower($scan->decision) }}"></span>
+                        </div>
                         <div class="ex-history-info">
-                            <div class="hn">{{ $scan->matric_no ?? 'Student' }}</div>
-                            <div class="hm">{{ $scan->semester ?? '—' }} {{ $scan->academic_year ?? '' }}</div>
+                            <div class="hn">{{ $historyName }}</div>
+                            <div class="hm">{{ $scan->matric_no ?? 'Student unavailable' }} · {{ $scan->semester ?? '—' }} {{ $scan->academic_year ?? '' }}</div>
                         </div>
                         <div class="ex-history-time">{{ \Carbon\Carbon::parse($scan->timestamp)->format('H:i') }}</div>
                     </div>
@@ -1792,9 +1832,11 @@
 
         return [
             'type' => strtolower((string) ($scan->decision ?? '')),
-            'name' => $scan->matric_no ?? 'Student',
-            'sub' => $sessionLabel !== '' ? $sessionLabel : 'Session',
+            'name' => $scan->student_name ?: ($scan->matric_no ?? 'Student unavailable'),
+            'sub' => trim(($scan->matric_no ?? 'Student unavailable') . ' · ' . ($sessionLabel !== '' ? $sessionLabel : 'Session')),
             'time' => $scanTime,
+            'photoPath' => $scan->photo_path ?? null,
+            'initials' => strtoupper(substr(trim((string) ($scan->student_name ?: ($scan->matric_no ?? '?'))), 0, 1)),
         ];
     })->values();
 
@@ -2130,10 +2172,16 @@ function updateStats() {
     document.getElementById('duplicate-count').textContent = stats.duplicate;
 }
 
-function addToHistory(type, name, sub, time) {
-    scanHistory.unshift({ type, name, sub, time });
+function addToHistory(type, name, sub, time, photoPath = null, initials = '?') {
+    scanHistory.unshift({ type, name, sub, time, photoPath, initials });
     if (scanHistory.length > 50) scanHistory.pop();
     renderHistory();
+}
+
+function escapeHtml(value) {
+    return String(value ?? '').replace(/[&<>"']/g, (char) => ({
+        '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+    }[char]));
 }
 
 function renderHistory() {
@@ -2144,16 +2192,24 @@ function renderHistory() {
         list.innerHTML = '<div class="ex-history-empty">No scans yet</div>';
         return;
     }
-    list.innerHTML = rows.map(r => `
+    list.innerHTML = rows.map(r => {
+        const url = thumbUrl(r.photoPath);
+        const initials = escapeHtml(r.initials || (r.name || '?').slice(0, 1).toUpperCase());
+        const photo = url
+            ? `<img src="${escapeHtml(url)}" alt="">`
+            : initials;
+
+        return `
         <div class="ex-history-row">
-            <div class="ex-history-dot ${r.type}"></div>
+            <div class="ex-history-photo">${photo}<span class="ex-history-dot ${escapeHtml(r.type)}"></span></div>
             <div class="ex-history-info">
-                <div class="hn">${r.name}</div>
-                <div class="hm">${r.sub}</div>
+                <div class="hn">${escapeHtml(r.name)}</div>
+                <div class="hm">${escapeHtml(r.sub)}</div>
             </div>
-            <div class="ex-history-time">${r.time}</div>
+            <div class="ex-history-time">${escapeHtml(r.time)}</div>
         </div>
-    `).join('');
+    `;
+    }).join('');
 }
 
 function setFilter(f) {
@@ -2322,7 +2378,7 @@ function handleResult(result, now, encPayload, encHmac) {
 
         updateDesktopResult('approved', { name, matric, dept, initials, token: tokenShort, time: elapsed, photoPath: s.photo_path });
         updateLastScan('approved', name, matric, now);
-        addToHistory('approved', name, matric, now);
+        addToHistory('approved', name, matric, now, s.photo_path, initials);
         showTakeover('approved');
 
         // Timer starts ONLY after identity photo is visible (or fallback is shown)
@@ -2364,7 +2420,7 @@ function handleResult(result, now, encPayload, encHmac) {
 
         updateDesktopResult('duplicate', { name, matric, dept, initials, time: elapsed, photoPath: s.photo_path });
         updateLastScan('duplicate', name, 'Token already redeemed', now);
-        addToHistory('duplicate', name, 'Already used', now);
+        addToHistory('duplicate', name, 'Already used', now, s.photo_path, initials);
         showTakeover('duplicate');
 
         // Timer starts ONLY after identity photo is visible (or fallback is shown)
@@ -2450,6 +2506,7 @@ async function handleQRCode(rawData) {
         handleResult(result, now, encPayload, encHmac);
 
     } catch (err) {
+        console.error('Verification request failed:', err);
         hideVerifying();
         setCameraState('error', 'Connection issue');
         setScanPrompt('Connection lost — retrying <b>scanner</b>', 'error');
@@ -2532,6 +2589,7 @@ async function startCamera() {
         if (scanLoopHandle) cancelAnimationFrame(scanLoopHandle);
         queueNextFrame();
     } catch (e) {
+        console.error('Camera error:', e);
         stopCameraStream(video);
         setCameraState('error', 'Camera unavailable');
         setScanPrompt('Allow camera access to start <b>scanner</b>', 'error');
@@ -2581,6 +2639,7 @@ function scanFrame(frameTime = 0) {
             if (code?.data) handleQRCode(code.data);
         }
     } catch (err) {
+        console.error('Scanner frame error:', err);
         setCameraState('error', 'Scanner recovering');
         setScanPrompt('Scanner recovering — keep QR in frame', 'error');
     } finally {

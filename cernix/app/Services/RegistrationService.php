@@ -67,14 +67,33 @@ class RegistrationService
             if (! $isTestBypass) {
                 throw new RuntimeException('Student already registered for this session');
             }
+
             // TEST- mode only: wipe previous record so a fresh registration is created
-            DB::table('qr_tokens')
+            $tokenIds = DB::table('qr_tokens')
                 ->where('student_id', $data['matric_no'])
                 ->where('session_id', $data['session_id'])
-                ->delete();
-            DB::table('students')
-                ->where('matric_no', $data['matric_no'])
-                ->delete();
+                ->pluck('token_id');
+
+            DB::transaction(function () use ($data, $tokenIds) {
+                if ($tokenIds->isNotEmpty()) {
+                    DB::table('verification_logs')
+                        ->whereIn('token_id', $tokenIds)
+                        ->delete();
+                }
+
+                DB::table('payment_records')
+                    ->where('student_id', $data['matric_no'])
+                    ->delete();
+
+                DB::table('qr_tokens')
+                    ->where('student_id', $data['matric_no'])
+                    ->where('session_id', $data['session_id'])
+                    ->delete();
+
+                DB::table('students')
+                    ->where('matric_no', $data['matric_no'])
+                    ->delete();
+            });
         }
 
         $dept = DB::table('departments')

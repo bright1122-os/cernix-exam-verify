@@ -140,7 +140,10 @@ document.getElementById('login-form').addEventListener('submit', async (e) => {
         });
         const data = await resp.json();
         if (!resp.ok || data.status === 'error') throw new Error(data.message || 'Invalid credentials.');
-        window.location.href = '/examiner/dashboard';
+        const role = String(data.data?.role || '').toUpperCase();
+        window.location.href = role === 'ADMIN' || role === 'SUPER_ADMIN'
+            ? '/admin/dashboard'
+            : '/examiner/dashboard';
     } catch (ex) {
         document.getElementById('error-text').textContent = ex.message;
         errBox.style.display = 'flex';

@@ -1,8 +1,12 @@
 <?php
 
 use App\Http\Controllers\HealthController;
+use App\Http\Controllers\Web\AdminAuthController;
 use App\Http\Controllers\Web\AdminWebController;
+use App\Http\Controllers\Web\ExaminerAuthController;
 use App\Http\Controllers\Web\ExaminerWebController;
+use App\Http\Controllers\Web\StudentAuthController;
+use App\Http\Controllers\Web\StudentDashboardController;
 use App\Http\Controllers\Web\StudentWebController;
 use Illuminate\Support\Facades\Route;
 
@@ -10,18 +14,57 @@ Route::get('/', fn () => view('home'));
 Route::get('/health', [HealthController::class, 'check']);
 
 // Student portal
-Route::get('/student/register',  [StudentWebController::class, 'index']);
-Route::post('/student/register', [StudentWebController::class, 'register']);
+Route::prefix('student')->name('student.')->group(function () {
+    Route::get('/login', [StudentAuthController::class, 'showLogin'])->name('login');
+    Route::post('/login', [StudentAuthController::class, 'login']);
+    Route::post('/logout', [StudentAuthController::class, 'logout'])->name('logout');
+    Route::get('/register', [StudentWebController::class, 'index'])->name('register');
+    Route::post('/register', [StudentWebController::class, 'register']);
+    Route::middleware('student')->group(function () {
+        Route::get('/dashboard', [StudentDashboardController::class, 'index'])->name('dashboard');
+    });
+});
 
-// Examiner portal (login-gated — NO registration)
-Route::get('/examiner/login',      [ExaminerWebController::class, 'login']);
-Route::post('/examiner/login',     [ExaminerWebController::class, 'doLogin']);
-Route::get('/examiner/logout',     [ExaminerWebController::class, 'logout']);
-Route::get('/examiner/dashboard',  [ExaminerWebController::class, 'index']);
-Route::post('/examiner/verify',    [ExaminerWebController::class, 'verify']);
+// Examiner portal
+Route::prefix('examiner')->name('examiner.')->group(function () {
+    Route::get('/login', [ExaminerAuthController::class, 'showLogin'])->name('login');
+    Route::post('/login', [ExaminerAuthController::class, 'login'])->name('login.submit');
+    Route::post('/logout', [ExaminerAuthController::class, 'logout'])->name('logout');
+    Route::middleware('examiner')->group(function () {
+        Route::get('/dashboard', [ExaminerWebController::class, 'index'])->name('dashboard');
+        Route::post('/verify', [ExaminerWebController::class, 'verify'])->name('verify');
+    });
+});
 
 // Admin portal
-Route::get('/admin/dashboard', [AdminWebController::class, 'index']);
+Route::prefix('admin')->name('admin.')->group(function () {
+    Route::get('/login', [AdminAuthController::class, 'showLogin'])->name('login');
+    Route::post('/login', [AdminAuthController::class, 'login']);
+    Route::post('/logout', [AdminAuthController::class, 'logout'])->name('logout');
+    Route::middleware('admin')->group(function () {
+        Route::get('/dashboard', [AdminWebController::class, 'index'])->name('dashboard');
+        Route::get('/sessions', [AdminWebController::class, 'sessions'])->name('sessions.index');
+        Route::get('/sessions/{session}', [AdminWebController::class, 'showSession'])->name('sessions.show');
+        Route::post('/sessions', [AdminWebController::class, 'storeSession'])->name('sessions.store');
+        Route::post('/sessions/{session}/close', [AdminWebController::class, 'closeSession'])->name('sessions.close');
+        Route::delete('/sessions/{session}', [AdminWebController::class, 'deleteSession'])->name('sessions.delete');
+        Route::get('/examiners', [AdminWebController::class, 'examiners'])->name('examiners.index');
+        Route::get('/examiners/{examiner}', [AdminWebController::class, 'showExaminer'])->name('examiners.show');
+        Route::post('/examiners', [AdminWebController::class, 'storeExaminer'])->name('examiners.store');
+        Route::post('/examiners/{examiner}/toggle', [AdminWebController::class, 'toggleExaminer'])->name('examiners.toggle');
+        Route::delete('/examiners/{examiner}', [AdminWebController::class, 'deleteExaminer'])->name('examiners.delete');
+        Route::get('/students', [AdminWebController::class, 'students'])->name('students.index');
+        Route::get('/students/{student}', [AdminWebController::class, 'showStudent'])->where('student', '.*')->name('students.show');
+        Route::delete('/students/{student}', [AdminWebController::class, 'deleteStudent'])->where('student', '.*')->name('students.delete');
+        Route::get('/scan-logs', [AdminWebController::class, 'scanLogs'])->name('scan-logs.index');
+        Route::get('/scan-logs/export', [AdminWebController::class, 'exportScanLogs'])->name('scan-logs.export');
+        Route::get('/activity', [AdminWebController::class, 'activity'])->name('activity.index');
+        Route::get('/settings', [AdminWebController::class, 'settings'])->name('settings.index');
+        Route::post('/settings', [AdminWebController::class, 'updateSettings'])->name('settings.update');
+        Route::post('/settings/clear-scan-logs', [AdminWebController::class, 'clearScanLogs'])->name('settings.clear-scan-logs');
+        Route::post('/settings/reset-system', [AdminWebController::class, 'resetSystem'])->name('settings.reset-system');
+    });
+});
 
 // Passport photo thumbnails — resize + disk cache (GD)
 Route::get('/photo-thumb/{name}', function (string $name) {

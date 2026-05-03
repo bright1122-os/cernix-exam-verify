@@ -12,6 +12,7 @@ use App\Services\RemitaService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Hash;
 
 class StudentWebController extends Controller
 {
@@ -76,6 +77,15 @@ class StudentWebController extends Controller
                     ->where('matric_no', $data['matric_no'])
                     ->update(['photo_path' => $photoPath]);
             }
+
+            DB::table('students')
+                ->where('matric_no', $data['matric_no'])
+                ->where('session_id', (int) $session->session_id)
+                ->whereNull('password')
+                ->update([
+                    'password' => Hash::make($data['rrr_number']),
+                    'is_active' => true,
+                ]);
 
             // Build the QR SVG
             $tokenRow = DB::table('qr_tokens')

@@ -8,126 +8,17 @@ use App\Services\CryptoService;
 use App\Services\VerificationService;
 use App\Support\Roles;
 use Illuminate\Http\JsonResponse;
-use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Hash;
 
 class ExaminerWebController extends Controller
 {
-    public function login(Request $request)
-    {
-        if ($request->session()->has('examiner_id')) {
-            $actor = DB::table('examiners')
-                ->where('examiner_id', (int) $request->session()->get('examiner_id'))
-                ->where('is_active', true)
-                ->first();
-
-            if (! $actor) {
-                $request->session()->flush();
-                return redirect('/examiner/login');
-            }
-
-            $role = Roles::normalize($actor->role);
-            $request->session()->put('examiner_role', $role);
-            $request->session()->put('examiner_name', $actor->full_name);
-            $request->session()->put('examiner_username', $actor->username);
-
-            return Roles::isAdminLike($role)
-                ? redirect('/admin/dashboard')
-                : redirect('/examiner/dashboard');
-        }
-
-        return view('examiner.login');
-    }
-
-    public function doLogin(Request $request): JsonResponse
-    {
-        $credentials = $request->validate([
-            'username' => 'required|string|max:100',
-            'password' => 'required|string|max:200',
-        ]);
-
-        $examiner = DB::table('examiners')
-            ->where('username', $credentials['username'])->where('is_active', true)
-            ->first();
-
-        if (! $examiner || ! Hash::check($credentials['password'], $examiner->password_hash)) {
-            return response()->json([
-                'status'  => 'error',
-                'message' => 'Invalid credentials.',
-            ], 401);
-        }
-
-        $request->session()->regenerate();
-        $request->session()->put('examiner_id', (int) $examiner->examiner_id);
-        $request->session()->put('examiner_username', $examiner->username);
-        $request->session()->put('examiner_name', $examiner->full_name);
-        $request->session()->put('examiner_role', Roles::normalize($examiner->role));
-
-        app(AuditService::class)->logAction(
-            (string) $examiner->examiner_id,
-            'examiner',
-            'examiner.login',
-            ['username' => $examiner->username]
-        );
-
-        return response()->json([
-            'status'  => 'success',
-            'message' => 'Login successful',
-            'data'    => [
-                'examiner_id' => $examiner->examiner_id,
-                'full_name'   => $examiner->full_name,
-                'username'    => $examiner->username,
-                'role'        => $examiner->role,
-            ],
-        ]);
-    }
-
-    public function logout(Request $request): RedirectResponse
-    {
-        $examinerId = $request->session()->get('examiner_id');
-
-        if ($examinerId) {
-            app(AuditService::class)->logAction(
-                (string) $examinerId,
-                'examiner',
-                'examiner.logout',
-                []
-            );
-        }
-
-        $request->session()->flush();
-        $request->session()->regenerate();
-
-        return redirect('/examiner/login');
-    }
-
     public function index(Request $request)
     {
-        if (! $request->session()->has('examiner_id')) {
-            return redirect('/examiner/login');
-        }
-
-        $actor = DB::table('examiners')
-            ->where('examiner_id', (int) $request->session()->get('examiner_id'))
-            ->where('is_active', true)
-            ->first();
-
-        if (! $actor) {
-            $request->session()->flush();
-            return redirect('/examiner/login');
-        }
+        $actor = Auth::guard('examiner')->user();
 
         $role = Roles::normalize($actor->role);
-
-        if (Roles::isAdminLike($role)) {
-            $request->session()->put('examiner_role', $role);
-            $request->session()->put('examiner_name', $actor->full_name);
-            $request->session()->put('examiner_username', $actor->username);
-
-            return redirect('/admin/dashboard');
-        }
 
         if ($role !== Roles::EXAMINER) {
             abort(403);
@@ -166,8 +57,18 @@ class ExaminerWebController extends Controller
         $scanHistory = DB::table('verification_logs')
             ->join('qr_tokens', 'verification_logs.token_id', '=', 'qr_tokens.token_id')
             ->join('exam_sessions', 'qr_tokens.session_id', '=', 'exam_sessions.session_id')
+            ->leftJoin('students', 'qr_tokens.student_id', '=', 'students.matric_no')
+            ->leftJoin('departments', 'students.department_id', '=', 'departments.dept_id')
             ->where('verification_logs.examiner_id', $examiner['id'])
-            ->select('verification_logs.*', 'qr_tokens.student_id as matric_no', 'exam_sessions.semester', 'exam_sessions.academic_year')
+            ->select(
+                'verification_logs.*',
+                'qr_tokens.student_id as matric_no',
+                'students.full_name as student_name',
+                'students.photo_path',
+                'departments.dept_name',
+                'exam_sessions.semester',
+                'exam_sessions.academic_year'
+            )
             ->orderByDesc('verification_logs.timestamp')
             ->limit(25)
             ->get();

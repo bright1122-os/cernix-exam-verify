@@ -22,6 +22,11 @@ class AuthService
         /** @var User $user */
         $user = Auth::guard('api')->user();
 
+        if (array_key_exists('is_active', $user->getAttributes()) && ! $user->is_active) {
+            Auth::guard('api')->logout();
+            return false;
+        }
+
         $actual = Roles::normalize($user->role);
         $expected = Roles::normalize($role);
 

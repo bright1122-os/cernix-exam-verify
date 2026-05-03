@@ -7,6 +7,7 @@ use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
 use Illuminate\Http\Request;
 use Illuminate\Validation\ValidationException;
+use Symfony\Component\HttpFoundation\Request as SymfonyRequest;
 use Symfony\Component\HttpKernel\Exception\HttpException;
 
 return Application::configure(basePath: dirname(__DIR__))
@@ -20,10 +21,11 @@ return Application::configure(basePath: dirname(__DIR__))
         // Trust all proxies so ngrok HTTPS headers are respected
         $middleware->trustProxies(
             at: '*',
-            headers: \Symfony\Component\HttpFoundation\Request::HEADER_X_FORWARDED_FOR |
-                     \Symfony\Component\HttpFoundation\Request::HEADER_X_FORWARDED_HOST |
-                     \Symfony\Component\HttpFoundation\Request::HEADER_X_FORWARDED_PORT |
-                     \Symfony\Component\HttpFoundation\Request::HEADER_X_FORWARDED_PROTO
+            headers: SymfonyRequest::HEADER_X_FORWARDED_FOR |
+                     SymfonyRequest::HEADER_X_FORWARDED_HOST |
+                     SymfonyRequest::HEADER_X_FORWARDED_PORT |
+                     SymfonyRequest::HEADER_X_FORWARDED_PROTO |
+                     SymfonyRequest::HEADER_X_FORWARDED_AWS_ELB
         );
 
         // Bypass ngrok browser-warning interstitial on every response.
@@ -31,6 +33,9 @@ return Application::configure(basePath: dirname(__DIR__))
         // through page that breaks first-load on browsers and all mobile access.
         $middleware->append(\App\Http\Middleware\NgrokHeaders::class);
         $middleware->alias([
+            'admin' => \App\Http\Middleware\EnsureAdmin::class,
+            'examiner' => \App\Http\Middleware\EnsureExaminer::class,
+            'student' => \App\Http\Middleware\EnsureStudent::class,
             'role' => \App\Http\Middleware\EnsureRole::class,
         ]);
     })

@@ -3,142 +3,663 @@
 namespace App\Http\Controllers\Web;
 
 use App\Http\Controllers\Controller;
+use App\Models\ActivityLog;
+use App\Models\Setting;
+use App\Services\AuditService;
+use App\Services\CryptoService;
 use App\Support\Roles;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Schema;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class AdminWebController extends Controller
 {
     public function index(Request $request)
     {
-        if (! $request->session()->has('examiner_id')) {
-            return redirect('/examiner/login');
+        $adminActor = $this->adminActor($request);
+
+        return view('admin.dashboard', array_merge($this->dashboardData($request), [
+            'adminActor' => $adminActor,
+            'pageTitle' => 'Dashboard',
+            'breadcrumbs' => ['Admin', 'Dashboard'],
+        ]));
+    }
+
+    public function sessions(Request $request)
+    {
+        $adminActor = $this->adminActor($request);
+
+        return view('admin.sessions.index', [
+            'adminActor' => $adminActor,
+            'sessions' => $this->sessionsQuery($request)->paginate(15, ['*'], 'sessions_page')->withQueryString(),
+            'allExaminers' => $this->activeExaminers(),
+            'pageTitle' => 'Exam Sessions',
+            'breadcrumbs' => ['Admin', 'Exam Sessions'],
+        ]);
+    }
+
+    public function showSession(Request $request, int $session)
+    {
+        $adminActor = $this->adminActor($request);
+        $sessionRow = $this->sessionsQuery($request)->where('exam_sessions.session_id', $session)->first();
+        abort_unless($sessionRow, 404);
+
+        $students = DB::table('students')
+            ->leftJoin('departments', 'students.department_id', '=', 'departments.dept_id')
+            ->leftJoin('qr_tokens', function ($join) {
+                $join->on('students.matric_no', '=', 'qr_tokens.student_id')
+                    ->on('students.session_id', '=', 'qr_tokens.session_id');
+            })
+            ->where('students.session_id', $session)
+            ->select('students.*', 'departments.dept_name', 'qr_tokens.status as token_status')
+            ->orderBy('students.full_name')
+            ->paginate(20, ['*'], 'students_page')
+            ->withQueryString();
+
+        return view('admin.sessions.show', [
+            'adminActor' => $adminActor,
+            'session' => $sessionRow,
+            'students' => $students,
+            'pageTitle' => $this->sessionName($sessionRow),
+            'breadcrumbs' => ['Admin', 'Exam Sessions', $this->sessionName($sessionRow)],
+        ]);
+    }
+
+    public function examiners(Request $request)
+    {
+        $adminActor = $this->adminActor($request);
+
+        return view('admin.examiners.index', [
+            'adminActor' => $adminActor,
+            'examiners' => $this->examinersQuery()->paginate(15, ['*'], 'examiners_page')->withQueryString(),
+            'pageTitle' => 'Examiners',
+            'breadcrumbs' => ['Admin', 'Examiners'],
+        ]);
+    }
+
+    public function showExaminer(Request $request, int $examiner)
+    {
+        $adminActor = $this->adminActor($request);
+        $examinerRow = DB::table('examiners')
+            ->where('examiner_id', $examiner)
+            ->whereIn('role', [Roles::EXAMINER, 'examiner'])
+            ->first();
+        abort_unless($examinerRow, 404);
+
+        $sessions = DB::table('exam_sessions')
+            ->where('examiner_id', $examiner)
+            ->select(
+                'exam_sessions.*',
+                DB::raw('(SELECT COUNT(*) FROM students WHERE students.session_id = exam_sessions.session_id) as student_count'),
+                DB::raw('(SELECT COUNT(*) FROM qr_tokens INNER JOIN verification_logs ON verification_logs.token_id = qr_tokens.token_id WHERE qr_tokens.session_id = exam_sessions.session_id) as scan_count')
+            )
+            ->orderByDesc('created_at')
+            ->get()
+            ->map(function ($session) {
+                [$statusText, $statusClass] = $this->sessionStatus($session);
+                $session->status_text = $statusText;
+                $session->status_class = $statusClass;
+
+                return $session;
+            });
+
+        return view('admin.examiners.show', [
+            'adminActor' => $adminActor,
+            'examiner' => $examinerRow,
+            'sessions' => $sessions,
+            'totalSessions' => $sessions->count(),
+            'totalStudents' => $sessions->sum('student_count'),
+            'totalScans' => $sessions->sum('scan_count'),
+            'pageTitle' => $examinerRow->full_name,
+            'breadcrumbs' => ['Admin', 'Examiners', $examinerRow->full_name],
+        ]);
+    }
+
+    public function students(Request $request)
+    {
+        $adminActor = $this->adminActor($request);
+
+        return view('admin.students.index', [
+            'adminActor' => $adminActor,
+            'students' => $this->studentsQuery($request)->paginate(20, ['*'], 'students_page')->withQueryString(),
+            'pageTitle' => 'Students',
+            'breadcrumbs' => ['Admin', 'Students'],
+        ]);
+    }
+
+    public function showStudent(Request $request, string $student)
+    {
+        $adminActor = $this->adminActor($request);
+        $studentRow = DB::table('students')
+            ->leftJoin('departments', 'students.department_id', '=', 'departments.dept_id')
+            ->leftJoin('exam_sessions', 'students.session_id', '=', 'exam_sessions.session_id')
+            ->where('students.matric_no', $student)
+            ->select('students.*', 'departments.dept_name', 'exam_sessions.name as session_name', 'exam_sessions.semester', 'exam_sessions.academic_year')
+            ->first();
+        abort_unless($studentRow, 404);
+
+        $scanHistory = DB::table('verification_logs')
+            ->join('qr_tokens', 'verification_logs.token_id', '=', 'qr_tokens.token_id')
+            ->leftJoin('examiners', 'verification_logs.examiner_id', '=', 'examiners.examiner_id')
+            ->where('qr_tokens.student_id', $student)
+            ->select('verification_logs.*', 'examiners.full_name as examiner_name')
+            ->orderByDesc('verification_logs.timestamp')
+            ->paginate(20, ['*'], 'scan_page');
+
+        $token = DB::table('qr_tokens')->where('student_id', $student)->orderByDesc('issued_at')->first();
+
+        return view('admin.students.show', [
+            'adminActor' => $adminActor,
+            'student' => $studentRow,
+            'token' => $token,
+            'scanHistory' => $scanHistory,
+            'pageTitle' => $studentRow->full_name,
+            'breadcrumbs' => ['Admin', 'Students', $studentRow->matric_no],
+        ]);
+    }
+
+    public function scanLogs(Request $request)
+    {
+        $adminActor = $this->adminActor($request);
+
+        return view('admin.scan-logs.index', [
+            'adminActor' => $adminActor,
+            'logs' => $this->scanLogsQuery($request)->paginate(25)->withQueryString(),
+            'sessions' => DB::table('exam_sessions')->orderByDesc('created_at')->get(),
+            'pageTitle' => 'Scan Logs',
+            'breadcrumbs' => ['Admin', 'Scan Logs'],
+        ]);
+    }
+
+    public function exportScanLogs(Request $request): StreamedResponse
+    {
+        $this->adminActor($request);
+        $logs = $this->scanLogsQuery($request)->get();
+
+        return response()->streamDownload(function () use ($logs) {
+            $handle = fopen('php://output', 'w');
+            fputcsv($handle, ['Student ID', 'Name', 'Session', 'Examiner', 'Result', 'Timestamp']);
+
+            foreach ($logs as $log) {
+                fputcsv($handle, [
+                    $log->student_id,
+                    $log->student_name,
+                    trim(($log->session_name ?: $log->semester) . ' ' . $log->academic_year),
+                    $log->examiner_name,
+                    $log->decision,
+                    $log->timestamp,
+                ]);
+            }
+
+            fclose($handle);
+        }, 'scan-logs.csv', ['Content-Type' => 'text/csv']);
+    }
+
+    public function activity(Request $request)
+    {
+        $adminActor = $this->adminActor($request);
+
+        return view('admin.activity.index', [
+            'adminActor' => $adminActor,
+            'activities' => ActivityLog::query()->latest('created_at')->paginate(30),
+            'pageTitle' => 'Activity',
+            'breadcrumbs' => ['Admin', 'Activity'],
+        ]);
+    }
+
+    public function settings(Request $request)
+    {
+        $adminActor = $this->adminActor($request);
+
+        return view('admin.settings.index', [
+            'adminActor' => $adminActor,
+            'settings' => $this->settingsPayload(),
+            'timezones' => timezone_identifiers_list(),
+            'pageTitle' => 'Settings',
+            'breadcrumbs' => ['Admin', 'Settings'],
+        ]);
+    }
+
+    public function updateSettings(Request $request)
+    {
+        $adminActor = $this->adminActor($request);
+        $data = $request->validate([
+            'app_name' => 'required|string|max:100',
+            'app_timezone' => 'required|string|max:100',
+            'default_session_duration' => 'required|integer|min:15|max:1440',
+            'allow_re_registration' => 'nullable|boolean',
+            'qr_token_expiry' => 'required|integer|min:5|max:1440',
+            'require_https' => 'nullable|boolean',
+            'session_lifetime' => 'required|integer|min:10|max:1440',
+        ]);
+
+        foreach ($data as $key => $value) {
+            Setting::setValue($key, $value);
+        }
+        Setting::setValue('allow_re_registration', $request->boolean('allow_re_registration'));
+        Setting::setValue('require_https', $request->boolean('require_https'));
+        Artisan::call('config:clear');
+
+        $this->recordActivity($adminActor, 'settings_updated', 'System settings updated.');
+
+        return back()->with('status', 'Settings saved.');
+    }
+
+    public function clearScanLogs(Request $request)
+    {
+        $adminActor = $this->adminActor($request);
+        DB::table('verification_logs')->delete();
+        $this->recordActivity($adminActor, 'scan_fail', 'All scan logs were cleared.');
+
+        return back()->with('status', 'Scan logs cleared.');
+    }
+
+    public function resetSystem(Request $request)
+    {
+        $adminActor = $this->adminActor($request);
+        $request->validate(['reset_confirmation' => 'required|in:RESET']);
+
+        DB::transaction(function () {
+            DB::table('verification_logs')->delete();
+            DB::table('payment_records')->delete();
+            DB::table('qr_tokens')->delete();
+            DB::table('students')->delete();
+        });
+
+        $this->recordActivity($adminActor, 'session_closed', 'System registration and scan data reset.');
+
+        return back()->with('status', 'System reset completed.');
+    }
+
+    public function storeSession(Request $request)
+    {
+        $adminActor = $this->adminActor($request);
+        $data = $request->validate([
+            'name' => 'required|string|max:120',
+            'examiner_id' => 'required|integer|exists:examiners,examiner_id',
+            'scheduled_start' => 'nullable|date',
+            'fee_amount' => 'nullable|numeric|min:0',
+            'is_active' => 'nullable|boolean',
+        ]);
+
+        $crypto = new CryptoService();
+
+        DB::transaction(function () use ($data, $crypto) {
+            if ($data['is_active'] ?? false) {
+                DB::table('exam_sessions')->update(['is_active' => false, 'updated_at' => now()]);
+            }
+
+            DB::table('exam_sessions')->insert([
+                'name' => $data['name'],
+                'semester' => $data['name'],
+                'academic_year' => now()->format('Y') . '/' . now()->addYear()->format('Y'),
+                'fee_amount' => $data['fee_amount'] ?? 100000,
+                'aes_key' => $crypto->generateRandomKey(),
+                'hmac_secret' => $crypto->generateRandomKey(),
+                'examiner_id' => $data['examiner_id'],
+                'scheduled_start' => $data['scheduled_start'] ?? null,
+                'is_active' => (bool) ($data['is_active'] ?? false),
+                'created_at' => now(),
+                'updated_at' => now(),
+            ]);
+        });
+
+        $event = ($data['is_active'] ?? false) ? 'session_opened' : 'session_closed';
+        $this->recordActivity($adminActor, $event, "Session {$data['name']} created.");
+        $this->logAudit($adminActor, 'session.created', ['name' => $data['name']]);
+
+        return back()->with('status', 'Session created.');
+    }
+
+    public function closeSession(Request $request, int $session)
+    {
+        $adminActor = $this->adminActor($request);
+        $row = DB::table('exam_sessions')->where('session_id', $session)->first();
+        abort_unless($row, 404);
+
+        DB::table('exam_sessions')->where('session_id', $session)->update([
+            'is_active' => false,
+            'updated_at' => now(),
+        ]);
+
+        $this->recordActivity($adminActor, 'session_closed', 'Session ' . $this->sessionName($row) . ' closed.');
+        $this->logAudit($adminActor, 'session.closed', ['session_id' => $session], 'exam_session', (string) $session);
+
+        return back()->with('status', 'Session closed.');
+    }
+
+    public function deleteSession(Request $request, int $session)
+    {
+        $adminActor = $this->adminActor($request);
+        $row = DB::table('exam_sessions')->where('session_id', $session)->first();
+        abort_unless($row, 404);
+
+        DB::transaction(function () use ($session) {
+            $students = DB::table('students')->where('session_id', $session)->pluck('matric_no');
+            $tokens = DB::table('qr_tokens')->where('session_id', $session)->pluck('token_id');
+
+            DB::table('verification_logs')->whereIn('token_id', $tokens)->delete();
+            DB::table('payment_records')->whereIn('student_id', $students)->delete();
+            DB::table('qr_tokens')->where('session_id', $session)->delete();
+            DB::table('students')->where('session_id', $session)->delete();
+            DB::table('exam_sessions')->where('session_id', $session)->delete();
+        });
+
+        $this->recordActivity($adminActor, 'session_closed', 'Session ' . $this->sessionName($row) . ' deleted.');
+        $this->logAudit($adminActor, 'session.deleted', ['session_id' => $session], 'exam_session', (string) $session);
+
+        return back()->with('status', 'Session deleted.');
+    }
+
+    public function storeExaminer(Request $request)
+    {
+        $adminActor = $this->adminActor($request);
+        $data = $request->validate([
+            'full_name' => 'required|string|max:100',
+            'username' => 'required|string|max:100|unique:examiners,username',
+            'password' => 'required|string|min:8|confirmed',
+        ]);
+
+        $id = DB::table('examiners')->insertGetId([
+            'full_name' => $data['full_name'],
+            'username' => $data['username'],
+            'password_hash' => Hash::make($data['password']),
+            'role' => 'examiner',
+            'admin_user_id' => null,
+            'is_active' => true,
+            'last_active_at' => null,
+            'created_at' => now(),
+        ]);
+
+        $this->recordActivity($adminActor, 'examiner_created', "Examiner {$data['username']} created.");
+        $this->logAudit($adminActor, 'examiner.created', ['username' => $data['username']], 'examiner', (string) $id);
+
+        return back()->with('status', 'Examiner created.');
+    }
+
+    public function toggleExaminer(Request $request, int $examiner)
+    {
+        $adminActor = $this->adminActor($request);
+        $target = DB::table('examiners')->where('examiner_id', $examiner)->whereIn('role', [Roles::EXAMINER, 'examiner'])->first();
+        abort_unless($target, 404);
+
+        $newState = ! (bool) $target->is_active;
+        DB::table('examiners')->where('examiner_id', $examiner)->update(['is_active' => $newState]);
+
+        $this->recordActivity($adminActor, $newState ? 'examiner_created' : 'session_closed', "Examiner {$target->username} " . ($newState ? 'activated.' : 'deactivated.'));
+        $this->logAudit(
+            $adminActor,
+            $newState ? 'examiner.activated' : 'examiner.deactivated',
+            ['username' => $target->username],
+            'examiner',
+            (string) $examiner,
+            ['is_active' => (bool) $target->is_active],
+            ['is_active' => $newState]
+        );
+
+        return back()->with('status', $newState ? 'Examiner activated.' : 'Examiner deactivated.');
+    }
+
+    public function deleteExaminer(Request $request, int $examiner)
+    {
+        $adminActor = $this->adminActor($request);
+        $target = DB::table('examiners')->where('examiner_id', $examiner)->whereIn('role', [Roles::EXAMINER, 'examiner'])->first();
+        abort_unless($target, 404);
+
+        if (DB::table('verification_logs')->where('examiner_id', $examiner)->exists()) {
+            return back()->withErrors(['examiner' => 'Deactivate examiners with scan history instead of deleting them.']);
         }
 
-        $adminActor = DB::table('examiners')
-            ->where('examiner_id', (int) $request->session()->get('examiner_id'))
-            ->where('is_active', true)
+        DB::transaction(function () use ($examiner) {
+            DB::table('exam_sessions')->where('examiner_id', $examiner)->update(['examiner_id' => null, 'updated_at' => now()]);
+            DB::table('examiners')->where('examiner_id', $examiner)->delete();
+        });
+
+        $this->recordActivity($adminActor, 'session_closed', "Examiner {$target->username} deleted.");
+        $this->logAudit($adminActor, 'examiner.deleted', ['username' => $target->username], 'examiner', (string) $examiner);
+
+        return back()->with('status', 'Examiner deleted.');
+    }
+
+    public function deleteStudent(Request $request, string $student)
+    {
+        $adminActor = $this->adminActor($request);
+        $studentRow = DB::table('students')->where('matric_no', $student)->first();
+        abort_unless($studentRow, 404);
+
+        DB::transaction(function () use ($student) {
+            $tokens = DB::table('qr_tokens')->where('student_id', $student)->pluck('token_id');
+            DB::table('verification_logs')->whereIn('token_id', $tokens)->delete();
+            DB::table('payment_records')->where('student_id', $student)->delete();
+            DB::table('qr_tokens')->where('student_id', $student)->delete();
+            DB::table('students')->where('matric_no', $student)->delete();
+        });
+
+        $this->recordActivity($adminActor, 'student_registered', "Student {$student} deleted.");
+        $this->logAudit($adminActor, 'student.deleted', ['matric_no' => $student], 'student', $student);
+
+        return redirect()->route('admin.students.index')->with('status', 'Student deleted.');
+    }
+
+    private function dashboardData(Request $request): array
+    {
+        $scanDecisionCounts = DB::table('verification_logs')
+            ->select('decision', DB::raw('COUNT(*) as aggregate'))
+            ->groupBy('decision')
+            ->pluck('aggregate', 'decision');
+
+        $activeSession = $this->sessionsQuery($request)
+            ->where('exam_sessions.is_active', true)
             ->first();
 
-        if (! $adminActor) {
-            $request->session()->flush();
-            return redirect('/examiner/login');
+        return [
+            'totalStudents' => DB::table('students')->count(),
+            'totalExaminers' => DB::table('examiners')->whereIn('role', [Roles::EXAMINER, 'examiner'])->where('is_active', true)->count(),
+            'activeSessions' => DB::table('exam_sessions')->where('is_active', true)->count(),
+            'scansToday' => DB::table('verification_logs')->whereDate('timestamp', today())->count(),
+            'totalScans' => (int) $scanDecisionCounts->sum(),
+            'approvedScans' => (int) ($scanDecisionCounts['APPROVED'] ?? 0),
+            'rejectedScans' => (int) ($scanDecisionCounts['REJECTED'] ?? 0),
+            'duplicateScans' => (int) ($scanDecisionCounts['DUPLICATE'] ?? 0),
+            'activeSession' => $activeSession,
+            'sessions' => $this->sessionsQuery($request)->paginate(10, ['*'], 'sessions_page')->withQueryString(),
+            'recentExaminers' => $this->examinersQuery()->limit(5)->get(),
+            'recentVerificationLogs' => $this->scanLogsQuery(new Request())->limit(8)->get(),
+            'recentActivity' => ActivityLog::query()->latest('created_at')->limit(15)->get(),
+            'recentAuditLogs' => $this->recentAuditLogs(),
+            'dbOk' => $this->dbOk(),
+            'storageOk' => is_writable(storage_path()),
+            'environment' => app()->environment(),
+        ];
+    }
+
+    private function recentAuditLogs()
+    {
+        if (! Schema::hasTable('audit_log')) {
+            return collect();
         }
 
-        $role = Roles::normalize($adminActor->role);
+        return DB::table('audit_log')
+            ->orderByDesc('timestamp')
+            ->limit(8)
+            ->get();
+    }
 
-        if (! Roles::isAdminLike($role)) {
-            abort(403);
+    private function sessionsQuery(Request $request)
+    {
+        $query = DB::table('exam_sessions')
+            ->leftJoin('examiners', 'exam_sessions.examiner_id', '=', 'examiners.examiner_id')
+            ->select(
+                'exam_sessions.*',
+                'examiners.full_name as examiner_name',
+                DB::raw('(SELECT COUNT(*) FROM students WHERE students.session_id = exam_sessions.session_id) as student_count')
+            );
+
+        if ($request->filled('search')) {
+            $search = '%' . $request->input('search') . '%';
+            $query->where(function ($inner) use ($search) {
+                $inner->where('exam_sessions.name', 'like', $search)
+                    ->orWhere('exam_sessions.semester', 'like', $search)
+                    ->orWhere('examiners.full_name', 'like', $search);
+            });
         }
 
-        $request->session()->put('examiner_role', $role);
-        $request->session()->put('examiner_name', $adminActor->full_name);
-        $request->session()->put('examiner_username', $adminActor->username);
+        return $query->orderByDesc('exam_sessions.created_at');
+    }
 
+    private function examinersQuery()
+    {
+        return DB::table('examiners')
+            ->leftJoin('exam_sessions', 'examiners.examiner_id', '=', 'exam_sessions.examiner_id')
+            ->select('examiners.*', DB::raw('COUNT(exam_sessions.session_id) as sessions_count'))
+            ->whereIn('examiners.role', [Roles::EXAMINER, 'examiner'])
+            ->groupBy('examiners.examiner_id', 'examiners.full_name', 'examiners.username', 'examiners.password_hash', 'examiners.role', 'examiners.admin_user_id', 'examiners.is_active', 'examiners.last_active_at', 'examiners.created_at')
+            ->orderBy('examiners.full_name');
+    }
+
+    private function studentsQuery(Request $request)
+    {
+        $query = DB::table('students')
+            ->leftJoin('departments', 'students.department_id', '=', 'departments.dept_id')
+            ->select(
+                'students.*',
+                'departments.dept_name',
+                DB::raw('(SELECT status FROM qr_tokens WHERE qr_tokens.student_id = students.matric_no ORDER BY issued_at DESC LIMIT 1) as token_status')
+            );
+
+        if ($request->filled('search')) {
+            $search = '%' . $request->input('search') . '%';
+            $query->where(function ($inner) use ($search) {
+                $inner->where('students.matric_no', 'like', $search)
+                    ->orWhere('students.full_name', 'like', $search);
+            });
+        }
+
+        return $query->orderByDesc('students.created_at');
+    }
+
+    private function scanLogsQuery(Request $request)
+    {
         $query = DB::table('verification_logs')
-            ->join('examiners', 'verification_logs.examiner_id', '=', 'examiners.examiner_id', 'left')
-            ->select('verification_logs.*', 'examiners.username as examiner_username')
-            ->orderByDesc('verification_logs.timestamp');
-
-        if ($request->filled('examiner_id')) {
-            $query->where('verification_logs.examiner_id', (int) $request->input('examiner_id'));
-        }
-
-        if ($request->filled('decision')) {
-            $allowedDecisions = ['APPROVED', 'REJECTED', 'DUPLICATE'];
-            $decision = strtoupper($request->input('decision'));
-            if (in_array($decision, $allowedDecisions, true)) {
-                $query->where('verification_logs.decision', $decision);
-            }
-        }
+            ->join('qr_tokens', 'verification_logs.token_id', '=', 'qr_tokens.token_id')
+            ->leftJoin('students', 'qr_tokens.student_id', '=', 'students.matric_no')
+            ->leftJoin('exam_sessions', 'qr_tokens.session_id', '=', 'exam_sessions.session_id')
+            ->leftJoin('examiners', 'verification_logs.examiner_id', '=', 'examiners.examiner_id')
+            ->select(
+                'verification_logs.*',
+                'qr_tokens.student_id',
+                'students.full_name as student_name',
+                'students.photo_path',
+                'exam_sessions.name as session_name',
+                'exam_sessions.semester',
+                'exam_sessions.academic_year',
+                'examiners.full_name as examiner_name'
+            );
 
         if ($request->filled('session_id')) {
-            $query->join('qr_tokens', 'verification_logs.token_id', '=', 'qr_tokens.token_id')
-                ->where('qr_tokens.session_id', (int) $request->input('session_id'));
+            $query->where('qr_tokens.session_id', (int) $request->input('session_id'));
         }
-
+        if ($request->filled('result')) {
+            $query->where('verification_logs.decision', strtoupper($request->input('result')));
+        }
         if ($request->filled('date_from')) {
             $query->whereDate('verification_logs.timestamp', '>=', $request->input('date_from'));
         }
-
         if ($request->filled('date_to')) {
             $query->whereDate('verification_logs.timestamp', '<=', $request->input('date_to'));
         }
 
-        $verificationLogs = $query->paginate(50)->withQueryString();
+        return $query->orderByDesc('verification_logs.timestamp');
+    }
 
-        $auditLogs = DB::table('audit_log')
-            ->orderByDesc('timestamp')
-            ->paginate(50, ['*'], 'audit_page')
-            ->withQueryString();
+    private function activeExaminers()
+    {
+        return DB::table('examiners')
+            ->whereIn('role', [Roles::EXAMINER, 'examiner'])
+            ->where('is_active', true)
+            ->orderBy('full_name')
+            ->get(['examiner_id', 'full_name', 'username']);
+    }
 
-        $stats = Cache::remember('web_admin_stats:' . md5(json_encode($request->only(['session_id', 'date_from', 'date_to']))), 30, function () use ($request) {
-            $base = DB::table('verification_logs')
-                ->join('qr_tokens', 'verification_logs.token_id', '=', 'qr_tokens.token_id');
+    private function settingsPayload(): array
+    {
+        return [
+            'app_name' => Setting::getValue('app_name', config('app.name')),
+            'app_timezone' => Setting::getValue('app_timezone', config('app.timezone')),
+            'default_session_duration' => Setting::getValue('default_session_duration', '120'),
+            'allow_re_registration' => Setting::getValue('allow_re_registration', '0'),
+            'qr_token_expiry' => Setting::getValue('qr_token_expiry', '240'),
+            'require_https' => Setting::getValue('require_https', '0'),
+            'session_lifetime' => Setting::getValue('session_lifetime', (string) config('session.lifetime')),
+        ];
+    }
 
-            if ($request->filled('session_id')) {
-                $base->where('qr_tokens.session_id', (int) $request->input('session_id'));
-            }
-            if ($request->filled('date_from')) {
-                $base->whereDate('verification_logs.timestamp', '>=', $request->input('date_from'));
-            }
-            if ($request->filled('date_to')) {
-                $base->whereDate('verification_logs.timestamp', '<=', $request->input('date_to'));
-            }
+    private function adminActor(Request $request): object
+    {
+        $actor = DB::table('examiners')
+            ->where('examiner_id', (int) $request->session()->get('examiner_id'))
+            ->where('is_active', true)
+            ->first();
 
-            $counts = (clone $base)
-                ->select('verification_logs.decision', DB::raw('COUNT(*) as aggregate'))
-                ->groupBy('verification_logs.decision')
-                ->pluck('aggregate', 'decision');
+        abort_unless($actor && Roles::isAdminLike($actor->role), 403);
 
-            $total = (int) $counts->sum();
-            $approved = (int) ($counts['APPROVED'] ?? 0);
-            $rejected = (int) ($counts['REJECTED'] ?? 0);
+        return $actor;
+    }
 
-            return [
-                'total'        => $total,
-                'approved'     => $approved,
-                'rejected'     => $rejected,
-                'duplicate'    => (int) ($counts['DUPLICATE'] ?? 0),
-                'success_rate' => $total > 0 ? round(($approved / $total) * 100, 1) : 0,
-                'reject_rate'  => $total > 0 ? round(($rejected / $total) * 100, 1) : 0,
-                'examiners'    => DB::table('examiners')->where('is_active', true)->count(),
-                'daily'        => (clone $base)
-                    ->select(DB::raw('DATE(verification_logs.timestamp) as day'), DB::raw('COUNT(*) as total'))
-                    ->groupBy('day')
-                    ->orderBy('day')
-                    ->limit(30)
-                    ->get(),
-            ];
-        });
+    private function recordActivity(object $adminActor, string $eventType, string $description): void
+    {
+        ActivityLog::record($eventType, $description, (int) $adminActor->examiner_id);
+    }
 
-        $activeSession = DB::table('exam_sessions')->where('is_active', true)->first();
-        $sessions = DB::table('exam_sessions')->orderByDesc('session_id')->get();
-        $examinerStats = DB::table('examiners')
-            ->leftJoin('verification_logs', 'examiners.examiner_id', '=', 'verification_logs.examiner_id')
-            ->select(
-                'examiners.*',
-                DB::raw('COUNT(verification_logs.log_id) as scans_performed'),
-                DB::raw("SUM(CASE WHEN verification_logs.decision = 'APPROVED' THEN 1 ELSE 0 END) as approved_scans")
-            )
-            ->groupBy('examiners.examiner_id', 'examiners.full_name', 'examiners.username', 'examiners.password_hash', 'examiners.role', 'examiners.admin_user_id', 'examiners.is_active', 'examiners.last_active_at', 'examiners.created_at')
-            ->orderBy('examiners.full_name')
-            ->paginate(25, ['*'], 'examiner_page')
-            ->withQueryString();
+    private function logAudit(
+        object $adminActor,
+        string $action,
+        array $metadata = [],
+        ?string $targetType = null,
+        ?string $targetId = null,
+        ?array $before = null,
+        ?array $after = null
+    ): void {
+        app(AuditService::class)->logAction(
+            (string) $adminActor->examiner_id,
+            strtolower(Roles::normalize($adminActor->role)),
+            $action,
+            $metadata,
+            $targetType,
+            $targetId,
+            $before,
+            $after
+        );
+    }
 
-        $studentTrace = collect();
-        if ($request->filled('matric_no')) {
-            $studentTrace = DB::table('verification_logs')
-                ->join('qr_tokens', 'verification_logs.token_id', '=', 'qr_tokens.token_id')
-                ->join('exam_sessions', 'qr_tokens.session_id', '=', 'exam_sessions.session_id')
-                ->leftJoin('examiners', 'verification_logs.examiner_id', '=', 'examiners.examiner_id')
-                ->where('qr_tokens.student_id', $request->input('matric_no'))
-                ->select('verification_logs.*', 'examiners.full_name as examiner_name', 'exam_sessions.semester', 'exam_sessions.academic_year')
-                ->orderByDesc('verification_logs.timestamp')
-                ->get();
+    private function dbOk(): bool
+    {
+        try {
+            DB::connection()->getPdo();
+            return true;
+        } catch (\Throwable) {
+            return false;
+        }
+    }
+
+    public function sessionName(object $session): string
+    {
+        return $session->name ?: $session->semester;
+    }
+
+    public function sessionStatus(object $session): array
+    {
+        if ((bool) $session->is_active) {
+            return ['Active', 'green'];
         }
 
-        return view('admin.dashboard', compact('verificationLogs', 'auditLogs', 'stats', 'activeSession', 'sessions', 'examinerStats', 'studentTrace'));
+        if (! empty($session->scheduled_start) && now()->lt($session->scheduled_start)) {
+            return ['Pending', 'yellow'];
+        }
+
+        return ['Closed', 'gray'];
     }
 }

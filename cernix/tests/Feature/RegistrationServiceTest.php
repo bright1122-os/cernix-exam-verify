@@ -236,4 +236,40 @@ class RegistrationServiceTest extends TestCase
 
         $service->registerStudent($this->validInput());   // second attempt
     }
+
+    public function test_test_mode_re_registration_cleans_verification_children_first(): void
+    {
+        $service = $this->makeService();
+        $first = $service->registerStudent($this->validInput([
+            'rrr_number' => 'TEST-FIRST',
+        ]));
+
+        $examinerId = DB::table('examiners')->insertGetId([
+            'full_name' => 'Test Examiner',
+            'username' => 'test-examiner',
+            'password_hash' => bcrypt('password123'),
+            'role' => 'EXAMINER',
+            'is_active' => true,
+            'created_at' => now(),
+        ]);
+
+        DB::table('verification_logs')->insert([
+            'token_id' => $first['data']['token_id'],
+            'examiner_id' => $examinerId,
+            'decision' => 'APPROVED',
+            'timestamp' => now(),
+            'device_fp' => 'test-device',
+            'ip_address' => '127.0.0.1',
+        ]);
+
+        $second = $service->registerStudent($this->validInput([
+            'rrr_number' => 'TEST-SECOND',
+        ]));
+
+        $this->assertNotSame($first['data']['token_id'], $second['data']['token_id']);
+        $this->assertDatabaseMissing('verification_logs', ['token_id' => $first['data']['token_id']]);
+        $this->assertDatabaseMissing('qr_tokens', ['token_id' => $first['data']['token_id']]);
+        $this->assertDatabaseHas('qr_tokens', ['token_id' => $second['data']['token_id']]);
+        $this->assertSame(1, DB::table('students')->where('matric_no', $this->matricNo)->count());
+    }
 }
