@@ -146,6 +146,80 @@ class ExaminerWebController extends Controller
         }
     }
 
+    public function showScan(Request $request, int $log)
+    {
+        $actor = Auth::guard('examiner')->user();
+        abort_unless($actor && Roles::normalize($actor->role) === Roles::EXAMINER, 403);
+
+        $scan = DB::table('verification_logs')
+            ->join('qr_tokens', 'verification_logs.token_id', '=', 'qr_tokens.token_id')
+            ->leftJoin('students', 'qr_tokens.student_id', '=', 'students.matric_no')
+            ->leftJoin('departments', 'students.department_id', '=', 'departments.dept_id')
+            ->leftJoin('exam_sessions', 'qr_tokens.session_id', '=', 'exam_sessions.session_id')
+            ->where('verification_logs.log_id', $log)
+            ->where('verification_logs.examiner_id', (int) $actor->examiner_id)
+            ->select(
+                'verification_logs.*',
+                'qr_tokens.student_id',
+                'qr_tokens.status as token_status',
+                'qr_tokens.session_id',
+                'qr_tokens.issued_at',
+                'qr_tokens.used_at',
+                'students.full_name',
+                'students.photo_path',
+                'students.department_id',
+                'students.level',
+                'departments.dept_name',
+                'exam_sessions.name as session_name',
+                'exam_sessions.semester',
+                'exam_sessions.academic_year'
+            )
+            ->first();
+        abort_unless($scan, 404);
+
+        $scanCounts = collect();
+        $studentHistory = collect();
+        $todayExam = null;
+
+        if ($scan->student_id) {
+            $scanCounts = DB::table('verification_logs')
+                ->join('qr_tokens', 'verification_logs.token_id', '=', 'qr_tokens.token_id')
+                ->where('qr_tokens.student_id', $scan->student_id)
+                ->select('verification_logs.decision', DB::raw('COUNT(*) as aggregate'))
+                ->groupBy('verification_logs.decision')
+                ->pluck('aggregate', 'decision');
+
+            $studentHistory = DB::table('verification_logs')
+                ->join('qr_tokens', 'verification_logs.token_id', '=', 'qr_tokens.token_id')
+                ->leftJoin('examiners', 'verification_logs.examiner_id', '=', 'examiners.examiner_id')
+                ->where('qr_tokens.student_id', $scan->student_id)
+                ->select('verification_logs.*', 'examiners.full_name as examiner_name')
+                ->orderByDesc('verification_logs.timestamp')
+                ->limit(12)
+                ->get();
+
+            $todayExam = DB::table('timetables')
+                ->where('exam_session_id', (int) $scan->session_id)
+                ->where('department_id', (int) $scan->department_id)
+                ->where('level', (string) $scan->level)
+                ->whereDate('exam_date', today())
+                ->orderBy('start_time')
+                ->first();
+        }
+
+        return view('examiner.scan-detail', [
+            'examiner' => [
+                'full_name' => $actor->full_name,
+                'username' => $actor->username,
+                'role' => Roles::normalize($actor->role),
+            ],
+            'scan' => $scan,
+            'scanCounts' => $scanCounts,
+            'studentHistory' => $studentHistory,
+            'todayExam' => $todayExam,
+        ]);
+    }
+
     private function todayExamContext(array $result, array $qrData): ?array
     {
         $student = $result['student'] ?? null;

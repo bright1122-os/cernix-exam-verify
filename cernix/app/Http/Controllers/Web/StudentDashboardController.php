@@ -35,6 +35,10 @@ class StudentDashboardController extends Controller
             : DB::table('exam_sessions')->where('session_id', (int) $student->session_id)->first();
 
         $department = DB::table('departments')->where('dept_id', (int) $student->department_id)->first();
+        $payment = DB::table('payment_records')
+            ->where('student_id', $student->matric_no)
+            ->orderByDesc('verified_at')
+            ->first();
         $timetable = collect();
         $nextExam = null;
 
@@ -66,7 +70,7 @@ class StudentDashboardController extends Controller
             ]);
         }
 
-        return compact('student', 'token', 'session', 'department', 'timetable', 'nextExam', 'qrSvg');
+        return compact('student', 'token', 'session', 'department', 'payment', 'timetable', 'nextExam', 'qrSvg');
     }
 
     private function portalExamStatus(object $entry): string

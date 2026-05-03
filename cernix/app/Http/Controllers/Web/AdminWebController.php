@@ -176,6 +176,13 @@ class AdminWebController extends Controller
             ->select('verification_logs.decision', DB::raw('COUNT(*) as aggregate'))
             ->groupBy('verification_logs.decision')
             ->pluck('aggregate', 'decision');
+        $lastScan = DB::table('verification_logs')
+            ->join('qr_tokens', 'verification_logs.token_id', '=', 'qr_tokens.token_id')
+            ->leftJoin('examiners', 'verification_logs.examiner_id', '=', 'examiners.examiner_id')
+            ->where('qr_tokens.student_id', $student)
+            ->select('verification_logs.*', 'examiners.full_name as examiner_name')
+            ->orderByDesc('verification_logs.timestamp')
+            ->first();
         $timetable = DB::table('timetables')
             ->join('departments', 'timetables.department_id', '=', 'departments.dept_id')
             ->where('timetables.exam_session_id', (int) $studentRow->session_id)
@@ -192,6 +199,7 @@ class AdminWebController extends Controller
             'token' => $token,
             'payment' => $payment,
             'scanCounts' => $scanCounts,
+            'lastScan' => $lastScan,
             'timetable' => $timetable,
             'scanHistory' => $scanHistory,
             'pageTitle' => $studentRow->full_name,
@@ -232,7 +240,13 @@ class AdminWebController extends Controller
         $query = DB::table('payment_records')
             ->leftJoin('students', 'payment_records.student_id', '=', 'students.matric_no')
             ->leftJoin('departments', 'students.department_id', '=', 'departments.dept_id')
-            ->select('payment_records.*', 'students.full_name', 'students.level', 'departments.dept_name');
+            ->select(
+                'payment_records.*',
+                'students.full_name',
+                'students.level',
+                'departments.dept_name',
+                DB::raw('(SELECT status FROM qr_tokens WHERE qr_tokens.student_id = payment_records.student_id ORDER BY issued_at DESC LIMIT 1) as token_status')
+            );
 
         if ($request->filled('search')) {
             $search = '%' . $request->input('search') . '%';
@@ -248,6 +262,69 @@ class AdminWebController extends Controller
             'payments' => $query->orderByDesc('payment_records.verified_at')->paginate(25)->withQueryString(),
             'pageTitle' => 'Payments',
             'breadcrumbs' => ['Admin', 'Payments'],
+        ]);
+    }
+
+    public function showPayment(Request $request, int $payment)
+    {
+        $adminActor = $this->adminActor($request);
+        $paymentRow = DB::table('payment_records')
+            ->leftJoin('students', 'payment_records.student_id', '=', 'students.matric_no')
+            ->leftJoin('departments', 'students.department_id', '=', 'departments.dept_id')
+            ->leftJoin('exam_sessions', 'students.session_id', '=', 'exam_sessions.session_id')
+            ->where('payment_records.payment_id', $payment)
+            ->select(
+                'payment_records.*',
+                'students.full_name',
+                'students.matric_no',
+                'students.department_id',
+                'students.level',
+                'students.photo_path',
+                'students.session_id',
+                'students.created_at as registered_at',
+                'departments.dept_name',
+                'exam_sessions.name as session_name',
+                'exam_sessions.semester',
+                'exam_sessions.academic_year'
+            )
+            ->first();
+        abort_unless($paymentRow, 404);
+
+        $token = DB::table('qr_tokens')
+            ->where('student_id', $paymentRow->student_id)
+            ->orderByDesc('issued_at')
+            ->first();
+
+        $timetable = DB::table('timetables')
+            ->where('exam_session_id', (int) $paymentRow->session_id)
+            ->where('department_id', (int) $paymentRow->department_id)
+            ->where('level', (string) $paymentRow->level)
+            ->orderBy('exam_date')
+            ->orderBy('start_time')
+            ->get();
+
+        $scanCounts = DB::table('verification_logs')
+            ->join('qr_tokens', 'verification_logs.token_id', '=', 'qr_tokens.token_id')
+            ->where('qr_tokens.student_id', $paymentRow->student_id)
+            ->select('verification_logs.decision', DB::raw('COUNT(*) as aggregate'))
+            ->groupBy('verification_logs.decision')
+            ->pluck('aggregate', 'decision');
+
+        $recentScans = $this->scanLogsQuery(new Request())
+            ->where('qr_tokens.student_id', $paymentRow->student_id)
+            ->limit(10)
+            ->get();
+
+        return view('admin.payments.show', [
+            'adminActor' => $adminActor,
+            'payment' => $paymentRow,
+            'token' => $token,
+            'timetable' => $timetable,
+            'scanCounts' => $scanCounts,
+            'recentScans' => $recentScans,
+            'remitaResponse' => json_decode($paymentRow->remita_response ?: '{}', true) ?: [],
+            'pageTitle' => 'Payment Detail',
+            'breadcrumbs' => ['Admin', 'Payments', $paymentRow->rrr_number],
         ]);
     }
 

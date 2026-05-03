@@ -651,6 +651,11 @@ document.getElementById('reg-form').addEventListener('submit', async (e) => {
         const data = await resp.json();
         if (!resp.ok || !data.success) throw new Error(data.message || 'Registration failed.');
 
+        if (data.redirect_url) {
+            window.location.assign(data.redirect_url);
+            return;
+        }
+
         // Populate pass card
         document.getElementById('res-name').textContent        = data.data.full_name;
         document.getElementById('res-dept-inline').textContent = data.data.department ?? '—';

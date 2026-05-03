@@ -45,6 +45,9 @@
         <div><div class="eyebrow">Approved</div><strong>{{ number_format((int) ($scanCounts['APPROVED'] ?? 0)) }}</strong></div>
         <div><div class="eyebrow">Rejected</div><strong>{{ number_format((int) ($scanCounts['REJECTED'] ?? 0)) }}</strong></div>
         <div><div class="eyebrow">Duplicate</div><strong>{{ number_format((int) ($scanCounts['DUPLICATE'] ?? 0)) }}</strong></div>
+        <div><div class="eyebrow">Total Scans</div><strong>{{ number_format((int) $scanCounts->sum()) }}</strong></div>
+        <div><div class="eyebrow">Last Scan</div><strong>{{ $lastScan ? Carbon::parse($lastScan->timestamp)->format('d M Y, H:i') : 'No scans' }}</strong></div>
+        <div><div class="eyebrow">Last Examiner</div><strong>{{ $lastScan->examiner_name ?? 'Unavailable' }}</strong></div>
         </div>
     </div>
 </section>

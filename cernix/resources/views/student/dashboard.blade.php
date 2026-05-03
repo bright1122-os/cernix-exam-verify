@@ -108,13 +108,18 @@
                 </div>
                 <div class="meta-list">
                     <div class="meta-row"><b>Exam Session</b><span>{{ $session->name ?? $session->semester ?? 'Not assigned' }}</span></div>
-                    <div class="meta-row"><b>Payment</b><span><span class="badge green">Verified</span></span></div>
+                    <div class="meta-row"><b>Registration</b><span><span class="badge {{ $token ? 'green' : 'yellow' }}">{{ $token ? 'Registered' : 'Pending' }}</span></span></div>
+                    <div class="meta-row"><b>Payment</b><span><span class="badge {{ $payment ? 'green' : 'yellow' }}">{{ $payment ? 'Verified' : 'Missing record' }}</span></span></div>
+                    <div class="meta-row"><b>Remita RRR</b><span class="mono">{{ $payment->rrr_number ?? 'Unavailable' }}</span></div>
+                    <div class="meta-row"><b>Amount Confirmed</b><span>{{ $payment ? '₦'.number_format((float) $payment->amount_confirmed, 2) : 'Unavailable' }}</span></div>
+                    <div class="meta-row"><b>Verified At</b><span>{{ $payment && $payment->verified_at ? Carbon::parse($payment->verified_at)->format('d M Y, H:i') : 'Unavailable' }}</span></div>
                     <div class="meta-row"><b>Access Status</b><span><span class="badge {{ $tokenStatus === 'USED' ? 'green' : ($tokenStatus === 'REVOKED' ? 'red' : 'yellow') }}">{{ $qrStatusLabel }}</span></span></div>
-                    <div class="meta-row"><b>QR Token</b><span class="mono">{{ $tokenStatus }}</span></div>
+                    <div class="meta-row"><b>QR Token</b><span class="mono">{{ $token->token_id ?? $tokenStatus }}</span></div>
+                    <div class="meta-row"><b>Issued</b><span>{{ $token && $token->issued_at ? Carbon::parse($token->issued_at)->format('d M Y, H:i') : 'Unavailable' }}</span></div>
                     <div class="meta-row"><b>Registered</b><span>{{ $student->created_at ? Carbon::parse($student->created_at)->format('d M Y, H:i') : 'Unavailable' }}</span></div>
                     <div class="meta-row"><b>Actions</b><span></span></div>
                     <div class="student-actions">
-                        <a class="portal-btn primary" href="{{ route('student.pass.print') }}" target="_blank" rel="noopener">Print Exam Pass</a>
+                        <a class="portal-btn primary" href="{{ route('student.exam-pass') }}" target="_blank" rel="noopener">Print Exam Pass</a>
                         <a class="portal-btn" href="{{ route('student.dashboard') }}">Refresh Status</a>
                     </div>
                 </div>

@@ -9,8 +9,10 @@ use App\Services\MockSISService;
 use App\Services\QrTokenService;
 use App\Services\RegistrationService;
 use App\Services\RemitaService;
+use App\Models\Student;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 
@@ -39,12 +41,54 @@ class StudentWebController extends Controller
 
         try {
             $cryptoService = new CryptoService();
+            $existingStudent = DB::table('students')
+                ->where('matric_no', $data['matric_no'])
+                ->where('session_id', (int) $session->session_id)
+                ->first();
+
+            if ($existingStudent) {
+                $existingPayment = DB::table('payment_records')
+                    ->where('student_id', $data['matric_no'])
+                    ->where('rrr_number', $data['rrr_number'])
+                    ->first();
+
+                if (! $existingPayment) {
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'Student already registered for this session. Use the original Remita RRR to access the dashboard.',
+                    ], 422);
+                }
+
+                DB::table('students')
+                    ->where('matric_no', $data['matric_no'])
+                    ->where('session_id', (int) $session->session_id)
+                    ->whereNull('password')
+                    ->update([
+                        'password' => Hash::make($data['rrr_number']),
+                        'is_active' => true,
+                    ]);
+
+                $this->loginStudent($request, $data['matric_no']);
+
+                return response()->json([
+                    'success' => true,
+                    'message' => 'Registration already exists. Opening your student dashboard.',
+                    'redirect_url' => route('student.dashboard'),
+                    'data' => [
+                        'matric_no' => $data['matric_no'],
+                        'session_id' => (int) $session->session_id,
+                    ],
+                ]);
+            }
 
             $regService = new RegistrationService(
                 new MockSISService(),
                 new class((float) $session->fee_amount) extends RemitaService {
                     public function __construct(private float $fee) { parent::__construct(new \GuzzleHttp\Client()); }
                     public function verifyPayment(string $rrrNumber, float $expectedAmount): array {
+                        if ($this->rrrAlreadyUsed($rrrNumber)) {
+                            throw new \RuntimeException('RRR has already been used for a payment record.');
+                        }
                         return ['status' => 'Payment Successful', 'amount' => (string) $this->fee];
                     }
                 },
@@ -116,9 +160,12 @@ class StudentWebController extends Controller
                 ['token_id' => $result['data']['token_id'], 'session_id' => $session->session_id]
             );
 
+            $this->loginStudent($request, $data['matric_no']);
+
             return response()->json([
                 'success' => true,
                 'message' => 'Registration successful',
+                'redirect_url' => route('student.dashboard'),
                 'data'    => array_merge($result['data'], [
                     'qr_svg'     => $qrSvg,
                     'department' => $studentRow->dept_name ?? '',
@@ -130,6 +177,16 @@ class StudentWebController extends Controller
 
         } catch (\Throwable $e) {
             return response()->json(['success' => false, 'message' => $e->getMessage()], 422);
+        }
+    }
+
+    private function loginStudent(Request $request, string $matricNo): void
+    {
+        $student = Student::query()->where('matric_no', $matricNo)->first();
+
+        if ($student) {
+            Auth::guard('student')->login($student);
+            $request->session()->regenerate();
         }
     }
 }

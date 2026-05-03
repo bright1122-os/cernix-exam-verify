@@ -1853,6 +1853,7 @@
                         </div>
                         <div class="ex-history-time">
                             {{ \Carbon\Carbon::parse($scan->timestamp)->format('H:i') }}
+                            <a class="history-detail-btn" href="{{ route('examiner.scans.show', $scan->log_id) }}">View</a>
                             <button class="history-detail-btn" type="button" onclick="openHistoryDetail({{ $loop->index }})">Details</button>
                         </div>
                     </div>
@@ -1904,6 +1905,7 @@
             'decision' => $scan->decision ?? null,
             'timestamp' => $scan->timestamp ?? null,
             'token' => $scan->token_id ?? null,
+            'detailUrl' => isset($scan->log_id) ? route('examiner.scans.show', $scan->log_id) : null,
         ];
     })->values();
 
@@ -2270,7 +2272,7 @@ function renderHistory() {
                 <div class="hn">${escapeHtml(r.name)}</div>
                 <div class="hm">${escapeHtml(r.sub)}</div>
             </div>
-            <div class="ex-history-time">${escapeHtml(r.time)} <button class="history-detail-btn" type="button" onclick="openHistoryDetail(${r.index})">Details</button></div>
+            <div class="ex-history-time">${escapeHtml(r.time)} ${r.detailUrl ? `<a class="history-detail-btn" href="${escapeHtml(r.detailUrl)}">View</a>` : ''} <button class="history-detail-btn" type="button" onclick="openHistoryDetail(${r.index})">Details</button></div>
         </div>
     `).join('');
 }

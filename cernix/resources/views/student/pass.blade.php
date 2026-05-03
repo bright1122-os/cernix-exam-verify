@@ -79,7 +79,8 @@
                     </div>
                 </div>
                 <div class="meta">
-                    <div class="box"><span>Payment</span><b>Verified</b></div>
+                    <div class="box"><span>Payment</span><b>{{ $payment ? 'Verified' : 'Unavailable' }}</b></div>
+                    <div class="box"><span>RRR</span><b>{{ $payment->rrr_number ?? 'Unavailable' }}</b></div>
                     <div class="box"><span>QR Status</span><b>{{ $token->status ?? 'Not generated' }}</b></div>
                     <div class="box"><span>Token</span><b>{{ $token->token_id ?? 'Unavailable' }}</b></div>
                     <div class="box"><span>Generated</span><b>{{ now()->format('d M Y, H:i') }}</b></div>

@@ -28,7 +28,9 @@
                         <th>Declared</th>
                         <th>Confirmed</th>
                         <th>Status</th>
+                        <th>QR</th>
                         <th>Verified</th>
+                        <th>Actions</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -43,7 +45,9 @@
                             <td data-label="Declared">₦{{ number_format((float) $payment->amount_declared, 2) }}</td>
                             <td data-label="Confirmed">₦{{ number_format((float) $payment->amount_confirmed, 2) }}</td>
                             <td data-label="Status"><span class="badge green">Verified</span></td>
+                            <td data-label="QR"><span class="badge {{ $payment->token_status ? 'green' : 'yellow' }}">{{ $payment->token_status ?: 'Pending' }}</span></td>
                             <td data-label="Verified">{{ $payment->verified_at ? Carbon::parse($payment->verified_at)->format('d M Y, H:i') : 'Unavailable' }}</td>
+                            <td data-label="Actions"><a class="text-link" href="{{ route('admin.payments.show', $payment->payment_id) }}">View</a></td>
                         </tr>
                     @endforeach
                 </tbody>
